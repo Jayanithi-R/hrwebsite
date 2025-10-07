@@ -1,18 +1,21 @@
 import './App.css';
 import { Box, Grid, Stack } from '@mui/material';
-import Sidebar from './components/Sidebar';
-import Topbar from './components/Topbar';
-import AttendanceReport from './components/AttendanceReport';
-import TasksList from './components/TasksList';
-import Schedule from './components/Schedule';
+// import Sidebar from './components/attendance-sidebar';
+import header from './components/header';
+import AttendanceReport from './components/attendance';
+import TasksList from './components/Tasks';
+import Schedule from './components/schedule-pannel';
 import LeaveRequests from './components/LeaveRequests';
-import Meetings from './components/Meetings';
-import Internship from './components/Internship';
+// import Meetings from './components/Meetings';
+import Internship from './components/internship-card';
+import  Header  from './components/header';
+import  StatsCard  from './components/StatsCard';
+
 
 function App() {
   return (
     <Box sx={{ display: 'flex', minHeight: '100vh' }}>
-      <Sidebar />
+      <Header />
       <Box sx={{ flex: 1, p: 3 }}>
         <Topbar />
         <Grid container spacing={3}>
