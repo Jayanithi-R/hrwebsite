@@ -1,45 +1,26 @@
 import './App.css';
-import { Box, Grid, Stack } from '@mui/material';
-// import Sidebar from './components/attendance-sidebar';
-import header from './components/header';
-import AttendanceReport from './components/attendance';
-import TasksList from './components/Tasks';
-import Schedule from './components/schedule-pannel';
-import LeaveRequests from './components/LeaveRequests';
-// import Meetings from './components/Meetings';
-import Internship from './components/internship-card';
-import  Header  from './components/header';
-import  StatsCard  from './components/StatsCard';
+import { Box } from '@mui/material';
 
+// Components
+import Header from './components/header';
+import Dashboard from './components/desktop';
+import Sidebar from './components/sidebar';
 
 function App() {
   return (
-    <Box sx={{ display: 'flex', minHeight: '100vh' }}>
-      <Header />
-      <Box sx={{ flex: 1, p: 3 }}>
-        <Grid container spacing={3}>
-          <Grid item xs={12} md={8}>
-            <Stack spacing={3}>
-              <AttendanceReport />
-              <LeaveRequests />
-            </Stack>
-          </Grid>
-          <Grid item xs={12} md={4}>
-            <Stack spacing={3}>
-              <TasksList />
-              <Schedule />
-              <Internship />
-            </Stack>
-          </Grid>
-          <Grid item xs={12}>
-            <Meetings />
-          </Grid>
-        </Grid>
+    <Box sx={{ display: 'flex', minHeight: '100vh', backgroundColor: '#f9fafb' }}>
+      {/* Sidebar */}
+      <Sidebar />
+
+      {/* Main Content Area */}
+      <Box sx={{ flexGrow: 1, marginLeft: '260px', display: 'flex', flexDirection: 'column' }}>
+        <Header />
+        <Box sx={{ padding: '24px' }}>
+          <Dashboard />
+        </Box>
       </Box>
     </Box>
   );
-}
-
 }
 
 export default App;

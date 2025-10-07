@@ -1,59 +1,236 @@
-import React from "react";
-import { Button } from "./ui/button"; // Adjust the path as per your project
-import { Bell, Search } from "lucide-react";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "./ui/dialog"; // Adjust the path
-import { Input } from "./ui/input"; // Adjust the path
+"use client";
 
-export function Header() {
+import React, { useState } from "react";
+import { Bell, Search, Menu, X } from "lucide-react";
+
+function TopNavbar() {
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  const isDesktop = window.innerWidth >= 640;
+
   return (
-    <header className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 bg-white shadow-sm gap-4">
-      <div>
-        <h1 className="text-xl md:text-2xl font-bold">Welcome back, Juwita 👋</h1>
-        <p className="text-sm text-muted-foreground">
-          Here's what's happening with your team today.
-        </p>
+    <div
+      style={{
+        width: "100%",
+        backgroundColor: "white",
+        boxShadow: "0 1px 2px rgba(0,0,0,0.1)",
+        padding: "20px 35px",
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        position: "relative",
+      }}
+    >
+      {/* Left: Avatar + Greeting */}
+      <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+        <img
+          src="https://via.placeholder.com/40"
+          alt="Avatar"
+          style={{ width: "40px", height: "40px", borderRadius: "50%" }}
+        />
+        {isDesktop && (
+          <div style={{ display: "flex", flexDirection: "column" }}>
+            <p
+              style={{
+                fontWeight: 600,
+                color: "#1f2937",
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                margin: 0
+              }}
+            >
+              Juwita
+            </p>
+            <p
+              style={{
+                fontSize: "0.875rem",
+                color: "#6b7280",
+                display: "flex",
+                alignItems: "center",
+                gap: "4px",
+                margin: 0
+              }}
+            >
+              Welcome back to HRsync <span>👋</span>
+            </p>
+          </div>
+        )}
       </div>
 
-      <div className="flex items-center space-x-2">
-        {/* Search Dialog */}
-        <Dialog>
-          <DialogTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-9 w-9">
-              <Search className="h-5 w-5" />
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Search</DialogTitle>
-              <DialogDescription>
-                Search for employees, departments, and more.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input placeholder="Search..." className="pl-10" />
-            </div>
-          </DialogContent>
-        </Dialog>
-
-        {/* Notification */}
-        <div className="relative">
-          <Button variant="ghost" size="icon" className="h-9 w-9">
-            <Bell className="h-5 w-5" />
-          </Button>
-          <span className="absolute top-2 right-2 flex h-2 w-2">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-destructive opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-destructive"></span>
-          </span>
+      {/* Right: Desktop buttons */}
+      {isDesktop && (
+        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+          <button
+            aria-label="Search"
+            style={{
+              padding: "8px",
+              borderRadius: "50%",
+              backgroundColor: "transparent",
+              border: "none",
+              cursor: "pointer",
+            }}
+          >
+            <Search size={18} />
+          </button>
+          <button
+            aria-label="Notifications"
+            style={{
+              padding: "8px",
+              borderRadius: "50%",
+              backgroundColor: "transparent",
+              border: "none",
+              cursor: "pointer",
+              position: "relative",
+            }}
+          >
+            <Bell size={18} />
+            <span
+              style={{
+                position: "absolute",
+                top: "4px",
+                right: "4px",
+                width: "8px",
+                height: "8px",
+                backgroundColor: "red",
+                borderRadius: "50%",
+              }}
+            />
+          </button>
+          <button
+            style={{
+              padding: "8px 16px",
+              border: "1px solid #d1d5db",
+              borderRadius: "6px",
+              backgroundColor: "white",
+              color: "#374151",
+              cursor: "pointer",
+            }}
+          >
+            Schedule
+          </button>
+          <button
+            style={{
+              padding: "8px 16px",
+              borderRadius: "6px",
+              backgroundColor: "#2563eb",
+              color: "white",
+              border: "none",
+              cursor: "pointer",
+            }}
+          >
+            Create Request
+          </button>
         </div>
-      </div>
-    </header>
+      )}
+
+      {/* Mobile menu toggle */}
+      {!isDesktop && (
+        <div style={{ display: "flex", alignItems: "center" }}>
+          <button
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            aria-label="Toggle menu"
+            style={{
+              padding: "8px",
+              borderRadius: "6px",
+              backgroundColor: "transparent",
+              border: "none",
+              cursor: "pointer",
+            }}
+          >
+            {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+          </button>
+        </div>
+      )}
+
+      {/* Mobile menu dropdown */}
+      {mobileMenuOpen && !isDesktop && (
+        <div
+          style={{
+            position: "absolute",
+            top: "100%",
+            right: 0,
+            marginTop: "8px",
+            width: "192px",
+            backgroundColor: "white",
+            boxShadow: "0 4px 6px rgba(0,0,0,0.1)",
+            borderRadius: "6px",
+            display: "flex",
+            flexDirection: "column",
+            padding: "8px",
+            gap: "8px",
+            zIndex: 50,
+          }}
+        >
+          <button
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+              padding: "8px",
+              borderRadius: "6px",
+              backgroundColor: "transparent",
+              border: "none",
+              cursor: "pointer",
+            }}
+          >
+            <Search size={16} /> Search
+          </button>
+          <button
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+              padding: "8px",
+              borderRadius: "6px",
+              backgroundColor: "transparent",
+              border: "none",
+              cursor: "pointer",
+              position: "relative",
+            }}
+          >
+            <Bell size={16} />
+            <span
+              style={{
+                position: "absolute",
+                top: "4px",
+                right: "4px",
+                width: "8px",
+                height: "8px",
+                backgroundColor: "red",
+                borderRadius: "50%",
+              }}
+            />
+            Notifications
+          </button>
+          <button
+            style={{
+              padding: "8px 16px",
+              border: "1px solid #d1d5db",
+              borderRadius: "6px",
+              backgroundColor: "white",
+              color: "#374151",
+              cursor: "pointer",
+            }}
+          >
+            Schedule
+          </button>
+          <button
+            style={{
+              padding: "8px 16px",
+              borderRadius: "6px",
+              backgroundColor: "#2563eb",
+              color: "white",
+              border: "none",
+              cursor: "pointer",
+            }}
+          >
+            Create Request
+          </button>
+        </div>
+      )}
+    </div>
   );
 }
+
+export default TopNavbar;
