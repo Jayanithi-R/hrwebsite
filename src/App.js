@@ -17,7 +17,6 @@ function App() {
     <Box sx={{ display: 'flex', minHeight: '100vh' }}>
       <Header />
       <Box sx={{ flex: 1, p: 3 }}>
-        <Topbar />
         <Grid container spacing={3}>
           <Grid item xs={12} md={8}>
             <Stack spacing={3}>
@@ -39,6 +38,8 @@ function App() {
       </Box>
     </Box>
   );
+}
+
 }
 
 export default App;
