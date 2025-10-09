@@ -1,6 +1,10 @@
 import React from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 
 const Sidebar = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
+
   const styles = {
     container: {
       width: "260px",
@@ -139,8 +143,18 @@ const Sidebar = () => {
         {/* Main Navigation */}
         <div style={styles.sectionTitle}>MAIN</div>
         <div>
-          <div style={styles.navItem(true)}>🏠 Dashboard</div>
-          <div style={styles.navItem()}>📅 Schedule</div>
+          <div
+            style={styles.navItem(location.pathname === "/")}
+            onClick={() => navigate("/")}
+          >
+            🏠 Dashboard
+          </div>
+          <div
+            style={styles.navItem(location.pathname === "/schedule")}
+            onClick={() => navigate("/schedule")}
+          >
+            📅 Schedule
+          </div>
           <div style={styles.navItem()}>👤 Attendance</div>
           <div style={styles.navItem()}>🎁 Departments</div>
           <div style={styles.navItem()}>🔗 Integrations</div>

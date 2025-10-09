@@ -3,10 +3,10 @@ import React, { useState, useEffect } from "react";
 // Placeholder data
 const dashboardData = {
   attendance: [
-    { name: "Gordon Paucek", role: "Finance", status: "Absent" },
-    { name: "Nora Kreiger", role: "Product Manager", status: "Sick" },
-    { name: "Amber Wolf", role: "UI/UX Designer", status: "WFH" },
-    { name: "Alonzo Sauer", role: "SQA", status: "Present" },
+    { name: "Gordon Paucek", role: "Finance", status: "Absent", avatar: "https://i.pravatar.cc/40?img=1" },
+    { name: "Nora Kreiger", role: "Product Manager", status: "Sick", avatar: "https://i.pravatar.cc/40?img=2" },
+    { name: "Amber Wolf", role: "UI/UX Designer", status: "WFH", avatar: "https://i.pravatar.cc/40?img=3" },
+    { name: "Alonzo Sauer", role: "SQA", status: "Present", avatar: "https://i.pravatar.cc/40?img=4" },
   ],
   tasks: [
     { title: "Update Payroll Records", priority: "Pending", due: "Today" },
@@ -14,12 +14,16 @@ const dashboardData = {
     { title: "Review Leave Applications", priority: "Important", due: "Yesterday" },
   ],
   leaveRequests: [
-    { name: "Bobby Gibson", type: "Annual Leave", range: "Aug 21 - Sep 04", status: "Pending" },
-    { name: "Yvonne Hartmann", type: "Sick Leave", range: "Aug 02 - Aug 18", status: "Pending" },
-    { name: "Russell Bartell", type: "Annual Leave", range: "June 24 - July 03", status: "Approved" },
-    { name: "Pearl Franecki", type: "Annual Leave", range: "June 04 - June 28", status: "Approved" },
+    { name: "Bobby Gibson", type: "Annual Leave", range: "Aug 21 - Sep 04", status: "Pending", avatar: "https://i.pravatar.cc/40?img=5" },
+    { name: "Yvonne Hartmann", type: "Sick Leave", range: "Aug 02 - Aug 18", status: "Pending", avatar: "https://i.pravatar.cc/40?img=6" },
+    { name: "Russell Bartell", type: "Annual Leave", range: "June 24 - July 03", status: "Approved", avatar: "https://i.pravatar.cc/40?img=7" },
+    { name: "Pearl Franecki", type: "Annual Leave", range: "June 04 - June 28", status: "Approved", avatar: "https://i.pravatar.cc/40?img=8" },
   ],
   interns: { total: 8, attendance: 6 },
+  schedule: [
+    { title: "Meeting Mitra 2025", time: "09:00 - 9:45 AM", team: "Product Team", link: "Zoom" },
+    { title: "Meeting Ops", time: "10:00 - 11:00 AM", team: "Operations Team", link: "Slack" },
+  ],
 };
 
 // Color codes
@@ -68,37 +72,78 @@ const HRDashboard = () => {
     fontWeight: "500",
   });
 
-  const header = { fontSize: "16px", fontWeight: "600", marginBottom: "12px" };
+  const headerContainer = {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: "14px",
+  };
+
+  const header = { fontSize: "16px", fontWeight: "600" };
+
+  const seeAllButton = {
+    fontSize: "13px",
+    color: "#2563eb",
+    cursor: "pointer",
+    border: "1px solid #2563eb",
+    background: "none",
+    padding: "4px 10px",
+    borderRadius: "6px",
+    fontWeight: "500",
+  };
+
+  const addButton = {
+    display: "flex",
+    alignItems: "center",
+    gap: "5px",
+    fontSize: "13px",
+    color: "#fff",
+    background: "#2563eb",
+    border: "none",
+    padding: "6px 10px",
+    borderRadius: "6px",
+    fontWeight: "500",
+    cursor: "pointer",
+  };
 
   return (
     <div style={layoutStyle}>
       {/* Attendance */}
       <div style={card}>
-        <h3 style={header}>Attendance Report</h3>
-        <div>
-          {dashboardData.attendance.map((a, i) => (
-            <div
-              key={i}
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                marginBottom: "8px",
-              }}
-            >
+        <div style={headerContainer}>
+          <h3 style={header}>Attendance Report</h3>
+          <button style={seeAllButton}>See All</button>
+        </div>
+        {dashboardData.attendance.map((a, i) => (
+          <div
+            key={i}
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginBottom: "10px",
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+              <img src={a.avatar} alt={a.name} style={{ width: 35, height: 35, borderRadius: "50%" }} />
               <div>
                 <strong>{a.name}</strong>
                 <div style={{ fontSize: "13px", color: "#666" }}>{a.role}</div>
               </div>
-              <span style={badge(a.status)}>{a.status}</span>
             </div>
-          ))}
-        </div>
+            <span style={badge(a.status)}>{a.status}</span>
+          </div>
+        ))}
       </div>
 
       {/* Tasks */}
       <div style={card}>
-        <h3 style={header}>Tasks</h3>
+        <div style={headerContainer}>
+          <h3 style={header}>Tasks</h3>
+          <button style={addButton}>
+            <span style={{ fontSize: "16px", fontWeight: "bold" }}>+</span> Add Task
+          </button>
+        </div>
         <ul style={{ listStyle: "none", padding: 0 }}>
           {dashboardData.tasks.map((t, i) => (
             <li
@@ -121,14 +166,68 @@ const HRDashboard = () => {
       </div>
 
       {/* Schedule */}
-      <div style={card}>
-        <h3 style={header}>Schedule</h3>
-        <p style={{ color: "#666", fontSize: "14px" }}>Upcoming meetings & events</p>
+      <div
+        style={{
+          background: "#fff",
+          borderRadius: "8px",
+          padding: "15px",
+          boxShadow: "0 2px 4px rgba(0, 0, 0, 0.1)",
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginBottom: "10px",
+          }}
+        >
+          <h3 style={{ fontSize: "16px", color: "#333", margin: 0 }}>Schedule</h3>
+          <button
+            style={{
+              background: "none",
+              border: "1px solid #ccc",
+              borderRadius: "4px",
+              padding: "5px 10px",
+              fontSize: "12px",
+              cursor: "pointer",
+            }}
+          >
+            See All
+          </button>
+        </div>
+        <p style={{ color: "#666", fontSize: "14px", margin: "0 0 10px 0" }}>
+          Upcoming meetings & events
+        </p>
+        <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+          {dashboardData.schedule.map((s, i) => (
+            <div
+              key={i}
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                fontSize: "13px",
+                color: "#666",
+              }}
+            >
+              <div>
+                <strong>{s.title}</strong>
+                <div style={{ fontSize: "12px" }}>{s.time}</div>
+              </div>
+              <span style={{ fontSize: "12px", marginLeft: "10px" }}>{s.link}</span>
+              <span style={{ fontSize: "12px", marginLeft: "10px" }}>{s.team}</span>
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* Leave Requests */}
       <div style={{ ...card, gridColumn: isMobile ? "1" : "span 2" }}>
-        <h3 style={header}>Leave Requests</h3>
+        <div style={headerContainer}>
+          <h3 style={header}>Leave Requests</h3>
+          <button style={seeAllButton}>See All</button>
+        </div>
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "14px" }}>
           <thead>
             <tr style={{ textAlign: "left", color: "#666" }}>
@@ -141,7 +240,17 @@ const HRDashboard = () => {
           <tbody>
             {dashboardData.leaveRequests.map((lr, i) => (
               <tr key={i} style={{ borderTop: "1px solid #eee" }}>
-                <td style={{ padding: "8px 0" }}>{lr.name}</td>
+                <td
+                  style={{
+                    padding: "8px 0",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "10px",
+                  }}
+                >
+                  <img src={lr.avatar} alt={lr.name} style={{ width: 30, height: 30, borderRadius: "50%" }} />
+                  {lr.name}
+                </td>
                 <td>{lr.type}</td>
                 <td>{lr.range}</td>
                 <td>
@@ -154,7 +263,7 @@ const HRDashboard = () => {
       </div>
 
       {/* Internship */}
-      <div style={card}>
+      <div style={{ ...card, gridColumn: isMobile ? "1" : "3 / 4", gridRow: isMobile ? "5" : "span 2" }}>
         <h3 style={header}>Internship</h3>
         <p style={{ fontSize: "14px" }}>
           Total Interns: <strong>{dashboardData.interns.total}</strong>
@@ -171,6 +280,7 @@ const HRDashboard = () => {
             borderRadius: "8px",
             marginTop: "10px",
             cursor: "pointer",
+            width: "100%",
           }}
         >
           View Progress
