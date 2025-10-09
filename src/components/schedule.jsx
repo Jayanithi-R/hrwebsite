@@ -3,9 +3,9 @@ import ReactDOM from "react-dom/client";
 
 function Schedule() {
   const [events, setEvents] = useState([
-    { id: 1, title: "Fix bug in login page", status: "To Do", assigned: "HR", start: "2025-10-05", due: "2025-10-10", description: "", subtasks: [], links: [], files: [], updates: [] },
-    { id: 2, title: "Write documentation", status: "In Progress", assigned: "HR", start: "2025-10-06", due: "2025-10-12", description: "", subtasks: [], links: [], files: [], updates: [] },
-    { id: 3, title: "Deploy to production", status: "Done", assigned: "HR", start: "2025-10-01", due: "2025-10-07", description: "", subtasks: [], links: [], files: [], updates: [] },
+    { id: 1, title: "Fix bug in login page", status: "To Do", assigned: "HR", priority: "Medium", start: "2025-10-05", due: "2025-10-10", description: "", subtasks: [], links: [], files: [], updates: [] },
+    { id: 2, title: "Write documentation", status: "In Progress", assigned: "HR", priority: "High", start: "2025-10-06", due: "2025-10-12", description: "", subtasks: [], links: [], files: [], updates: [] },
+    { id: 3, title: "Deploy to production", status: "Done", assigned: "HR", priority: "Medium", start: "2025-10-01", due: "2025-10-07", description: "", subtasks: [], links: [], files: [], updates: [] },
   ]);
 
   const [showForm, setShowForm] = useState(false);

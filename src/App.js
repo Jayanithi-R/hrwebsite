@@ -1,39 +1,26 @@
-import './App.css';
-import { Box } from '@mui/material';
-import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-
-// Components
-import Header from './components/header';
-import Dashboard from './components/desktop';
-import Sidebar from './components/sidebar';
-import Schedule from './components/schedule'; // ✅ correct import
+import React from "react";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import Sidebar from "./components/sidebar";
+import Desktop from "./components/desktop";
+// import Attendance from "./components/attendance";
+// import Sidebar from "./components/Sidebar";
+import Schedule from "./components/schedule";
 
 function App() {
   return (
     <Router>
-      <Box sx={{ display: 'flex', minHeight: '100vh', backgroundColor: '#f9fafb' }}>
-        {/* Sidebar */}
+      <div style={{ display: "flex" }}>
         <Sidebar />
-
-        {/* Main Content Area */}
-        <Box
-          sx={{
-            flexGrow: 1,
-            marginLeft: '260px',
-            display: 'flex',
-            flexDirection: 'column',
-          }}
-        >
-          <Header />
-          <Box sx={{ padding: '24px' }}>
-            <Routes>
-              <Route path="/" element={<Dashboard />} />
-              <Route path="/schedule" element={<Schedule />} />
-            </Routes>
-          </Box>
-        </Box>
-      </Box>
+        <div style={{ marginLeft: "260px", flex: 1 }}>
+          <Routes>
+            <Route path="/" element={<h1 style={{ padding: "2rem" }}>Dashboard</h1>} />
+            <Route path="/schedule" element={<Schedule />} />
+            {/* <Route path="/attendance" element={<Attendance />} /> */}
+            <Route path="/desktop" element={<Desktop />} />
+           
+          </Routes>
+        </div>
+      </div>
     </Router>
   );
 }
