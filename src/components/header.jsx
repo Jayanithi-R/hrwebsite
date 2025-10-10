@@ -106,9 +106,11 @@ function TopNavbar() {
               color: "#374151",
               cursor: "pointer",
             }}
+              // onClick={() => navigate("/schedule")}
           >
             Schedule
           </button>
+
           <button
             style={{
               padding: "8px 16px",
@@ -118,6 +120,7 @@ function TopNavbar() {
               border: "none",
               cursor: "pointer",
             }}
+              // onClick={() => navigate("/attendance")}
           >
             Create Request
           </button>

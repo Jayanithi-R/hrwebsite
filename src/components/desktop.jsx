@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import ReactDOM from "react-dom/client";
+import Header from "./header";
 // Placeholder data
 const dashboardData = {
   attendance: [
@@ -107,6 +108,8 @@ const HRDashboard = () => {
   };
 
   return (
+    <>
+    <Header />
     <div style={layoutStyle}>
       {/* Attendance */}
       <div style={card}>
@@ -287,6 +290,7 @@ const HRDashboard = () => {
         </button>
       </div>
     </div>
+    </>
   );
 };
 const root = ReactDOM.createRoot(document.getElementById("root"));

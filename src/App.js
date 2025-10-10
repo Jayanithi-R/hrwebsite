@@ -5,6 +5,9 @@ import Desktop from "./components/desktop";
 import Attendance from "./components/atttendance";
 import Schedule from "./components/schedule";
 
+
+
+
 function App() {
   return (
     <Router>
@@ -16,7 +19,7 @@ function App() {
             <Route path="/schedule" element={<Schedule />} />
             <Route path="/attendance" element={<Attendance />} /> 
             <Route path="/desktop" element={<Desktop />} />
-           
+            <Route path="/sidebar" element={<Sidebar />} />
           </Routes>
         </div>
       </div>

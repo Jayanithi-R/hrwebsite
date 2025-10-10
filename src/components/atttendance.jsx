@@ -1,11 +1,12 @@
 import { useState } from "react";
 import ReactDOM from "react-dom/client";
+import Header from "./header";
 
-    function Attendance() {
-      const [leaveRequests, setLeaveRequests] = useState([
-        { id: 1, employee: "John Doe", employeeId: 1, leaveType: "Sickness", from: "", to: "", status: "Pending" },
-        { id: 2, employee: "Jane Smith", employeeId: 2, leaveType: "Personal", from: "", to: "", status: "Pending" },
-      ]);
+function Attendance() {
+  const [leaveRequests, setLeaveRequests] = useState([
+    { id: 1, employee: "John Doe", employeeId: 1, leaveType: "Sickness", from: "10-10-2025", to: "12-10-2025", status: "Pending" },
+    { id: 2, employee: "Jane Smith", employeeId: 2, leaveType: "Personal", from: "23-10-2025", to: "25-10-2025", status: "Pending" },
+  ]);
       const [showForm, setShowForm] = useState(false);
       const [newRequest, setNewRequest] = useState({
         employee: "",
@@ -69,6 +70,9 @@ import ReactDOM from "react-dom/client";
       };
 
       return (
+        <>
+          <Header />
+        
         <div style={{ padding: "2rem", background: "#f9fafb", minHeight: "100vh" }}>
           <style>
             {`
@@ -177,6 +181,7 @@ import ReactDOM from "react-dom/client";
             </div>
           )}
         </div>
+        </>
       );
     }
 
