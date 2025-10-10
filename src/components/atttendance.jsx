@@ -17,13 +17,13 @@ function Attendance() {
     status: "Pending",
   });
   const [attendance, setAttendance] = useState([
-    { id: 1, employee: "John Doe", employeeId: 1, checkIn: "", checkOut: "", interval: "" },
-    { id: 2, employee: "Jane Smith", employeeId: 2, checkIn: "", checkOut: "", interval: "" },
-    { id: 3, employee: "Michael Brown", employeeId: 3, checkIn: "", checkOut: "", interval: "" },
-    { id: 4, employee: "Sarah Davis", employeeId: 4, checkIn: "", checkOut: "", interval: "" },
-    { id: 5, employee: "David Wilson", employeeId: 5, checkIn: "", checkOut: "", interval: "" },
-    { id: 6, employee: "Emily Johnson", employeeId: 6, checkIn: "", checkOut: "", interval: "" },
-    { id: 7, employee: "Robert Taylor", employeeId: 7, checkIn: "", checkOut: "", interval: "" },
+    { id: 1, employee: "John Doe", employeeId: 1, checkIn: "", breakStart: "", breakEnd: "", checkOut: "" },
+    { id: 2, employee: "Jane Smith", employeeId: 2, checkIn: "", breakStart: "", breakEnd: "", checkOut: "" },
+    { id: 3, employee: "Michael Brown", employeeId: 3, checkIn: "", breakStart: "", breakEnd: "", checkOut: "" },
+    { id: 4, employee: "Sarah Davis", employeeId: 4, checkIn: "", breakStart: "", breakEnd: "", checkOut: "" },
+    { id: 5, employee: "David Wilson", employeeId: 5, checkIn: "", breakStart: "", breakEnd: "", checkOut: "" },
+    { id: 6, employee: "Emily Johnson", employeeId: 6, checkIn: "", breakStart: "", breakEnd: "", checkOut: "" },
+    { id: 7, employee: "Robert Taylor", employeeId: 7, checkIn: "", breakStart: "", breakEnd: "", checkOut: "" },
   ]);
   const [userRole, setUserRole] = useState("Employee"); // Default role, can be "HR" or "Employee"
 
@@ -51,26 +51,12 @@ function Attendance() {
     }
   };
 
-  const handleCheckInOut = (id, type) => {
+  const handleCheckInOut = (id) => {
     const now = new Date().toLocaleTimeString();
     setAttendance((prev) =>
       prev.map((record) =>
         record.id === id
-          ? type === "checkIn"
-            ? { ...record, checkIn: now }
-            : { ...record, checkOut: now, }
-          : record
-      )
-    );
-  }; 
-
-
-   const handleBreak = (id, type) => {
-    const now = new Date().toLocaleTimeString();
-    setAttendance((prev) =>
-      prev.map((record) =>
-        record.id === id
-          ? type === "checkIn"
+          ? record.checkIn === ""
             ? { ...record, checkIn: now }
             : { ...record, checkOut: now }
           : record
@@ -78,15 +64,18 @@ function Attendance() {
     );
   };
 
-//   const calculateInterval = (checkIn, checkOut) => {
-//     if (!checkIn || !checkOut) return "";
-//     const inTime = new Date(`1970-01-01 ${checkIn}`);
-//     const outTime = new Date(`1970-01-01 ${checkOut}`);
-//     const diffMs = outTime - inTime;
-//     const hours = Math.floor(diffMs / (1000 * 60 * 60));
-//     const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
-//     return `${hours}h ${minutes}m`;
-//   };
+  const handleBreak = (id) => {
+    const now = new Date().toLocaleTimeString();
+    setAttendance((prev) =>
+      prev.map((record) =>
+        record.id === id
+          ? record.breakStart === ""
+            ? { ...record, breakStart: now }
+            : { ...record, breakEnd: now }
+          : record
+      )
+    );
+  };
 
   return (
     <>
@@ -128,7 +117,6 @@ function Attendance() {
                 <th>Break Start</th>
                 <th>Break End</th>
                 <th>Check Out</th>
-                {/* <th>Interval</th> */}
                 <th>Action</th>
               </tr>
             </thead>
@@ -143,10 +131,20 @@ function Attendance() {
                   <td>{record.breakStart}</td>
                   <td>{record.breakEnd}</td>
                   <td>{record.checkOut}</td>
-                  {/* <td>{record.interval}</td> */}
                   <td>
-                    <button onClick={() => handleCheckInOut(record.id, "checkIn")} style={{ marginRight: "0.5rem", padding: "0.25rem 0.75rem", background: "#4f46e5", color: "#fff", borderRadius: "0.25rem" }}>Check In</button>
-                    <button onClick={() => handleCheckInOut(record.id, "checkOut")} style={{ padding: "0.25rem 0.75rem", background: "#4f46e5", color: "#fff", borderRadius: "0.25rem" }}>Check Out</button>
+                    <button
+                      onClick={() => handleCheckInOut(record.id)}
+                      style={{ marginRight: "0.5rem", padding: "0.25rem 0.75rem", background: "#4f46e5", color: "#fff", borderRadius: "0.25rem" }}
+                    >
+                      {record.checkIn === "" ? "Check In" : "Check Out"}
+                    </button>
+                    <button
+                      onClick={() => handleBreak(record.id)}
+                      style={{ padding: "0.25rem 0.75rem", background: "#4f46e5", color: "#fff", borderRadius: "0.25rem" }}
+                      disabled={record.checkIn === "" || record.checkOut !== ""}
+                    >
+                      {record.breakStart === "" ? "Break Start" : "Break End"}
+                    </button>
                   </td>
                 </tr>
               ))}
