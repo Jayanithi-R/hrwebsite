@@ -159,8 +159,20 @@ function Schedule() {
 
   const [showForm, setShowForm] = useState(false);
   const [editTask, setEditTask] = useState(null);
-
   const [newTask, setNewTask] = useState({
+    title: "",
+    assignedBy: "HR",
+    assignedTo: "",
+    start: "",
+    due: "",
+    status: "To Do",
+    priority: "Medium",
+    description: "",
+    file: null,
+    githubLink: "",
+  });
+  const [subtaskFormTaskId, setSubtaskFormTaskId] = useState(null);
+  const [newSubtask, setNewSubtask] = useState({
     title: "",
     assignedBy: "HR",
     assignedTo: "",
@@ -276,6 +288,50 @@ function Schedule() {
     );
   };
 
+  // === Add Subtask ===
+  const handleAddSubtask = (taskId, e) => {
+    e.preventDefault();
+    if (!newSubtask.title || !newSubtask.assignedTo || !newSubtask.due) {
+      alert("Please fill all required fields");
+      return;
+    }
+    setEvents((prev) =>
+      prev.map((task) =>
+        task.id === taskId
+          ? {
+              ...task,
+              subtasks: [
+                ...task.subtasks,
+                {
+                  ...newSubtask,
+                  id: Date.now(),
+                  updates: [`Subtask created by ${newSubtask.assignedBy} on ${new Date().toLocaleDateString()}`],
+                },
+              ],
+            }
+          : task
+      )
+    );
+    setSubtaskFormTaskId(null);
+    setNewSubtask({
+      title: "",
+      assignedBy: "HR",
+      assignedTo: "",
+      start: "",
+      due: "",
+      status: "To Do",
+      priority: "Medium",
+      description: "",
+      file: null,
+      githubLink: "",
+    });
+  };
+
+  // === Toggle Subtask Form ===
+  const toggleSubtaskForm = (taskId) => {
+    setSubtaskFormTaskId(subtaskFormTaskId === taskId ? null : taskId);
+  };
+
   return (
     <>
       <div style={{ display: "flex", minHeight: "100vh" }}>
@@ -305,6 +361,7 @@ function Schedule() {
                   <th>Assignee</th>
                   <th>Due Date</th>
                   <th>Priority</th>
+                  <th></th>
                 </tr>
               </thead>
               <tbody>
@@ -328,11 +385,130 @@ function Schedule() {
                       <td>
                         <span style={{ display: "inline-block", width: "8px", height: "8px", borderRadius: "50%", background: getPriorityClasses(event.priority) }}></span>
                       </td>
+                      <td>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleSubtaskForm(event.id);
+                          }}
+                          style={{ background: "transparent", color: "#4f46e5", border: "none", cursor: "pointer" }}
+                        >
+                          ...
+                        </button>
+                      </td>
                     </tr>
+
+                    {/* Subtask Form */}
+                    {subtaskFormTaskId === event.id && (
+                      <tr>
+                        <td colSpan="5">
+                          <div style={{ background: "#333", padding: "1rem", borderRadius: "0.25rem", margin: "0.5rem 0" }}>
+                            <h3 style={{ fontSize: "0.875rem", marginBottom: "0.5rem" }}>Add Subtask</h3>
+                            <form onSubmit={(e) => handleAddSubtask(event.id, e)} style={formStyle}>
+                              <label>Subtask Title</label>
+                              <input
+                                type="text"
+                                value={newSubtask.title}
+                                onChange={(e) => setNewSubtask({ ...newSubtask, title: e.target.value })}
+                                required
+                                style={{ padding: "0.5rem", background: "#2d2d2d", color: "#fff", border: "1px solid #444", borderRadius: "0.25rem" }}
+                              />
+
+                              <label>Assigned By</label>
+                              <select
+                                value={newSubtask.assignedBy}
+                                onChange={(e) => setNewSubtask({ ...newSubtask, assignedBy: e.target.value })}
+                                style={{ padding: "0.5rem", background: "#2d2d2d", color: "#fff", border: "1px solid #444", borderRadius: "0.25rem" }}
+                              >
+                                <option value="HR">HR</option>
+                                <option value="Admin">Admin</option>
+                              </select>
+
+                              <label>Assigned To</label>
+                              <input
+                                type="text"
+                                value={newSubtask.assignedTo}
+                                onChange={(e) => setNewSubtask({ ...newSubtask, assignedTo: e.target.value })}
+                                required
+                                style={{ padding: "0.5rem", background: "#2d2d2d", color: "#fff", border: "1px solid #444", borderRadius: "0.25rem" }}
+                              />
+
+                              <label>Start Date</label>
+                              <input
+                                type="date"
+                                value={newSubtask.start}
+                                onChange={(e) => setNewSubtask({ ...newSubtask, start: e.target.value })}
+                                style={{ padding: "0.5rem", background: "#2d2d2d", color: "#fff", border: "1px solid #444", borderRadius: "0.25rem" }}
+                              />
+
+                              <label>Due Date</label>
+                              <input
+                                type="date"
+                                value={newSubtask.due}
+                                onChange={(e) => setNewSubtask({ ...newSubtask, due: e.target.value })}
+                                required
+                                style={{ padding: "0.5rem", background: "#2d2d2d", color: "#fff", border: "1px solid #444", borderRadius: "0.25rem" }}
+                              />
+
+                              <label>Status</label>
+                              <select
+                                value={newSubtask.status}
+                                onChange={(e) => setNewSubtask({ ...newSubtask, status: e.target.value })}
+                                style={{ padding: "0.5rem", background: "#2d2d2d", color: "#fff", border: "1px solid #444", borderRadius: "0.25rem" }}
+                              >
+                                <option value="To Do">To Do</option>
+                                <option value="In Progress">In Progress</option>
+                                <option value="Done">Done</option>
+                              </select>
+
+                              <label>Priority</label>
+                              <select
+                                value={newSubtask.priority}
+                                onChange={(e) => setNewSubtask({ ...newSubtask, priority: e.target.value })}
+                                style={{ padding: "0.5rem", background: "#2d2d2d", color: "#fff", border: "1px solid #444", borderRadius: "0.25rem" }}
+                              >
+                                <option value="Medium">Medium</option>
+                                <option value="High">High</option>
+                                <option value="Low">Low</option>
+                              </select>
+
+                              <label>Description</label>
+                              <textarea
+                                value={newSubtask.description}
+                                onChange={(e) => setNewSubtask({ ...newSubtask, description: e.target.value })}
+                                style={{ padding: "0.5rem", background: "#2d2d2d", color: "#fff", border: "1px solid #444", borderRadius: "0.25rem" }}
+                              />
+
+                              <label>Upload File</label>
+                              <input type="file" onChange={(e) => setNewSubtask({ ...newSubtask, file: e.target.files[0] })} />
+
+                              <label>GitHub Link</label>
+                              <input
+                                type="text"
+                                value={newSubtask.githubLink}
+                                onChange={(e) => setNewSubtask({ ...newSubtask, githubLink: e.target.value })}
+                                style={{ padding: "0.5rem", background: "#2d2d2d", color: "#fff", border: "1px solid #444", borderRadius: "0.25rem" }}
+                              />
+
+                              <div style={{ display: "flex", justifyContent: "space-between", marginTop: "1rem" }}>
+                                <button type="submit" style={{ background: "#4f46e5", color: "#fff", padding: "0.5rem 1rem", borderRadius: "0.25rem" }}>Add Subtask</button>
+                                <button
+                                  type="button"
+                                  onClick={() => setSubtaskFormTaskId(null)}
+                                  style={{ background: "#555", color: "#fff", padding: "0.5rem 1rem", borderRadius: "0.25rem" }}
+                                >
+                                  Cancel
+                                </button>
+                              </div>
+                            </form>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
 
                     {/* Subtasks */}
                     <tr>
-                      <td colSpan="4" style={{ padding: 0 }}>
+                      <td colSpan="5" style={{ padding: 0 }}>
                         <div style={{ maxHeight: "200px", overflowY: "auto" }}>
                           {event.subtasks.map((s) => (
                             <div key={s.id} style={{ display: "flex", alignItems: "center", padding: "0.5rem 1rem", borderTop: "1px solid #444" }}>
@@ -378,35 +554,6 @@ function Schedule() {
                             </div>
                           ))}
                         </div>
-                      </td>
-                    </tr>
-
-                    {/* Add Subtask Button */}
-                    <tr>
-                      <td colSpan="4">
-                        <button
-                          onClick={() => {
-                            const newSubtask = {
-                              id: Date.now(),
-                              title: "",
-                              description: "",
-                              status: "To Do",
-                              priority: "Medium",
-                              file: null,
-                              githubLink: "",
-                              due: "",
-                              assignedTo: "",
-                            };
-                            setEvents((prev) =>
-                              prev.map((task) =>
-                                task.id === event.id ? { ...task, subtasks: [...task.subtasks, newSubtask] } : task
-                              )
-                            );
-                          }}
-                          style={{ background: "transparent", color: "#4f46e5", padding: "0.5rem", border: "none", cursor: "pointer" }}
-                        >
-                          + Add Subtask
-                        </button>
                       </td>
                     </tr>
                   </React.Fragment>

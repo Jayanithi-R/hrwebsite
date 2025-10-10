@@ -38,7 +38,7 @@ function Attendance() {
       alert("Please fill all required fields");
       return;
     }
-    setLeaveRequests([...leaveRequests, { ...newRequest, id: leaveRequests.length + 1 }]);
+    setLeaveRequests([...leaveRequests, { ...newRequest, id: leaveRequests.length + 1, status: "Pending" }]);
     setShowForm(false);
     setNewRequest({ employee: "", employeeId: "", leaveType: "Sickness", from: "", to: "", status: "Pending" });
   };
