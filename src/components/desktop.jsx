@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-
+import ReactDOM from "react-dom/client";
 // Placeholder data
 const dashboardData = {
   attendance: [
@@ -289,5 +289,7 @@ const HRDashboard = () => {
     </div>
   );
 };
+const root = ReactDOM.createRoot(document.getElementById("root"));
+    root.render(<HRDashboard />);
 
 export default HRDashboard;
