@@ -6,7 +6,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Header from './components/header';
 import Sidebar from './components/sidebar';
 import Dashboard from './components/desktop';
-// import Schedule from './components/schedule';
+import Schedule from './components/schedule';
 // import Attendance from './components/attendance';
 // import Departments from './components/departments';
 // import Integrations from './components/integrations';
@@ -22,7 +22,7 @@ function App() {
           <Box sx={{ padding: '24px' }}>
             <Routes>
               <Route path="/" element={<Dashboard />} />
-              {/* <Route path="/schedule" element={<Schedule />} /> */}
+              <Route path="/schedule" element={<Schedule />} />
               {/* <Route path="/attendance" element={<Attendance />} />
               <Route path="/departments" element={<Departments />} />
               <Route path="/integrations" element={<Integrations />} />
