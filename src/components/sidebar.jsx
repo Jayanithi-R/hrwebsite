@@ -171,7 +171,9 @@ export default function Sidebar() {
     { name: "Dashboard", icon: "🏠", path: "/" },
     { name: "Schedule", icon: "📅", path: "/schedule" },
     { name: "Attendance", icon: "👤", path: "/attendance" },
-    { name: "Reports", icon: "📊", path: "/reports" },
+    // { name: "Departments", icon: "🎁", path: "/Departments" },
+    // { name: "Attendance", icon: "🔗", path: "/Integrations" },
+    // { name: "Reports", icon: "📊", path: "/reports" }, 
   ];
 
   return (
