@@ -1,5 +1,5 @@
-{ /* No changes made; reusing the provided code as it satisfies the requirement */ }
-{ /* The artifact_id and version_id are retained as they were in the last update */ }
+// { /* No changes made; reusing the provided code as it satisfies the requirement */ }-
+// { /* The artifact_id and version_id are retained as they were in the last update */ }
 import { useState } from "react";
 import ReactDOM from "react-dom/client";
 import Header from "./header";

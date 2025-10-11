@@ -4,7 +4,7 @@ import Sidebar from "./components/sidebar";
 import Desktop from "./components/desktop";
 import Attendance from "./components/atttendance";
 import Schedule from "./components/schedule";
-
+import Login from "./components/loginpage";
 
 
 
@@ -12,7 +12,7 @@ function App() {
   return (
     <Router>
       <div style={{ display: "flex" }}>
-        <Sidebar />
+        {/* <Sidebar /> */}
         <div style={{ marginLeft: "260px", flex: 1 }}>
           <Routes>
             <Route path="/" element={<Desktop />} />
@@ -20,6 +20,7 @@ function App() {
             <Route path="/attendance" element={<Attendance />} /> 
             <Route path="/desktop" element={<Desktop />} />
             <Route path="/sidebar" element={<Sidebar />} />
+            <Route path="/login" element={<Login />} />
           </Routes>
         </div>
       </div>
