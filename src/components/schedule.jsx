@@ -15,46 +15,49 @@ import {
 
 export default function CourseDashboardEnhanced() {
   const sample = [];
-
   const [tasks, setTasks] = useState(sample);
   const [view, setView] = useState(0);
   const [addingTop, setAddingTop] = useState(false);
+  const [addingEvent, setAddingEvent] = useState(false);
+
   const [newName, setNewName] = useState("");
   const [newStart, setNewStart] = useState("");
   const [newDue, setNewDue] = useState("");
+
+  const [newEventName, setNewEventName] = useState("");
+  const [newEventDate, setNewEventDate] = useState("");
+  const [newEventType, setNewEventType] = useState("Meeting");
+
   const [editing, setEditing] = useState({});
   const [filterPriority, setFilterPriority] = useState("All");
   const [newSubtaskNames, setNewSubtaskNames] = useState({});
   const [newSubtaskDates, setNewSubtaskDates] = useState({});
+
   const [currentMonth, setCurrentMonth] = useState(new Date().getMonth());
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
+
   const priorities = ["High", "Medium", "Low"];
   const priorityColors = { High: "#f87171", Medium: "#facc15", Low: "#4ade80" };
+  const eventColors = { Meeting: "#fbbf24", Event: "#34d399" };
   const uid = () => Math.floor(Math.random() * 1000000);
   const inputRef = useRef(null);
 
-  // --- NEW: Meetings/Events ---
   const [events, setEvents] = useState([]);
-  const [addingEvent, setAddingEvent] = useState(false);
-  const [newEventName, setNewEventName] = useState("");
-  const [newEventDate, setNewEventDate] = useState("");
-  const eventColors = { Meeting: "#fbbf24", Event: "#34d399" };
-  const [newEventType, setNewEventType] = useState("Meeting");
 
   useEffect(() => { if (addingTop && inputRef.current) inputRef.current.focus(); }, [addingTop]);
 
   const addTask = (parentId = null) => {
     const name = parentId ? newSubtaskNames[parentId] : newName;
     if (!name.trim()) return;
-    const t = { 
-      id: uid(), 
-      name: name.trim(), 
-      assignee: "", 
+    const t = {
+      id: uid(),
+      name: name.trim(),
+      assignee: "",
       start: parentId ? newSubtaskDates[parentId]?.start || "" : newStart,
       due: parentId ? newSubtaskDates[parentId]?.due || "" : newDue,
-      priority: "Low", 
-      expanded: false, 
-      subtasks: [] 
+      priority: "Low",
+      expanded: false,
+      subtasks: []
     };
     if (parentId === null) {
       setTasks(s => [t, ...s]);
@@ -86,18 +89,15 @@ export default function CourseDashboardEnhanced() {
   };
 
   const toggleExpand = (id) => setTasks(s => s.map(t => t.id === id ? { ...t, expanded: !t.expanded } : t));
-
   const filteredTasks = tasks.filter(t => filterPriority === "All" || t.priority === filterPriority);
 
-  const monthNames = ["January","February","March","April","May","June","July","August","September","October","November","December"];
-
+  const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
   const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
   const firstDay = new Date(currentYear, currentMonth, 1).getDay();
   const calendar = [];
   for (let i = 0; i < firstDay; i++) calendar.push(null);
   for (let d = 1; d <= daysInMonth; d++) calendar.push(d);
 
-  // --- Tasks only on due date ---
   const tasksByDay = {};
   filteredTasks.forEach(t => {
     const allTasks = [t, ...t.subtasks];
@@ -109,7 +109,6 @@ export default function CourseDashboardEnhanced() {
     });
   });
 
-  // --- Events by date ---
   const eventsByDay = {};
   events.forEach(e => {
     if (!e.date) return;
@@ -171,8 +170,22 @@ export default function CourseDashboardEnhanced() {
     </div>
   );
 
+  // --- DIALOG COMPONENT ---
+  const Dialog = ({ visible, onClose, title, children }) => {
+    if (!visible) return null;
+    return (
+      <div style={{ position: "fixed", top: 0, left: 0, width: "100%", height: "100%", background: "#00000066", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 999 }}>
+        <div style={{ background: "#fff", borderRadius: 8, padding: 20, minWidth: 300, maxWidth: 400, width: "90%" }}>
+          <div style={{ fontWeight: 600, marginBottom: 12 }}>{title}</div>
+          {children}
+          <button onClick={onClose} style={{ marginTop: 12, padding: "6px 12px", background: "#e5e7eb", border: "none", borderRadius: 4, cursor: "pointer" }}>Close</button>
+        </div>
+      </div>
+    );
+  };
+
   return (
-    <div style={{ minHeight: "100vh", fontFamily: "Inter, Roboto, Arial, sans-serif", }}>
+    <div style={{ minHeight: "100vh", fontFamily: "Inter, Roboto, Arial, sans-serif" }}>
       <div style={{ margin: "0 auto", background: "#fff", borderRadius: 8, padding: 12 }}>
         {/* Header */}
         <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center", gap: 12, marginBottom: 12 }}>
@@ -184,35 +197,9 @@ export default function CourseDashboardEnhanced() {
               <option>All</option>
               {priorities.map(p => <option key={p}>{p}</option>)}
             </select>
-            <button onClick={() => setAddingTop(a => !a)} style={{ padding: "6px 12px", cursor: "pointer", background: "#4f46e5", color: "#fff", border: "none", borderRadius: 4 }}><Plus size={14} /> Add Task</button>
-            <button onClick={() => setAddingEvent(a => !a)} style={{ padding: "6px 12px", cursor: "pointer", background: "#22c55e", color: "#fff", border: "none", borderRadius: 4 }}><Plus size={14} /> Add Event</button>
+            <button onClick={() => setAddingTop(true)} style={{ padding: "6px 12px", cursor: "pointer", background: "#4f46e5", color: "#fff", border: "none", borderRadius: 4 }}><Plus size={14} /> Add Task/Remainder</button>
           </div>
         </div>
-
-        {/* Add Top Task */}
-        {addingTop && (
-          <div style={{ marginBottom: 10, display: "flex", gap: 8, flexWrap: "wrap" }}>
-            <input ref={inputRef} style={{ padding: 6, borderRadius: 6, border: "1px solid #e6e9ef", flex: 1 }} placeholder="Task name" value={newName} onChange={e => setNewName(e.target.value)} />
-            <input type="date" style={{ padding: 6, borderRadius: 6, border: "1px solid #e6e9ef" }} value={newStart} onChange={e => setNewStart(e.target.value)} />
-            <input type="date" style={{ padding: 6, borderRadius: 6, border: "1px solid #e6e9ef" }} value={newDue} onChange={e => setNewDue(e.target.value)} />
-            <button style={{ padding: "6px 12px", cursor: "pointer", background: "#4f46e5", color: "#fff", border: "none", borderRadius: 4 }} onClick={() => addTask()}>Add</button>
-            <button style={{ padding: "6px 12px", cursor: "pointer", background: "#e5e7eb", color: "#000", border: "none", borderRadius: 4 }} onClick={() => { setAddingTop(false); setNewName(""); setNewStart(""); setNewDue(""); }}>Cancel</button>
-          </div>
-        )}
-
-        {/* Add Event */}
-        {addingEvent && (
-          <div style={{ marginBottom: 10, display: "flex", gap: 8, flexWrap: "wrap" }}>
-            <input style={{ padding: 6, borderRadius: 6, border: "1px solid #e6e9ef", flex: 1 }} placeholder="Event name" value={newEventName} onChange={e => setNewEventName(e.target.value)} />
-            <input type="date" style={{ padding: 6, borderRadius: 6, border: "1px solid #e6e9ef" }} value={newEventDate} onChange={e => setNewEventDate(e.target.value)} />
-            <select value={newEventType} onChange={e => setNewEventType(e.target.value)} style={{ padding: 6, borderRadius: 4, border: "1px solid #e6e9ef" }}>
-              <option>Meeting</option>
-              <option>Event</option>
-            </select>
-            <button style={{ padding: "6px 12px", cursor: "pointer", background: "#22c55e", color: "#fff", border: "none", borderRadius: 4 }} onClick={addEvent}>Add</button>
-            <button style={{ padding: "6px 12px", cursor: "pointer", background: "#e5e7eb", color: "#000", border: "none", borderRadius: 4 }} onClick={() => setAddingEvent(false)}>Cancel</button>
-          </div>
-        )}
 
         {/* List View */}
         {view === 0 && filteredTasks.map(task => renderTask(task))}
@@ -226,7 +213,7 @@ export default function CourseDashboardEnhanced() {
               <button onClick={() => changeMonth(1)} style={{ border: "none", background: "transparent", cursor: "pointer" }}><ArrowRight /></button>
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(7, minmax(80px, 1fr))", gap: 4 }}>
-              {["Sun","Mon","Tue","Wed","Thu","Fri","Sat"].map(day => (
+              {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map(day => (
                 <div key={day} style={{ fontWeight: 700, textAlign: "center", padding: 4 }}>{day}</div>
               ))}
               {calendar.map((day, idx) => {
@@ -237,7 +224,6 @@ export default function CourseDashboardEnhanced() {
                 return (
                   <div key={idx} style={{ minHeight: 60, border: "1px solid #e9e9ec", borderRadius: 4, padding: 2, background: isToday ? "#fffbeb" : dayTasks.length || dayEvents.length ? "#f0f4ff" : "#fff" }}>
                     {day && <div style={{ fontWeight: 600 }}>{day}</div>}
-                    {/* Render tasks */}
                     {dayTasks.map(t => (
                       <div key={t.id + "-task"} style={{ fontSize: 12, marginTop: 2, padding: "2px 4px", borderRadius: 4, background: priorityColors[t.priority], color: "#fff", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", cursor: "pointer" }}
                         onDoubleClick={() => setEditing(s => ({ ...s, [t.id]: true }))}>
@@ -246,7 +232,6 @@ export default function CourseDashboardEnhanced() {
                         ) : t.name}
                       </div>
                     ))}
-                    {/* Render events */}
                     {dayEvents.map(e => (
                       <div key={e.id + "-event"} style={{ fontSize: 12, marginTop: 2, padding: "2px 4px", borderRadius: 4, background: eventColors[e.type], color: "#fff", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", cursor: "default" }}>
                         {e.name} ({e.type})
@@ -258,7 +243,23 @@ export default function CourseDashboardEnhanced() {
             </div>
           </div>
         )}
+
+        {/* --- Task Dialog --- */}
+        <Dialog visible={addingTop} onClose={() => setAddingTop(false)} title="Add New Task">
+          <input ref={inputRef} style={{ padding: 6, borderRadius: 6, border: "1px solid #e6e9ef", width: "100%", marginBottom: 6 }} placeholder="Task name" value={newName} onChange={e => setNewName(e.target.value)} />
+          <input type="date" style={{ padding: 6, borderRadius: 6, border: "1px solid #e6e9ef", width: "100%", marginBottom: 6 }} value={newStart} onChange={e => setNewStart(e.target.value)} />
+          <input type="date" style={{ padding: 6, borderRadius: 6, border: "1px solid #e6e9ef", width: "100%", marginBottom: 6 }} value={newDue} onChange={e => setNewDue(e.target.value)} />
+          <button style={{ padding: "6px 12px", background: "#4f46e5", color: "#fff", border: "none", borderRadius: 4, cursor: "pointer" }} onClick={() => addTask()}>Add Task</button>
+          <input style={{ padding: 6, borderRadius: 6, border: "1px solid #e6e9ef", width: "100%", marginBottom: 6 }} placeholder="Event name" value={newEventName} onChange={e => setNewEventName(e.target.value)} />
+          <input type="date" style={{ padding: 6, borderRadius: 6, border: "1px solid #e6e9ef", width: "100%", marginBottom: 6 }} value={newEventDate} onChange={e => setNewEventDate(e.target.value)} />
+          <select value={newEventType} onChange={e => setNewEventType(e.target.value)} style={{ padding: 6, borderRadius: 4, border: "1px solid #e6e9ef", width: "100%", marginBottom: 6 }}>
+            <option>Meeting</option>
+            <option>Event</option>
+          </select>
+          <button style={{ padding: "6px 12px", background: "#22c55e", color: "#fff", border: "none", borderRadius: 4, cursor: "pointer" }} onClick={addEvent}>Add Event</button>
+        </Dialog>
       </div>
     </div>
   );
 }
+
