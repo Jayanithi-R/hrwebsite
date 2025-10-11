@@ -57,7 +57,7 @@ function AttendanceDashboard() {
   const formatTime = (minutes) => {
     const h = Math.floor(minutes / 60);
     const m = Math.floor(minutes % 60);
-    return `${h.toString().padStart(2,"0")}:${m.toString().padStart(2,"0")}`;
+    return `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}`;
   };
 
   const getEmployeeStats = (emp) => {
@@ -71,21 +71,21 @@ function AttendanceDashboard() {
       const dateObj = new Date(d.date);
       if (d.checkIn && d.checkOut) {
         yearDays++; yearPresent++; yearCheckInTotal += parseTime(d.checkIn); yearCheckOutTotal += parseTime(d.checkOut);
-        if (dateObj.getMonth()===currentMonth && dateObj.getFullYear()===currentYear) {
+        if (dateObj.getMonth() === currentMonth && dateObj.getFullYear() === currentYear) {
           monthDays++; monthPresent++; monthCheckInTotal += parseTime(d.checkIn); monthCheckOutTotal += parseTime(d.checkOut);
         }
-      } else if (dateObj.getMonth()===currentMonth && dateObj.getFullYear()===currentYear) {
+      } else if (dateObj.getMonth() === currentMonth && dateObj.getFullYear() === currentYear) {
         monthDays++;
       }
       yearDays++;
     });
 
-    const empLeaves = leaveRequests.filter(l=>l.employeeId===emp.id).map(l=>`${l.leaveType}(${l.status})`).join(", ")||"-";
+    const empLeaves = leaveRequests.filter(l => l.employeeId === emp.id).map(l => `${l.leaveType}(${l.status})`).join(", ") || "-";
     return {
-      avgCheckIn: monthCheckInTotal ? formatTime(monthCheckInTotal/monthPresent) : "-",
-      avgCheckOut: monthCheckOutTotal ? formatTime(monthCheckOutTotal/monthPresent) : "-",
-      monthlyPercent: monthDays ? ((monthPresent/monthDays)*100).toFixed(0)+"%" : "-",
-      yearlyPercent: yearDays ? ((yearPresent/yearDays)*100).toFixed(0)+"%" : "-",
+      avgCheckIn: monthCheckInTotal ? formatTime(monthCheckInTotal / monthPresent) : "-",
+      avgCheckOut: monthCheckOutTotal ? formatTime(monthCheckOutTotal / monthPresent) : "-",
+      monthlyPercent: monthDays ? ((monthPresent / monthDays) * 100).toFixed(0) + "%" : "-",
+      yearlyPercent: yearDays ? ((yearPresent / yearDays) * 100).toFixed(0) + "%" : "-",
       leaves: empLeaves
     };
   };
@@ -121,52 +121,53 @@ function AttendanceDashboard() {
   };
 
   return (
-    <div style={{ padding:"2rem", background:"#f9fafb", minHeight:"100vh", fontFamily: "Arial, sans-serif", fontSize:"0.9rem" }}>
+    <div style={{ padding: "2rem", background: "#f9fafb", minHeight: "100vh", fontFamily: "Arial, sans-serif", fontSize: "0.9rem" }}>
       {/* Tabs */}
-      <div style={{ marginBottom:"2rem" }}>
-        {["daily","attendance","leave","all"].map(tab=>(
+      <div style={{ marginBottom: "2rem" }}>
+        {["daily", "attendance", "leave", "all"].map(tab => (
           <span
             key={tab}
-            onClick={()=>setActiveTab(tab)}
+            onClick={() => setActiveTab(tab)}
             style={{
-              display:"inline-block",
-              padding:"0.5rem 1rem",
-              marginRight:"0.5rem",
-              borderRadius:"0.5rem",
-              cursor:"pointer",
-              background: activeTab===tab ? "#4f46e5" : "#e5e7eb",
-              color: activeTab===tab ? "#fff" : "#000",
+              display: "inline-block",
+              padding: "0.5rem 1rem",
+              marginRight: "0.5rem",
+              borderRadius: "0.5rem",
+              cursor: "pointer",
+              background: activeTab === tab ? "#4f46e5" : "#e5e7eb",
+              color: activeTab === tab ? "#fff" : "#000",
               transition: "0.2s"
             }}
           >
-            {tab==="daily"?"Daily Attendance":tab==="attendance"?"Attendance %":tab==="leave"?"Leave Requests":"All Employees"}
+            {tab === "daily" ? "Daily Attendance" : tab === "attendance" ? "Attendance %" : tab === "leave" ? "Leave Requests" : "All Employees"}
           </span>
         ))}
       </div>
 
       {/* Table render function to reduce repetition */}
-      {["daily","attendance","leave","all"].map(tabType => {
-        if(activeTab !== tabType) return null;
+      {["daily", "attendance", "leave", "all"].map(tabType => {
+        if (activeTab !== tabType) return null;
 
         let headers = [], rows = [];
-        if(tabType==="daily") {
-          headers = ["Employee","Check In","Lunch Break","Back to Work","Check Out"];
-          rows = attendance.map((emp, idx)=>{
+        if (tabType === "daily") {
+          headers = ["Employee", "Check In", "Lunch Break", "Back to Work", "Check Out"];
+          rows = attendance.map((emp, idx) => {
             const today = new Date().toISOString().split("T")[0];
-            const todayRecord = emp.daily.find(d=>d.date===today)||{};
+            const todayRecord = emp.daily.find(d => d.date === today) || {};
             return (
               <tr key={emp.id} style={rowStyle(idx)}>
                 <td style={cellStyle}>{emp.employee}</td>
-                <td style={cellStyle}>{todayRecord.checkIn || <button style={buttonStyle} onClick={()=>handleCheckInOut(emp.id)}>Check In</button>}</td>
-                <td style={cellStyle}>{todayRecord.breakStart || <button style={buttonStyle} onClick={()=>handleBreak(emp.id)}>Start Break</button>}</td>
-                <td style={cellStyle}>{todayRecord.breakEnd || <button style={buttonStyle} onClick={()=>handleBreak(emp.id)}>Back to Work</button>}</td>
-                <td style={cellStyle}>{todayRecord.checkOut || <button style={buttonStyle} onClick={()=>handleCheckInOut(emp.id)}>Check Out</button>}</td>
+                <td style={cellStyle}>{todayRecord.checkIn || "-"}</td>
+                <td style={cellStyle}>{todayRecord.breakStart || "-"}</td>
+                <td style={cellStyle}>{todayRecord.breakEnd || "-"}</td>
+                <td style={cellStyle}>{todayRecord.checkOut || "-"}</td>
               </tr>
+
             )
           });
-        } else if(tabType==="attendance") {
-          headers = ["Employee","Avg Check-In","Avg Check-Out","Monthly %","Yearly %",];
-          rows = attendance.map((emp, idx)=>{
+        } else if (tabType === "attendance") {
+          headers = ["Employee", "Avg Check-In", "Avg Check-Out", "Monthly %", "Yearly %",];
+          rows = attendance.map((emp, idx) => {
             const stats = getEmployeeStats(emp);
             return (
               <tr key={emp.id} style={rowStyle(idx)}>
@@ -175,27 +176,49 @@ function AttendanceDashboard() {
                 <td style={cellStyle}>{stats.avgCheckOut}</td>
                 <td style={cellStyle}>{stats.monthlyPercent}</td>
                 <td style={cellStyle}>{stats.yearlyPercent}</td>
-                
+
               </tr>
             )
           });
-        } else if(tabType==="leave") {
-          headers = ["Employee","Leave Type","From","To","Status"];
-          rows = leaveRequests.map((req, idx)=>{
-            const emp = attendance.find(e=>e.id===req.employeeId);
+        } else if (tabType === "leave") {
+          headers = ["Employee", "Leave Type", "From", "To", "Status"];
+          rows = leaveRequests.map((req, idx) => {
+            const emp = attendance.find(e => e.id === req.employeeId);
             return (
               <tr key={req.id} style={rowStyle(idx)}>
                 <td style={cellStyle}>{emp?.employee || "Unknown"}</td>
                 <td style={cellStyle}>{req.leaveType}</td>
                 <td style={cellStyle}>{req.from}</td>
                 <td style={cellStyle}>{req.to}</td>
-                <td style={cellStyle}>{req.status}</td>
+                <td style={cellStyle}>
+                  <select
+                    value={req.status}
+                    onChange={(e) => {
+                      const newStatus = e.target.value;
+                      setLeaveRequests(prev =>
+                        prev.map(r => r.id === req.id ? { ...r, status: newStatus } : r)
+                      );
+                    }}
+                    style={{
+                      padding: "0.25rem 0.5rem",
+                      borderRadius: "0.25rem",
+                      border: "1px solid #ccc",
+                      cursor: "pointer",
+                      fontSize: "0.85rem"
+                    }}
+                  >
+                    <option>Pending</option>
+                    <option>Approved</option>
+                    <option>Rejected</option>
+                  </select>
+                </td>
+
               </tr>
             )
           });
-        } else if(tabType==="all") {
-          headers = ["ID","Email","GitHub","Projects Worked","Company Projects"];
-          rows = attendance.map((emp, idx)=>(
+        } else if (tabType === "all") {
+          headers = ["ID", "Email", "GitHub", "Projects Worked", "Company Projects"];
+          rows = attendance.map((emp, idx) => (
             <tr key={emp.id} style={rowStyle(idx)}>
               <td style={cellStyle}>{emp.employeeId}</td>
               <td style={cellStyle}>{emp.email}</td>
@@ -210,17 +233,17 @@ function AttendanceDashboard() {
           <table
             key={tabType}
             style={{
-              width:"100%",
-              borderCollapse:"collapse",
-              marginBottom:"2rem",
-              borderRadius:"0.5rem",
-              overflow:"hidden",
-              boxShadow:"0 2px 6px rgba(0,0,0,0.05)"
+              width: "100%",
+              borderCollapse: "collapse",
+              marginBottom: "2rem",
+              borderRadius: "0.5rem",
+              overflow: "hidden",
+              boxShadow: "0 2px 6px rgba(0,0,0,0.05)"
             }}
           >
             <thead>
               <tr>
-                {headers.map((h, i)=><th key={i} style={headerStyle}>{h}</th>)}
+                {headers.map((h, i) => <th key={i} style={headerStyle}>{h}</th>)}
               </tr>
             </thead>
             <tbody>{rows}</tbody>
