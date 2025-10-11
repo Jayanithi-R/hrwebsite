@@ -3,6 +3,7 @@ import ReactDOM from "react-dom/client";
 
 function AttendanceDashboard() {
   const [activeTab, setActiveTab] = useState("daily");
+  
 
   const [attendance, setAttendance] = useState([
     { id: 1, employee: "John Doe", employeeId: 1, email: "john@example.com", github: "johndoe", projects: 3, companyProjects: 2, daily: [] },
@@ -59,6 +60,7 @@ function AttendanceDashboard() {
     const m = Math.floor(minutes % 60);
     return `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}`;
   };
+  
 
   const getEmployeeStats = (emp) => {
     const now = new Date();
@@ -250,7 +252,6 @@ function AttendanceDashboard() {
           </table>
         )
       })}
-
     </div>
   )
 }

@@ -1,4 +1,4 @@
-// CourseDashboardEnhanced.jsx
+
 import React, { useState, useEffect, useRef } from "react";
 import {
   Plus,
@@ -19,6 +19,9 @@ export default function CourseDashboardEnhanced() {
   const [view, setView] = useState(0);
   const [addingTop, setAddingTop] = useState(false);
   const [addingEvent, setAddingEvent] = useState(false);
+  const [toggleMode, setToggleMode] = useState("task");
+
+
 
   const [newName, setNewName] = useState("");
   const [newStart, setNewStart] = useState("");
@@ -27,6 +30,8 @@ export default function CourseDashboardEnhanced() {
   const [newEventName, setNewEventName] = useState("");
   const [newEventDate, setNewEventDate] = useState("");
   const [newEventType, setNewEventType] = useState("Meeting");
+  const [newPriority, setNewPriority] = useState("Low");
+
 
   const [editing, setEditing] = useState({});
   const [filterPriority, setFilterPriority] = useState("All");
@@ -47,27 +52,32 @@ export default function CourseDashboardEnhanced() {
   useEffect(() => { if (addingTop && inputRef.current) inputRef.current.focus(); }, [addingTop]);
 
   const addTask = (parentId = null) => {
-    const name = parentId ? newSubtaskNames[parentId] : newName;
-    if (!name.trim()) return;
+    const name = parentId ? newSubtaskNames[parentId]?.trim() : newName?.trim();
+
+    if (!name) {
+      window.alert("Please enter a task name");
+      return;
+    }
     const t = {
       id: uid(),
       name: name.trim(),
       assignee: "",
       start: parentId ? newSubtaskDates[parentId]?.start || "" : newStart,
       due: parentId ? newSubtaskDates[parentId]?.due || "" : newDue,
-      priority: "Low",
+      priority: parentId ? "Low" : newPriority,
       expanded: false,
       subtasks: []
     };
     if (parentId === null) {
       setTasks(s => [t, ...s]);
-      setNewName(""); setNewStart(""); setNewDue(""); setAddingTop(false);
+      setNewName(""); setNewStart(""); setNewDue(""); setNewPriority("Low"); setAddingTop(false);
     } else {
       setTasks(s => s.map(x => x.id === parentId ? { ...x, subtasks: [t, ...x.subtasks] } : x));
       setNewSubtaskNames(s => ({ ...s, [parentId]: "" }));
       setNewSubtaskDates(s => ({ ...s, [parentId]: { start: "", due: "" } }));
     }
   };
+
 
   const addEvent = () => {
     if (!newEventName.trim() || !newEventDate) return;
@@ -244,20 +254,267 @@ export default function CourseDashboardEnhanced() {
           </div>
         )}
 
-        {/* --- Task Dialog --- */}
-        <Dialog visible={addingTop} onClose={() => setAddingTop(false)} title="Add New Task">
-          <input ref={inputRef} style={{ padding: 6, borderRadius: 6, border: "1px solid #e6e9ef", width: "100%", marginBottom: 6 }} placeholder="Task name" value={newName} onChange={e => setNewName(e.target.value)} />
-          <input type="date" style={{ padding: 6, borderRadius: 6, border: "1px solid #e6e9ef", width: "100%", marginBottom: 6 }} value={newStart} onChange={e => setNewStart(e.target.value)} />
-          <input type="date" style={{ padding: 6, borderRadius: 6, border: "1px solid #e6e9ef", width: "100%", marginBottom: 6 }} value={newDue} onChange={e => setNewDue(e.target.value)} />
-          <button style={{ padding: "6px 12px", background: "#4f46e5", color: "#fff", border: "none", borderRadius: 4, cursor: "pointer" }} onClick={() => addTask()}>Add Task</button>
-          <input style={{ padding: 6, borderRadius: 6, border: "1px solid #e6e9ef", width: "100%", marginBottom: 6 }} placeholder="Event name" value={newEventName} onChange={e => setNewEventName(e.target.value)} />
-          <input type="date" style={{ padding: 6, borderRadius: 6, border: "1px solid #e6e9ef", width: "100%", marginBottom: 6 }} value={newEventDate} onChange={e => setNewEventDate(e.target.value)} />
-          <select value={newEventType} onChange={e => setNewEventType(e.target.value)} style={{ padding: 6, borderRadius: 4, border: "1px solid #e6e9ef", width: "100%", marginBottom: 6 }}>
-            <option>Meeting</option>
-            <option>Event</option>
-          </select>
-          <button style={{ padding: "6px 12px", background: "#22c55e", color: "#fff", border: "none", borderRadius: 4, cursor: "pointer" }} onClick={addEvent}>Add Event</button>
-        </Dialog>
+        {addingTop && (
+          <div style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            width: "100%",
+            height: "100%",
+            background: "#00000066",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 999
+          }}>
+            <div style={{ background: "#fff", borderRadius: 8, padding: 20, width: "90%", maxWidth: 700, maxHeight: "90vh", overflowY: "auto" }}>
+
+              {/* Tabs */}
+              <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
+                {["Task", "Event"].map(tab => (
+                  <button
+                    key={tab}
+                    onClick={() => setToggleMode(tab.toLowerCase())}
+                    style={{
+                      flex: 1,
+                      padding: "8px 12px",
+                      border: "none",
+                      borderBottom: toggleMode === tab.toLowerCase() ? "3px solid #4f46e5" : "3px solid transparent",
+                      background: "transparent",
+                      fontWeight: toggleMode === tab.toLowerCase() ? "600" : "400",
+                      cursor: "pointer"
+                    }}
+                  >
+                    {tab}
+                  </button>
+                ))}
+              </div>
+
+              {/* Task Form */}
+              {toggleMode === "task" && (
+                <div style={{ marginBottom: 16, display: "flex", flexDirection: "column", gap: 12 }}>
+                  {/* Title */}
+                  <div><h5 style={{ margin: 0, fontSize: "14px", color: "#4d4c4cff" }}>Task Title</h5>
+                    <input
+                      ref={inputRef}
+                      // placeholder="Task Title"
+                      value={newName}
+                      onChange={e => setNewName(e.target.value)}
+                      style={{ padding: 10, borderRadius: 6, border: "1px solid #e6e9ef", width: "100%", fontSize: 16, fontFamily: "sans-serif" }}
+                    /></div>
+
+
+                  {/* Description */}
+                  <div><h5 style={{ margin: 0, fontSize: "14px", color: "#4d4c4cff" }}>Description</h5>
+                    <textarea
+                      // placeholder="Description"
+                      style={{ padding: 10, borderRadius: 6, border: "1px solid #e6e9ef", width: "100%", minHeight: 60, fontSize: 16, fontFamily: "sans-serif" }}
+                    /></div>
+
+                  <div style={{ display: "flex", gap: 12, marginBottom: 12, fontSize: 16, fontFamily: "sans-serif" }}>
+
+                    {/* Assignee */}
+                    <div style={{ marginBottom: 16 }}>
+                      <h5 style={{ margin: 0, marginBottom: 4, fontSize: 14, color: "#4d4c4c" }}>
+                        Assignee
+                      </h5>
+                      <input
+                        // placeholder="Assignee"
+                        style={{
+                          padding: 8,
+                          borderRadius: 6,
+                          border: "1px solid #e6e9ef",
+                          fontSize: 16,
+                          fontFamily: "sans-serif",
+                          outline: "none"
+                        }}
+                      />
+                    </div>
+
+
+                    {/* Due Date */}
+                    <div style={{ marginBottom: 16, width: "35%" }}>
+                      <h5 style={{ margin: 0, marginBottom: 4, fontSize: 14, color: "#4d4c4c" }}>
+                        Due Date
+                      </h5>
+                      <input
+                        type="date"
+                        value={newDue}
+                        onChange={e => setNewDue(e.target.value)}
+                        style={{
+                          padding: 8,
+                          borderRadius: 6,
+                          border: "1px solid #e6e9ef",
+                          width: "100%", // fills the container
+                          fontSize: 16,
+                          fontFamily: "sans-serif",
+                          outline: "none"
+                        }}
+                      />
+                    </div>
+
+
+                    <div style={{ position: "relative", width: "20%", marginBottom: 16 }}>
+                      <h5 style={{ margin: 0, marginBottom: 4, fontSize: 14, color: "#4d4c4c" }}>
+                        Priority
+                      </h5>
+                      <select
+                        value={filterPriority}
+                        onChange={e => setFilterPriority(e.target.value)}
+                        style={{
+                          padding: "8px 12px",
+                          borderRadius: 6,
+                          border: "1px solid #e6e9ef",
+                          width: "100%",
+                          appearance: "none",
+                          WebkitAppearance: "none",
+                          MozAppearance: "none",
+                          background: "#fff url('data:image/svg+xml;charset=US-ASCII,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 4 5%22><path fill=%22%234f46e5%22 d=%22M2 0L0 2h4L2 0zM2 5L0 3h4l-2 2z%22/></svg>') no-repeat right 10px center",
+                          backgroundSize: "10px",
+                          cursor: "pointer",
+                          fontWeight: 500,
+                          color: "#111827",
+                          fontFamily: "sans-serif",
+                          outline: "none"
+                        }}
+                      >
+                        <option value="High">High</option>
+                        <option value="Medium">Medium</option>
+                        <option value="Low">Low</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Button */}
+                  <div style={{ display: "flex", width: "100%", gap: "10px"  }}>
+                    <button
+                      onClick={addTask}
+                      style={{ padding: "8px 16px", background: "#4f46e5", color: "#fff", border: "none", borderRadius: 6, cursor: "pointer" }}
+                    >
+                      Create Task
+                    </button>
+                    <button onClick={() => setAddingTop(false)} style={{ padding: "8px 16px", background: "#e5e7eb", border: "none", borderRadius: 4, cursor: "pointer" }}>
+                      Close
+                    </button>
+                  </div>
+
+                </div>
+              )}
+
+              {/* Event Form */}
+              {toggleMode === "event" && (
+                <div style={{ marginBottom: 16, display: "flex", flexDirection: "column", gap: 12, fontSize: 16, fontFamily: "sans-serif" }}>
+
+                  {/* Event Name */}
+                  <div style={{ marginBottom: 16, width: "100%" }}>
+                    <h5 style={{ margin: 0, marginBottom: 4, fontSize: 13, color: "#4d4c4c" }}>
+                      Event Name
+                    </h5>
+                    <input
+                      // placeholder="Event Name"
+                      value={newEventName}
+                      onChange={e => setNewEventName(e.target.value)}
+                      style={{
+                        padding: 10,
+                        borderRadius: 8,
+                        border: "1px solid #e6e9ef",
+                        width: "100%",
+                        fontSize: 14,
+                        fontFamily: "sans-serif",
+                        outline: "none",
+                        transition: "border-color 0.2s ease"
+                      }}
+                      onFocus={e => e.target.style.borderColor = "#4f46e5"}
+                      onBlur={e => e.target.style.borderColor = "#e6e9ef"}
+                    />
+                  </div>
+
+                  {/* Event Date & Type */}
+                  <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+                    {/* Event Date */}
+                    <div style={{ marginBottom: 16, width: "49%" }}>
+                      <h5 style={{ margin: 0, marginBottom: 4, fontSize: 13, color: "#4d4c4c" }}>
+                        Date
+                      </h5>
+                      <input
+                        type="date"
+                        value={newEventDate}
+                        onChange={e => setNewEventDate(e.target.value)}
+                        style={{
+                          width: "100%",
+                          padding: 10,
+                          borderRadius: 8,
+                          border: "1px solid #e6e9ef",
+                          fontSize: 14,
+                          fontFamily: "sans-serif",
+                          outline: "none",
+                          transition: "border-color 0.2s ease"
+                        }}
+                        onFocus={e => e.target.style.borderColor = "#4f46e5"}
+                        onBlur={e => e.target.style.borderColor = "#e6e9ef"}
+                      />
+                    </div>
+
+                    {/* Event Type Dropdown */}
+                    <div style={{ marginBottom: 16, position: "relative", width: "49%" }}>
+                      <h5 style={{ margin: 0, marginBottom: 4, fontSize: 13, color: "#4d4c4c" }}>
+                        Event Type
+                      </h5>
+                      <select
+                        value={newEventType}
+                        onChange={e => setNewEventType(e.target.value)}
+                        style={{
+                          padding: 10,
+                          borderRadius: 8,
+                          border: "1px solid #e6e9ef",
+                          width: "100%",
+                          appearance: "none",
+                          WebkitAppearance: "none",
+                          MozAppearance: "none",
+                          background: `#fff url('data:image/svg+xml;charset=US-ASCII,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 4 5%22><path fill=%22%234f46e5%22 d=%22M2 0L0 2h4L2 0zM2 5L0 3h4l-2 2z%22/></svg>') no-repeat right 12px center`,
+                          backgroundSize: "10px",
+                          cursor: "pointer",
+                          fontSize: 14,
+                          fontFamily: "sans-serif",
+                          outline: "none",
+                          transition: "border-color 0.2s ease",
+                        }}
+                        onFocus={e => e.target.style.borderColor = "#4f46e5"}
+                        onBlur={e => e.target.style.borderColor = "#e6e9ef"}
+                      >
+                        <option>Meeting</option>
+                        <option>Event</option>
+                      </select>
+                    </div>
+
+                  </div>
+
+
+                  {/* Button */}
+                  <div style={{ display: "flex", width: "100%", gap: "10px" }}>
+                    <button
+                      onClick={addTask}
+                      style={{ padding: "8px 16px", background: "#4f46e5", color: "#fff", border: "none", borderRadius: 6, cursor: "pointer" }}
+                    >
+                      Create Task
+                    </button>
+                    <button onClick={() => setAddingTop(false)} style={{ padding: "8px 16px", background: "#e5e7eb", border: "none", borderRadius: 4, cursor: "pointer" }}>
+                      Close
+                    </button>
+                  </div>
+
+                </div>
+
+              )}
+
+
+              {/* Close Button */}
+
+            </div>
+          </div>
+        )}
+
+
       </div>
     </div>
   );

@@ -15,7 +15,7 @@ const Sidebar = () => {
       position: "fixed",
       left: 0,
       top: 0,
-      zIndex: 1200,
+      zIndex: 100,
     },
     top: { padding: "24px 16px" },
     logoRow: {
