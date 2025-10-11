@@ -1,4 +1,5 @@
 import React from "react";
+import { NavLink } from "react-router-dom";
 
 const Sidebar = () => {
   const styles = {
@@ -16,9 +17,7 @@ const Sidebar = () => {
       top: 0,
       zIndex: 1200,
     },
-    top: {
-      padding: "24px 16px",
-    },
+    top: { padding: "24px 16px" },
     logoRow: {
       display: "flex",
       alignItems: "center",
@@ -37,17 +36,9 @@ const Sidebar = () => {
       fontWeight: "bold",
       fontSize: "18px",
     },
-    brand: {
-      lineHeight: 1.3,
-    },
-    brandName: {
-      fontWeight: 600,
-      fontSize: "15px",
-    },
-    brandSub: {
-      fontSize: "12px",
-      color: "#7b8794",
-    },
+    brand: { lineHeight: 1.3 },
+    brandName: { fontWeight: 600, fontSize: "15px" },
+    brandSub: { fontSize: "12px", color: "#7b8794" },
     sectionTitle: {
       fontSize: "11px",
       fontWeight: 600,
@@ -66,6 +57,7 @@ const Sidebar = () => {
       backgroundColor: active ? "#2C6BED" : "transparent",
       cursor: "pointer",
       transition: "0.2s",
+      textDecoration: "none",
     }),
     shortcutItem: {
       display: "flex",
@@ -111,18 +103,19 @@ const Sidebar = () => {
       fontWeight: "600",
       fontSize: "15px",
     },
-    userInfo: {
-      lineHeight: 1.2,
-    },
-    userName: {
-      fontSize: "14px",
-      fontWeight: 600,
-    },
-    userEmail: {
-      fontSize: "12px",
-      color: "#9ca3af",
-    },
+    userInfo: { lineHeight: 1.2 },
+    userName: { fontSize: "14px", fontWeight: 600 },
+    userEmail: { fontSize: "12px", color: "#9ca3af" },
   };
+
+  const menu = [
+    { name: "Dashboard", icon: "🏠", path: "/" },
+    { name: "Schedule", icon: "📅", path: "/schedule" },
+    { name: "Attendance", icon: "👤", path: "/attendance" },
+    { name: "Departments", icon: "🎁", path: "/departments" },
+    { name: "Integrations", icon: "🔗", path: "/integrations" },
+    { name: "Reports", icon: "📊", path: "/reports" },
+  ];
 
   return (
     <div style={styles.container}>
@@ -139,12 +132,16 @@ const Sidebar = () => {
         {/* Main Navigation */}
         <div style={styles.sectionTitle}>MAIN</div>
         <div>
-          <div style={styles.navItem(true)}>🏠 Dashboard</div>
-          <div style={styles.navItem()}>📅 Schedule</div>
-          <div style={styles.navItem()}>👤 Attendance</div>
-          <div style={styles.navItem()}>🎁 Departments</div>
-          <div style={styles.navItem()}>🔗 Integrations</div>
-          <div style={styles.navItem()}>📊 Reports</div>
+          {menu.map((item) => (
+            <NavLink
+              key={item.name}
+              to={item.path}
+              style={({ isActive }) => styles.navItem(isActive)}
+            >
+              <span>{item.icon}</span>
+              <span>{item.name}</span>
+            </NavLink>
+          ))}
         </div>
 
         {/* Shortcuts */}
