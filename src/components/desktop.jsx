@@ -2,7 +2,6 @@ import React, { useState, useEffect, useMemo } from "react";
 import { addDays, subDays, startOfWeek, format, isSameDay } from "date-fns";
 import { ChevronLeft, ChevronRight, Clock, Briefcase } from "lucide-react";
 
-
 // Sample schedule data
 const scheduleData = [
   {
@@ -33,37 +32,82 @@ const scheduleData = [
     team: "Engineering",
   },
 ];
+
 const PlaceHolderImages = [
   { id: "emp1", imageUrl: "https://i.pravatar.cc/40?img=1", description: "Nora" },
   { id: "emp2", imageUrl: "https://i.pravatar.cc/40?img=2", description: "Amit" },
   { id: "emp3", imageUrl: "https://i.pravatar.cc/40?img=3", description: "Priya" },
 ];
+
 // WeekCalendar Component
-const WeekCalendar = ({ selectedDate, onSelectDate }) => {
+const WeekCalendar = ({ selectedDate, onSelectDate, isMobile, isTablet }) => {
   const [currentDate, setCurrentDate] = useState(selectedDate);
   const start = startOfWeek(currentDate, { weekStartsOn: 1 });
   const week = Array.from({ length: 7 }).map((_, i) => addDays(start, i));
 
   return (
-    <div style={{ borderRadius: 12, border: "1px solid #e5e7eb", padding: 10, background: "#fff", marginBottom: 15 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
-        <h3 style={{ fontSize: 14, fontWeight: 600 }}>{format(currentDate, "MMMM yyyy")}</h3>
-        <div style={{ display: "flex", gap: 6 }}>
+    <div style={{ 
+      borderRadius: 12, 
+      border: "1px solid #e5e7eb", 
+      padding: isMobile ? 8 : 10, 
+      background: "#fff", 
+      marginBottom: 15,
+      overflow: "hidden"
+    }}>
+      <div style={{ 
+        display: "flex", 
+        justifyContent: "space-between", 
+        alignItems: "center",
+        marginBottom: 8,
+        gap: 8
+      }}>
+        <h3 style={{ 
+          fontSize: isMobile ? 13 : 14, 
+          fontWeight: 600,
+          margin: 0,
+          whiteSpace: "nowrap",
+          overflow: "hidden",
+          textOverflow: "ellipsis",
+          flex: 1
+        }}>
+          {format(currentDate, isMobile ? "MMM yyyy" : "MMMM yyyy")}
+        </h3>
+        <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
           <button
-            style={{ border: "none", background: "transparent", cursor: "pointer" }}
+            style={{ 
+              border: "none", 
+              background: "transparent", 
+              cursor: "pointer",
+              padding: 4,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center"
+            }}
             onClick={() => setCurrentDate(subDays(currentDate, 7))}
           >
-            <ChevronLeft />
+            <ChevronLeft size={isMobile ? 16 : 20} />
           </button>
           <button
-            style={{ border: "none", background: "transparent", cursor: "pointer" }}
+            style={{ 
+              border: "none", 
+              background: "transparent", 
+              cursor: "pointer",
+              padding: 4,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center"
+            }}
             onClick={() => setCurrentDate(addDays(currentDate, 7))}
           >
-            <ChevronRight />
+            <ChevronRight size={isMobile ? 16 : 20} />
           </button>
         </div>
       </div>
-      <div style={{ display: "flex", justifyContent: "space-between" }}>
+      <div style={{ 
+        display: "grid",
+        gridTemplateColumns: "repeat(7, 1fr)",
+        gap: isMobile ? 2 : isTablet ? 4 : 8
+      }}>
         {week.map((day) => {
           const isSelected = isSameDay(day, selectedDate);
           return (
@@ -75,16 +119,21 @@ const WeekCalendar = ({ selectedDate, onSelectDate }) => {
                 flexDirection: "column",
                 alignItems: "center",
                 justifyContent: "center",
-                width: 48,
-                height: 75,
+                minWidth: 0,
+                height: isMobile ? 55 : isTablet ? 65 : 75,
                 borderRadius: 8,
                 cursor: "pointer",
                 background: isSelected ? "#2563eb" : "transparent",
                 color: isSelected ? "#fff" : "#111827",
+                padding: isMobile ? "4px 1px" : "4px 2px"
               }}
             >
-              <span style={{ fontSize: 12 }}>{format(day, "EEE")}</span>
-              <span style={{ fontSize: 18, fontWeight: 700 }}>{format(day, "d")}</span>
+              <span style={{ fontSize: isMobile ? 9 : isTablet ? 10 : 12 }}>
+                {isMobile ? format(day, "EEE").charAt(0) : format(day, "EEE").substring(0, 3)}
+              </span>
+              <span style={{ fontSize: isMobile ? 14 : isTablet ? 16 : 18, fontWeight: 700 }}>
+                {format(day, "d")}
+              </span>
             </div>
           );
         })}
@@ -94,7 +143,7 @@ const WeekCalendar = ({ selectedDate, onSelectDate }) => {
 };
 
 // SchedulePanel Component
-const SchedulePanel = () => {
+const SchedulePanel = ({ isMobile, isTablet }) => {
   const [selectedDate, setSelectedDate] = useState(new Date("2025-10-13"));
   const [activeTab, setActiveTab] = useState("meetings");
 
@@ -107,11 +156,27 @@ const SchedulePanel = () => {
     ),
   }), [selectedDate]);
 
-  const cardStyle = { background: "#fff", borderRadius: 12, padding: 15, marginBottom: 15, boxShadow: "0 2px 6px rgba(0,0,0,0.05)" };
-  const headerStyle = { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 };
+  const cardStyle = { 
+    background: "#fff", 
+    borderRadius: 12, 
+    padding: isMobile ? 12 : 15, 
+    marginBottom: 0, 
+    boxShadow: "0 2px 6px rgba(0,0,0,0.05)",
+    height: "100%",
+    display: "flex",
+    flexDirection: "column"
+  };
+
+  const headerStyle = { 
+    display: "flex", 
+    justifyContent: "space-between", 
+    alignItems: "center", 
+    marginBottom: 10 
+  };
+
   const toggleBtnStyle = (active) => ({
     flex: 1,
-    padding: 6,
+    padding: isMobile ? 8 : 6,
     borderRadius: 6,
     cursor: "pointer",
     marginRight: 4,
@@ -119,19 +184,48 @@ const SchedulePanel = () => {
     color: active ? "#fff" : "#111827",
     textAlign: "center",
     fontWeight: 600,
+    fontSize: isMobile ? 12 : 14,
+    border: "none"
   });
 
-  const itemStyle = { padding: 10, borderBottom: "1px solid #e5e7eb", cursor: "pointer" };
+  const itemStyle = { 
+    padding: isMobile ? 8 : 10, 
+    borderBottom: "1px solid #e5e7eb", 
+    cursor: "pointer" 
+  };
 
   const renderList = (items) => {
-    if (!items.length) return <div style={{ padding: 10, fontSize: 14, color: "#666" }}>No items for this day.</div>;
+    if (!items.length) return (
+      <div style={{ padding: 10, fontSize: isMobile ? 12 : 14, color: "#666" }}>
+        No items for this day.
+      </div>
+    );
     return items.map((item) => (
       <div key={item.id} style={itemStyle}>
-        <div style={{ display: "flex", justifyContent: "space-between" }}>
-          <span>{item.title}</span>
-          <span style={{ fontSize: 12, color: "#666", display: "flex", alignItems: "center" }}><Clock style={{ width: 12, height: 12, marginRight: 4 }} /> {item.time}</span>
+        <div style={{ 
+          display: "flex", 
+          justifyContent: "space-between",
+          alignItems: isMobile ? "flex-start" : "center",
+          flexDirection: isMobile ? "column" : "row",
+          gap: 4
+        }}>
+          <span style={{ fontSize: isMobile ? 13 : 14, fontWeight: 500 }}>
+            {item.title}
+          </span>
+          <span style={{ 
+            fontSize: isMobile ? 11 : 12, 
+            color: "#666", 
+            display: "flex", 
+            alignItems: "center",
+            whiteSpace: "nowrap"
+          }}>
+            <Clock style={{ width: 12, height: 12, marginRight: 4 }} /> 
+            {item.time}
+          </span>
         </div>
-        <div style={{ fontSize: 12, color: "#666", marginTop: 4 }}>{item.location} - {item.team}</div>
+        <div style={{ fontSize: isMobile ? 11 : 12, color: "#666", marginTop: 4 }}>
+          {item.location} - {item.team}
+        </div>
       </div>
     ));
   };
@@ -139,22 +233,47 @@ const SchedulePanel = () => {
   return (
     <div style={cardStyle}>
       <div style={headerStyle}>
-        <h3 style={{ fontWeight: 600 }}>Schedule</h3>
-        <button style={{ border: "none", background: "transparent", color: "#2563eb", cursor: "pointer" }}>See All</button>
+        <h3 style={{ fontWeight: 600, fontSize: isMobile ? 14 : 16, margin: 0 }}>
+          Schedule
+        </h3>
+        <button style={{ 
+          border: "none", 
+          background: "transparent", 
+          color: "#2563eb", 
+          cursor: "pointer",
+          fontSize: isMobile ? 12 : 14,
+          padding: 4
+        }}>
+          See All
+        </button>
       </div>
-      <WeekCalendar selectedDate={selectedDate} onSelectDate={setSelectedDate} />
-      <div style={{ display: "flex", marginBottom: 10 }}>
-        <div style={toggleBtnStyle(activeTab === "meetings")} onClick={() => setActiveTab("meetings")}>Meetings</div>
-        <div style={toggleBtnStyle(activeTab === "events")} onClick={() => setActiveTab("events")}>Events</div>
+      <WeekCalendar 
+        selectedDate={selectedDate} 
+        onSelectDate={setSelectedDate} 
+        isMobile={isMobile}
+        isTablet={isTablet}
+      />
+      <div style={{ display: "flex", marginBottom: 10, gap: 4 }}>
+        <button style={toggleBtnStyle(activeTab === "meetings")} onClick={() => setActiveTab("meetings")}>
+          Meetings
+        </button>
+        <button style={toggleBtnStyle(activeTab === "events")} onClick={() => setActiveTab("events")}>
+          Events
+        </button>
       </div>
-      <div>
+      <div style={{ 
+        maxHeight: isMobile ? 180 : 220, 
+        overflowY: "auto",
+        flex: 1
+      }}>
         {activeTab === "meetings" && renderList(meetings)}
         {activeTab === "events" && renderList(events)}
       </div>
     </div>
   );
 };
-const InternshipCard = () => {
+
+const InternshipCard = ({ isMobile, isTablet }) => {
   const avatars = [
     PlaceHolderImages.find((img) => img.id === "emp1"),
     PlaceHolderImages.find((img) => img.id === "emp2"),
@@ -164,9 +283,9 @@ const InternshipCard = () => {
   const cardStyle = {
     background: "#fff",
     borderRadius: 12,
-    padding: 15,
+    padding: isMobile ? 12 : 15,
     boxShadow: "0 2px 6px rgba(0,0,0,0.05)",
-    height: 200,
+    height: isMobile ? "auto" : 200,
     display: "flex",
     flexDirection: "column",
     justifyContent: "space-between",
@@ -177,45 +296,60 @@ const InternshipCard = () => {
     justifyContent: "space-between",
     alignItems: "center",
     marginBottom: 10,
+    gap: 8,
+    flexWrap: isMobile ? "wrap" : "nowrap"
   };
 
-  const titleStyle = { display: "flex", alignItems: "center", gap: 6, fontWeight: 600, fontSize: 16 };
+  const titleStyle = { 
+    display: "flex", 
+    alignItems: "center", 
+    gap: 6, 
+    fontWeight: 600, 
+    fontSize: isMobile ? 14 : 16 
+  };
 
   const buttonStyle = {
     border: "1px solid #2563eb",
     background: "transparent",
     borderRadius: 9999,
-    padding: "4px 10px",
+    padding: isMobile ? "4px 8px" : "4px 10px",
     color: "#2563eb",
     cursor: "pointer",
     display: "flex",
     alignItems: "center",
     gap: 4,
-    fontSize: 12,
+    fontSize: isMobile ? 11 : 12,
     fontWeight: 500,
+    whiteSpace: "nowrap"
   };
 
-  const contentStyle = { display: "flex", flexDirection: "column", gap: 15 };
-  const avatarContainerStyle = { display: "flex", alignItems: "center", gap: 8 };
+  const contentStyle = { display: "flex", flexDirection: "column", gap: isMobile ? 10 : 15 };
+  const avatarContainerStyle = { 
+    display: "flex", 
+    alignItems: "center", 
+    gap: 8,
+    flexWrap: "wrap"
+  };
   const avatarListStyle = { display: "flex", marginRight: 6, position: "relative" };
   const avatarStyle = (i) => ({
-    width: 32,
-    height: 32,
+    width: isMobile ? 26 : 32,
+    height: isMobile ? 26 : 32,
     borderRadius: "50%",
     border: "2px solid #fff",
     objectFit: "cover",
-    marginLeft: i === 0 ? 0 : -8,
+    marginLeft: i === 0 ? 0 : isMobile ? -6 : -8,
     zIndex: avatars.length - i,
   });
   const viewButtonStyle = {
-    padding: "6px 12px",
+    padding: isMobile ? "6px 10px" : "6px 12px",
     background: "#2563eb",
     color: "#fff",
     border: "none",
     borderRadius: 8,
     cursor: "pointer",
-    fontSize: 12,
+    fontSize: isMobile ? 11 : 12,
     fontWeight: 500,
+    whiteSpace: "nowrap"
   };
 
   return (
@@ -232,24 +366,44 @@ const InternshipCard = () => {
 
       <div style={contentStyle}>
         <div>
-          <p style={{ fontSize: 12, color: "#6b7280", margin: 0 }}>Total Intern</p>
-          <p style={{ fontSize: 24, fontWeight: 700, margin: 0 }}>8 Interns</p>
+          <p style={{ fontSize: isMobile ? 11 : 12, color: "#6b7280", margin: 0 }}>
+            Total Intern
+          </p>
+          <p style={{ fontSize: isMobile ? 20 : 24, fontWeight: 700, margin: 0 }}>
+            8 Interns
+          </p>
         </div>
 
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div style={{ 
+          display: "flex", 
+          justifyContent: "space-between", 
+          alignItems: "center",
+          flexWrap: isMobile ? "wrap" : "nowrap",
+          gap: 8
+        }}>
           <div style={avatarContainerStyle}>
             <div style={avatarListStyle}>
               {avatars.map((avatar, i) =>
                 avatar ? (
                   <img key={i} src={avatar.imageUrl} alt={avatar.description} style={avatarStyle(i)} />
                 ) : (
-                  <div key={i} style={{ ...avatarStyle(i), background: "#ccc", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 600 }}>
+                  <div key={i} style={{ 
+                    ...avatarStyle(i), 
+                    background: "#ccc", 
+                    display: "flex", 
+                    alignItems: "center", 
+                    justifyContent: "center", 
+                    color: "#fff", 
+                    fontWeight: 600 
+                  }}>
                     {avatar?.description?.[0]}
                   </div>
                 )
               )}
             </div>
-            <span style={{ fontSize: 12, color: "#6b7280" }}>8 Attended</span>
+            <span style={{ fontSize: isMobile ? 11 : 12, color: "#6b7280" }}>
+              8 Attended
+            </span>
           </div>
           <button style={viewButtonStyle}>View Progress</button>
         </div>
@@ -258,15 +412,18 @@ const InternshipCard = () => {
   );
 };
 
-
-
-// 🧩 Main HR Dashboard
+// Main HR Dashboard
 const HRDashboard = () => {
-  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
-  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [isMobile, setIsMobile] = useState(false);
+  const [isTablet, setIsTablet] = useState(false);
 
   useEffect(() => {
-    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    const handleResize = () => {
+      const width = window.innerWidth;
+      setIsMobile(width < 640);
+      setIsTablet(width >= 640 && width < 1024);
+    };
+    handleResize();
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
@@ -304,32 +461,48 @@ const HRDashboard = () => {
     Present: "#C6F5C9",
   };
 
+  const getGridColumns = () => {
+    if (isMobile) return "1fr";
+    if (isTablet) return "repeat(2, 1fr)";
+    return "repeat(3, 1fr)";
+  };
+
   const layoutStyle = {
     display: "grid",
-    gridTemplateColumns: isMobile ? "1fr" : "repeat(3, 1fr)",
-    gap: "20px",
-    padding: "20px",
+    gridTemplateColumns: getGridColumns(),
+    gap: isMobile ? "12px" : "20px",
+    padding: isMobile ? "12px" : "20px",
     background: "#f8fafc",
     fontFamily: "Inter, sans-serif",
+    maxWidth: "100%",
+    overflowX: "hidden",
+    minHeight: "100vh"
   };
 
   const card = {
     background: "#fff",
     borderRadius: "12px",
     boxShadow: "0 2px 6px rgba(0,0,0,0.05)",
-    padding: "20px",
+    padding: isMobile ? "12px" : "20px",
   };
 
   const badge = (label) => ({
     backgroundColor: badgeColors[label] || "#eee",
     color: "#333",
     borderRadius: "6px",
-    padding: "2px 8px",
-    fontSize: "12px",
+    padding: isMobile ? "2px 6px" : "2px 8px",
+    fontSize: isMobile ? "10px" : "12px",
     fontWeight: "500",
+    whiteSpace: "nowrap",
+    display: "inline-block"
   });
 
-  const header = { fontSize: "16px", fontWeight: "600", marginBottom: "12px" };
+  const header = { 
+    fontSize: isMobile ? "14px" : "16px", 
+    fontWeight: "600", 
+    marginBottom: "12px",
+    margin: 0
+  };
 
   return (
     <div style={layoutStyle}>
@@ -344,11 +517,12 @@ const HRDashboard = () => {
               justifyContent: "space-between",
               alignItems: "center",
               marginBottom: "8px",
+              gap: 8
             }}
           >
-            <div>
-              <strong>{a.name}</strong>
-              <div style={{ fontSize: "13px", color: "#666" }}>{a.role}</div>
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <strong style={{ fontSize: isMobile ? 12 : 14 }}>{a.name}</strong>
+              <div style={{ fontSize: isMobile ? 11 : 13, color: "#666" }}>{a.role}</div>
             </div>
             <span style={badge(a.status)}>{a.status}</span>
           </div>
@@ -358,7 +532,7 @@ const HRDashboard = () => {
       {/* Tasks */}
       <div style={card}>
         <h3 style={header}>Tasks</h3>
-        <ul style={{ listStyle: "none", padding: 0 }}>
+        <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
           {dashboardData.tasks.map((t, i) => (
             <li
               key={i}
@@ -367,11 +541,12 @@ const HRDashboard = () => {
                 justifyContent: "space-between",
                 alignItems: "center",
                 marginBottom: "10px",
+                gap: 8
               }}
             >
-              <div>
-                <strong>{t.title}</strong>
-                <div style={{ fontSize: "13px", color: "#666" }}>{t.due}</div>
+              <div style={{ minWidth: 0, flex: 1 }}>
+                <strong style={{ fontSize: isMobile ? 12 : 14 }}>{t.title}</strong>
+                <div style={{ fontSize: isMobile ? 11 : 13, color: "#666" }}>{t.due}</div>
               </div>
               <span style={badge(t.priority)}>{t.priority}</span>
             </li>
@@ -380,37 +555,72 @@ const HRDashboard = () => {
       </div>
 
       {/* Schedule */}
-        <SchedulePanel />
+      <SchedulePanel isMobile={isMobile} isTablet={isTablet} />
 
       {/* Leave Requests */}
-      <div style={{ ...card, gridColumn: isMobile ? "1" : "span 2" }}>
+      <div style={{ 
+        ...card, 
+        gridColumn: isMobile ? "1" : isTablet ? "span 2" : "span 2",
+        overflowX: "auto"
+      }}>
         <h3 style={header}>Leave Requests</h3>
-        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "14px" }}>
-          <thead>
-            <tr style={{ textAlign: "left", color: "#666" }}>
-              <th style={{ padding: "8px 0" }}>Employee</th>
-              <th>Leave Type</th>
-              <th>Date</th>
-              <th>Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {dashboardData.leaveRequests.map((lr, i) => (
-              <tr key={i} style={{ borderTop: "1px solid #eee" }}>
-                <td style={{ padding: "8px 0" }}>{lr.name}</td>
-                <td>{lr.type}</td>
-                <td>{lr.range}</td>
-                <td>
-                  <span style={badge(lr.status)}>{lr.status}</span>
-                </td>
+        <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
+          <table style={{ 
+            width: "100%", 
+            borderCollapse: "collapse", 
+            fontSize: isMobile ? 12 : 14,
+            minWidth: isMobile ? "500px" : "auto"
+          }}>
+            <thead>
+              <tr style={{ textAlign: "left", color: "#666" }}>
+                <th style={{ 
+                  padding: isMobile ? "6px 4px" : "8px 0", 
+                  fontSize: isMobile ? 11 : 14,
+                  fontWeight: 600
+                }}>
+                  Employee
+                </th>
+                <th style={{ 
+                  padding: isMobile ? "6px 4px" : "8px 0", 
+                  fontSize: isMobile ? 11 : 14,
+                  fontWeight: 600
+                }}>
+                  Leave Type
+                </th>
+                <th style={{ 
+                  padding: isMobile ? "6px 4px" : "8px 0", 
+                  fontSize: isMobile ? 11 : 14,
+                  fontWeight: 600
+                }}>
+                  Date
+                </th>
+                <th style={{ 
+                  padding: isMobile ? "6px 4px" : "8px 0", 
+                  fontSize: isMobile ? 11 : 14,
+                  fontWeight: 600
+                }}>
+                  Status
+                </th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {dashboardData.leaveRequests.map((lr, i) => (
+                <tr key={i} style={{ borderTop: "1px solid #eee" }}>
+                  <td style={{ padding: isMobile ? "6px 4px" : "8px 0" }}>{lr.name}</td>
+                  <td style={{ padding: isMobile ? "6px 4px" : "8px 0" }}>{lr.type}</td>
+                  <td style={{ padding: isMobile ? "6px 4px" : "8px 0" }}>{lr.range}</td>
+                  <td style={{ padding: isMobile ? "6px 4px" : "8px 0" }}>
+                    <span style={badge(lr.status)}>{lr.status}</span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {/* Internship */}
-      <InternshipCard />
+      <InternshipCard isMobile={isMobile} isTablet={isTablet} />
     </div>
   );
 };
