@@ -1,4 +1,3 @@
-// CourseDashboardEnhanced.jsx
 import React, { useState, useEffect, useRef } from "react";
 import {
   Plus,
@@ -10,15 +9,25 @@ import {
   List as ListIcon,
   Calendar as CalendarIcon,
   ChevronLeft,
-  ChevronRight as ArrowRight
+  ChevronRight as ArrowRight,
 } from "lucide-react";
 
 export default function CourseDashboardEnhanced() {
+  // --- Projects ---
+  const [projects, setProjects] = useState([]); // {id, name, expanded}
+  const [creatingProject, setCreatingProject] = useState(false);
+  const [editingProjectId, setEditingProjectId] = useState(null);
+  const [newProjectName, setNewProjectName] = useState("");
+
+  // --- Tasks & Events (now include projectId) ---
   const sample = [];
-  const [tasks, setTasks] = useState(sample);
+  const [tasks, setTasks] = useState(sample); // each task has projectId
+  const [events, setEvents] = useState([]); // each event has projectId
+
   const [view, setView] = useState(0);
   const [addingTop, setAddingTop] = useState(false);
   const [addingEvent, setAddingEvent] = useState(false);
+  const [addingSubtask, setAddingSubtask] = useState(null); // Track which project is adding subtask
 
   const [newName, setNewName] = useState("");
   const [newStart, setNewStart] = useState("");
@@ -36,42 +45,73 @@ export default function CourseDashboardEnhanced() {
   const [currentMonth, setCurrentMonth] = useState(new Date().getMonth());
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
 
+  const [selectedProject, setSelectedProject] = useState("all"); // 'all' or project.id or 'unassigned'
+
   const priorities = ["High", "Medium", "Low"];
   const priorityColors = { High: "#f87171", Medium: "#facc15", Low: "#4ade80" };
   const eventColors = { Meeting: "#fbbf24", Event: "#34d399" };
   const uid = () => Math.floor(Math.random() * 1000000);
   const inputRef = useRef(null);
+  const projectInputRef = useRef(null);
 
-  const [events, setEvents] = useState([]);
+  useEffect(() => {
+    if (addingTop && inputRef.current) inputRef.current.focus();
+    if (creatingProject && projectInputRef.current) projectInputRef.current.focus();
+  }, [addingTop, creatingProject]);
 
-  useEffect(() => { if (addingTop && inputRef.current) inputRef.current.focus(); }, [addingTop]);
+  // --- Project CRUD ---
+  const createProject = (name) => {
+    if (!name || !name.trim()) return;
+    const p = { id: uid(), name: name.trim(), expanded: true };
+    setProjects(s => [p, ...s]);
+    setNewProjectName("");
+    setSelectedProject(p.id);
+    // Keep dialog open for sequential creation
+    setTimeout(() => projectInputRef.current?.focus(), 0);
+  };
 
-  const addTask = (parentId = null) => {
-    const name = parentId ? newSubtaskNames[parentId] : newName;
-    if (!name.trim()) return;
+  const updateProject = (projectId, patch) => setProjects(s => s.map(p => p.id === projectId ? { ...p, ...patch } : p));
+
+  const deleteProject = (projectId) => {
+    setTasks(s => s.map(t => t.projectId === projectId ? { ...t, projectId: null } : t));
+    setEvents(s => s.map(e => e.projectId === projectId ? { ...e, projectId: null } : e));
+    setProjects(s => s.filter(p => p.id !== projectId));
+    if (selectedProject === projectId) setSelectedProject('all');
+  };
+
+  // --- Task CRUD (task carries projectId) ---
+  const addTask = (parentId = null, projectId = null) => {
+    const name = parentId ? newSubtaskNames[parentId] : projectId ? newSubtaskNames[projectId] : newName;
+    if (!name || !name.trim()) return;
     const t = {
       id: uid(),
       name: name.trim(),
       assignee: "",
-      start: parentId ? newSubtaskDates[parentId]?.start || "" : newStart,
-      due: parentId ? newSubtaskDates[parentId]?.due || "" : newDue,
+      start: parentId ? newSubtaskDates[parentId]?.start || "" : projectId ? newSubtaskDates[projectId]?.start || "" : newStart,
+      due: parentId ? newSubtaskDates[parentId]?.due || "" : projectId ? newSubtaskDates[projectId]?.due || "" : newDue,
       priority: "Low",
       expanded: false,
-      subtasks: []
+      subtasks: [],
+      projectId: projectId || (selectedProject === 'all' ? null : selectedProject === 'unassigned' ? null : selectedProject),
     };
-    if (parentId === null) {
+    if (parentId === null && projectId === null) {
       setTasks(s => [t, ...s]);
       setNewName(""); setNewStart(""); setNewDue(""); setAddingTop(false);
-    } else {
+    } else if (parentId) {
       setTasks(s => s.map(x => x.id === parentId ? { ...x, subtasks: [t, ...x.subtasks] } : x));
       setNewSubtaskNames(s => ({ ...s, [parentId]: "" }));
       setNewSubtaskDates(s => ({ ...s, [parentId]: { start: "", due: "" } }));
+    } else if (projectId) {
+      setTasks(s => [t, ...s]);
+      setNewSubtaskNames(s => ({ ...s, [projectId]: "" }));
+      setNewSubtaskDates(s => ({ ...s, [projectId]: { start: "", due: "" } }));
+      setAddingSubtask(null);
     }
   };
 
   const addEvent = () => {
     if (!newEventName.trim() || !newEventDate) return;
-    setEvents(s => [...s, { id: uid(), name: newEventName.trim(), date: newEventDate, type: newEventType }]);
+    setEvents(s => [...s, { id: uid(), name: newEventName.trim(), date: newEventDate, type: newEventType, projectId: selectedProject === 'all' ? null : selectedProject === 'unassigned' ? null : selectedProject }]);
     setNewEventName(""); setNewEventDate(""); setAddingEvent(false);
   };
 
@@ -89,7 +129,9 @@ export default function CourseDashboardEnhanced() {
   };
 
   const toggleExpand = (id) => setTasks(s => s.map(t => t.id === id ? { ...t, expanded: !t.expanded } : t));
-  const filteredTasks = tasks.filter(t => filterPriority === "All" || t.priority === filterPriority);
+
+  // --- Filtering utilities ---
+  const tasksFilteredByPriority = (inputTasks) => inputTasks.filter(t => filterPriority === "All" || t.priority === filterPriority);
 
   const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
   const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
@@ -98,10 +140,16 @@ export default function CourseDashboardEnhanced() {
   for (let i = 0; i < firstDay; i++) calendar.push(null);
   for (let d = 1; d <= daysInMonth; d++) calendar.push(d);
 
+  // --- Prepare tasks/events by day with project filtering ---
   const tasksByDay = {};
-  filteredTasks.forEach(t => {
+  tasksFilteredByPriority(tasks).forEach(t => {
     const allTasks = [t, ...t.subtasks];
     allTasks.forEach(task => {
+      if (selectedProject !== 'all') {
+        const wantUnassigned = selectedProject === 'unassigned';
+        const matches = (wantUnassigned && !task.projectId) || (!wantUnassigned && task.projectId === selectedProject);
+        if (!matches) return;
+      }
       if (!task.due) return;
       const dueDateStr = task.due;
       tasksByDay[dueDateStr] = tasksByDay[dueDateStr] || [];
@@ -111,6 +159,11 @@ export default function CourseDashboardEnhanced() {
 
   const eventsByDay = {};
   events.forEach(e => {
+    if (selectedProject !== 'all') {
+      const wantUnassigned = selectedProject === 'unassigned';
+      const matches = (wantUnassigned && !e.projectId) || (!wantUnassigned && e.projectId === selectedProject);
+      if (!matches) return;
+    }
     if (!e.date) return;
     eventsByDay[e.date] = eventsByDay[e.date] || [];
     eventsByDay[e.date].push(e);
@@ -124,6 +177,8 @@ export default function CourseDashboardEnhanced() {
     setCurrentMonth(newMonth);
     setCurrentYear(newYear);
   };
+
+  const getProjectName = (pid) => projects.find(p => p.id === pid)?.name || "No Project";
 
   const renderTask = (task, parentId = null, level = 0) => (
     <div key={task.id} style={{ border: "1px solid #f0f0f2", borderRadius: 6, padding: 10, marginBottom: 4, background: priorityColors[task.priority] + "20", marginLeft: level * 20 }}>
@@ -148,14 +203,13 @@ export default function CourseDashboardEnhanced() {
         <select style={{ padding: 6, borderRadius: 6, border: "1px solid #e6e9ef" }} value={task.priority} onChange={e => updateTask(task.id, { priority: e.target.value }, parentId)}>
           {priorities.map(p => <option key={p} value={p}>{p}</option>)}
         </select>
+        <div style={{ padding: "4px 8px", borderRadius: 12, background: "#eef2ff", fontSize: 12, marginLeft: 6 }}>{task.projectId ? getProjectName(task.projectId) : "No Project"}</div>
         <div style={{ marginLeft: "auto", display: "flex", gap: 4 }}>
           <button onClick={() => setEditing(s => ({ ...s, [task.id]: !s[task.id] }))} style={{ padding: 6, border: "none", background: "#e5e7eb", borderRadius: 4, cursor: "pointer" }}><Edit2 size={14} /></button>
           <button onClick={() => deleteTask(task.id, parentId)} style={{ padding: 6, border: "none", background: "#ef4444", color: "#fff", borderRadius: 4, cursor: "pointer" }}><Trash2 size={14} /></button>
         </div>
       </div>
-
       {task.expanded && task.subtasks.map(st => renderTask(st, task.id, level + 1))}
-
       {task.expanded && (
         <div style={{ marginTop: 6, display: "flex", gap: 4, flexWrap: "wrap" }}>
           <input style={{ padding: 6, borderRadius: 6, border: "1px solid #e6e9ef", flex: 1 }} placeholder="Subtask name"
@@ -175,7 +229,7 @@ export default function CourseDashboardEnhanced() {
     if (!visible) return null;
     return (
       <div style={{ position: "fixed", top: 0, left: 0, width: "100%", height: "100%", background: "#00000066", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 999 }}>
-        <div style={{ background: "#fff", borderRadius: 8, padding: 20, minWidth: 300, maxWidth: 400, width: "90%" }}>
+        <div style={{ background: "#fff", borderRadius: 8, padding: 20, minWidth: 300, maxWidth: 500, width: "90%" }}>
           <div style={{ fontWeight: 600, marginBottom: 12 }}>{title}</div>
           {children}
           <button onClick={onClose} style={{ marginTop: 12, padding: "6px 12px", background: "#e5e7eb", border: "none", borderRadius: 4, cursor: "pointer" }}>Close</button>
@@ -193,16 +247,68 @@ export default function CourseDashboardEnhanced() {
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
             <div onClick={() => setView(0)} style={{ padding: "6px 12px", cursor: "pointer", background: view === 0 ? "#e0e7ff" : "transparent", borderRadius: 4 }}><ListIcon size={16} /> List</div>
             <div onClick={() => setView(1)} style={{ padding: "6px 12px", cursor: "pointer", background: view === 1 ? "#e0e7ff" : "transparent", borderRadius: 4 }}><CalendarIcon size={16} /> Calendar</div>
+            <select value={selectedProject} onChange={e => setSelectedProject(e.target.value)} style={{ padding: 6, borderRadius: 4, border: "1px solid #e6e9ef" }}>
+              <option value="all">All Projects</option>
+              <option value="unassigned">Unassigned</option>
+              {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+            </select>
             <select value={filterPriority} onChange={e => setFilterPriority(e.target.value)} style={{ padding: 6, borderRadius: 4, border: "1px solid #e6e9ef" }}>
               <option>All</option>
               {priorities.map(p => <option key={p}>{p}</option>)}
             </select>
+            <button onClick={() => setCreatingProject(true)} style={{ padding: "6px 12px", cursor: "pointer", background: "#06b6d4", color: "#fff", border: "none", borderRadius: 4 }}><Plus size={14} /> Create Project</button>
             <button onClick={() => setAddingTop(true)} style={{ padding: "6px 12px", cursor: "pointer", background: "#4f46e5", color: "#fff", border: "none", borderRadius: 4 }}><Plus size={14} /> Add Task/Remainder</button>
           </div>
         </div>
 
         {/* List View */}
-        {view === 0 && filteredTasks.map(task => renderTask(task))}
+        {view === 0 && (
+          <div>
+            {selectedProject === 'all' ? (
+              <div>
+                {projects.map(proj => (
+                  <div key={proj.id} style={{ marginBottom: 8 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, background: "#f8fafc", padding: 8, borderRadius: 6 }}>
+                      <button onClick={() => updateProject(proj.id, { expanded: !proj.expanded })} style={{ border: "none", background: "transparent", cursor: "pointer" }}>{proj.expanded ? <ChevronDown /> : <ChevronRight />}</button>
+                      <div style={{ fontWeight: 700 }}>{proj.name}</div>
+                      <div style={{ marginLeft: "auto", display: "flex", gap: 4 }}>
+                        <button onClick={() => setAddingSubtask(proj.id)} style={{ padding: 6, border: "none", background: "#22c55e", color: "#fff", borderRadius: 4, cursor: "pointer" }}><Plus size={14} /> Add Subtask</button>
+                        <button onClick={() => { setEditingProjectId(proj.id); setNewProjectName(proj.name); setCreatingProject(true); }} style={{ padding: 6, border: "none", background: "#e5e7eb", borderRadius: 4, cursor: "pointer" }}><Edit2 size={14} /></button>
+                        <button onClick={() => deleteProject(proj.id)} style={{ padding: 6, border: "none", background: "#ef4444", color: "#fff", borderRadius: 4, cursor: "pointer" }}><Trash2 size={14} /></button>
+                      </div>
+                    </div>
+                    {proj.expanded && (
+                      <div style={{ marginTop: 8 }}>
+                        {addingSubtask === proj.id && (
+                          <div style={{ marginBottom: 8, display: "flex", gap: 4, flexWrap: "wrap" }}>
+                            <input style={{ padding: 6, borderRadius: 6, border: "1px solid #e6e9ef", flex: 1 }} placeholder="Subtask name"
+                              value={newSubtaskNames[proj.id] || ""} onChange={e => setNewSubtaskNames(s => ({ ...s, [proj.id]: e.target.value }))} />
+                            <input type="date" style={{ padding: 6, borderRadius: 6, border: "1px solid #e6e9ef" }}
+                              value={newSubtaskDates[proj.id]?.start || ""} onChange={e => setNewSubtaskDates(s => ({ ...s, [proj.id]: { ...s[proj.id], start: e.target.value } }))} />
+                            <input type="date" style={{ padding: 6, borderRadius: 6, border: "1px solid #e6e9ef" }}
+                              value={newSubtaskDates[proj.id]?.due || ""} onChange={e => setNewSubtaskDates(s => ({ ...s, [proj.id]: { ...s[proj.id], due: e.target.value } }))} />
+                            <button style={{ padding: "6px 12px", background: "#4f46e5", color: "#fff", border: "none", borderRadius: 4, cursor: "pointer" }} onClick={() => addTask(null, proj.id)}>Add</button>
+                            <button style={{ padding: "6px 12px", background: "#e5e7eb", border: "none", borderRadius: 4, cursor: "pointer" }} onClick={() => setAddingSubtask(null)}>Cancel</button>
+                          </div>
+                        )}
+                        {tasksFilteredByPriority(tasks).filter(t => t.projectId === proj.id).map(t => renderTask(t))}
+                      </div>
+                    )}
+                  </div>
+                ))}
+                <div style={{ marginTop: 12 }}>
+                  <div style={{ fontWeight: 700, marginBottom: 6 }}>Unassigned / No Project</div>
+                  {tasksFilteredByPriority(tasks).filter(t => !t.projectId).map(t => renderTask(t))}
+                </div>
+              </div>
+            ) : (
+              <div>
+                <div style={{ fontWeight: 700, marginBottom: 8 }}>{selectedProject === 'unassigned' ? 'Unassigned Tasks' : getProjectName(selectedProject)}</div>
+                {tasksFilteredByPriority(tasks).filter(t => (selectedProject === 'unassigned' ? !t.projectId : t.projectId === selectedProject)).map(t => renderTask(t))}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Calendar View */}
         {view === 1 && (
@@ -213,7 +319,7 @@ export default function CourseDashboardEnhanced() {
               <button onClick={() => changeMonth(1)} style={{ border: "none", background: "transparent", cursor: "pointer" }}><ArrowRight /></button>
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(7, minmax(80px, 1fr))", gap: 4 }}>
-              {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map(day => (
+              {['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(day => (
                 <div key={day} style={{ fontWeight: 700, textAlign: "center", padding: 4 }}>{day}</div>
               ))}
               {calendar.map((day, idx) => {
@@ -234,7 +340,7 @@ export default function CourseDashboardEnhanced() {
                     ))}
                     {dayEvents.map(e => (
                       <div key={e.id + "-event"} style={{ fontSize: 12, marginTop: 2, padding: "2px 4px", borderRadius: 4, background: eventColors[e.type], color: "#fff", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", cursor: "default" }}>
-                        {e.name} ({e.type})
+                        {e.name} ({e.type}) {e.projectId ? `- ${getProjectName(e.projectId)}` : ''}
                       </div>
                     ))}
                   </div>
@@ -249,17 +355,63 @@ export default function CourseDashboardEnhanced() {
           <input ref={inputRef} style={{ padding: 6, borderRadius: 6, border: "1px solid #e6e9ef", width: "100%", marginBottom: 6 }} placeholder="Task name" value={newName} onChange={e => setNewName(e.target.value)} />
           <input type="date" style={{ padding: 6, borderRadius: 6, border: "1px solid #e6e9ef", width: "100%", marginBottom: 6 }} value={newStart} onChange={e => setNewStart(e.target.value)} />
           <input type="date" style={{ padding: 6, borderRadius: 6, border: "1px solid #e6e9ef", width: "100%", marginBottom: 6 }} value={newDue} onChange={e => setNewDue(e.target.value)} />
+          <div style={{ marginBottom: 6 }}>
+            <div style={{ fontSize: 12, marginBottom: 4 }}>Assign to project:</div>
+            <select value={selectedProject} onChange={e => setSelectedProject(e.target.value)} style={{ padding: 6, borderRadius: 6, border: "1px solid #e6e9ef", width: "100%" }}>
+              <option value="all">All Projects (will mark task as unassigned)</option>
+              <option value="unassigned">Unassigned</option>
+              {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+            </select>
+          </div>
           <button style={{ padding: "6px 12px", background: "#4f46e5", color: "#fff", border: "none", borderRadius: 4, cursor: "pointer" }} onClick={() => addTask()}>Add Task</button>
+          <hr style={{ margin: "12px 0" }} />
           <input style={{ padding: 6, borderRadius: 6, border: "1px solid #e6e9ef", width: "100%", marginBottom: 6 }} placeholder="Event name" value={newEventName} onChange={e => setNewEventName(e.target.value)} />
           <input type="date" style={{ padding: 6, borderRadius: 6, border: "1px solid #e6e9ef", width: "100%", marginBottom: 6 }} value={newEventDate} onChange={e => setNewEventDate(e.target.value)} />
           <select value={newEventType} onChange={e => setNewEventType(e.target.value)} style={{ padding: 6, borderRadius: 4, border: "1px solid #e6e9ef", width: "100%", marginBottom: 6 }}>
             <option>Meeting</option>
             <option>Event</option>
           </select>
+          <div style={{ marginBottom: 6 }}>
+            <div style={{ fontSize: 12, marginBottom: 4 }}>Assign to project:</div>
+            <select value={selectedProject} onChange={e => setSelectedProject(e.target.value)} style={{ padding: 6, borderRadius: 6, border: "1px solid #e6e9ef", width: "100%" }}>
+              <option value="all">All Projects (unassigned)</option>
+              <option value="unassigned">Unassigned</option>
+              {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+            </select>
+          </div>
           <button style={{ padding: "6px 12px", background: "#22c55e", color: "#fff", border: "none", borderRadius: 4, cursor: "pointer" }} onClick={addEvent}>Add Event</button>
+        </Dialog>
+
+        {/* --- Project Dialog (create / edit) --- */}
+        <Dialog visible={creatingProject} onClose={() => { setCreatingProject(false); setEditingProjectId(null); setNewProjectName(""); }} title={editingProjectId ? "Edit Project" : "Create Project"}>
+          <input ref={projectInputRef} style={{ padding: 6, borderRadius: 6, border: "1px solid #e6e9ef", width: "100%", marginBottom: 6 }} placeholder="Project name" value={newProjectName} onChange={e => setNewProjectName(e.target.value)}
+            onKeyPress={e => {
+              if (e.key === 'Enter') {
+                if (editingProjectId) {
+                  updateProject(editingProjectId, { name: newProjectName });
+                  setEditingProjectId(null);
+                  setCreatingProject(false);
+                  setNewProjectName("");
+                } else {
+                  createProject(newProjectName);
+                }
+              }
+            }} />
+          <div style={{ display: "flex", gap: 8 }}>
+            <button style={{ padding: "6px 12px", background: "#4f46e5", color: "#fff", border: "none", borderRadius: 4, cursor: "pointer" }} onClick={() => {
+              if (editingProjectId) {
+                updateProject(editingProjectId, { name: newProjectName });
+                setEditingProjectId(null);
+                setCreatingProject(false);
+                setNewProjectName("");
+              } else {
+                createProject(newProjectName);
+              }
+            }}>{editingProjectId ? 'Save' : 'Create'}</button>
+            {editingProjectId && <button onClick={() => { deleteProject(editingProjectId); setEditingProjectId(null); setCreatingProject(false); }} style={{ padding: "6px 12px", background: "#ef4444", color: "#fff", border: "none", borderRadius: 4, cursor: "pointer" }}>Delete</button>}
+          </div>
         </Dialog>
       </div>
     </div>
   );
 }
-
