@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from "react";
 import {
   Plus,
@@ -7,6 +6,7 @@ import {
   Edit2,
   Trash2,
   User,
+  Tag,
   List as ListIcon,
   Calendar as CalendarIcon,
   ChevronLeft,
@@ -14,91 +14,58 @@ import {
 } from "lucide-react";
 
 export default function CourseDashboardEnhanced() {
-  const sample = [];
-  const [tasks, setTasks] = useState(sample);
-  const [view, setView] = useState(0);
-  const [addingTop, setAddingTop] = useState(false);
-  const [addingEvent, setAddingEvent] = useState(false);
-  const [toggleMode, setToggleMode] = useState("task");
-
-
-
-  const [newName, setNewName] = useState("");
-  const [newStart, setNewStart] = useState("");
-  const [newDue, setNewDue] = useState("");
-
-  const [newEventName, setNewEventName] = useState("");
-  const [newEventDate, setNewEventDate] = useState("");
-  const [newEventType, setNewEventType] = useState("Meeting");
-  const [newPriority, setNewPriority] = useState("Low");
-
-
-  const [editing, setEditing] = useState({});
+  // --- Sample & General State ---
+  const [tasks, setTasks] = useState([]);
+  const [view, setView] = useState(0); // 0: List, 1: Calendar
+  const [addingTop, setAddingTop] = useState(false); // Add Project/Event modal
+  const [toggleMode, setToggleMode] = useState("task"); // Task/Event toggle in modal
+  const [addingTaskFor, setAddingTaskFor] = useState(null); // Track which project is adding a task
+  const [editing, setEditing] = useState({}); // Editable tasks/events
   const [filterPriority, setFilterPriority] = useState("All");
+
+  // --- New Project Form ---
+  const [newProjectName, setNewProjectName] = useState("");
+  const [newProjectDue, setNewProjectDue] = useState("");
+  const [newProjectPriority, setNewProjectPriority] = useState("Low");
+  const [newProjectAssignee, setNewProjectAssignee] = useState("");
+  const [newProjectDescription, setNewProjectDescription] = useState("");
+
+  // --- Projects & Tasks ---
+  const [projects, setProjects] = useState([]);
+  const [newTaskNames, setNewTaskNames] = useState({});
+  const [newTaskDates, setNewTaskDates] = useState({});
+  const [newTaskPriority, setNewTaskPriority] = useState({});
+
+  // --- Subtasks ---
   const [newSubtaskNames, setNewSubtaskNames] = useState({});
   const [newSubtaskDates, setNewSubtaskDates] = useState({});
 
+  // --- New Event Form ---
+  const [newEventName, setNewEventName] = useState("");
+  const [newEventDate, setNewEventDate] = useState("");
+  const [newEventType, setNewEventType] = useState("Meeting");
+
+  // --- Calendar State ---
   const [currentMonth, setCurrentMonth] = useState(new Date().getMonth());
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
+  const [events, setEvents] = useState([]);
 
+  // --- Constants ---
   const priorities = ["High", "Medium", "Low"];
   const priorityColors = { High: "#f87171", Medium: "#facc15", Low: "#4ade80" };
   const eventColors = { Meeting: "#fbbf24", Event: "#34d399" };
   const uid = () => Math.floor(Math.random() * 1000000);
+
+  // --- Refs ---
   const inputRef = useRef(null);
 
-  const [events, setEvents] = useState([]);
-
-  useEffect(() => { if (addingTop && inputRef.current) inputRef.current.focus(); }, [addingTop]);
-
-  const addTask = (parentId = null) => {
-    const name = parentId ? newSubtaskNames[parentId]?.trim() : newName?.trim();
-
-    if (!name) {
-      window.alert("Please enter a task name");
-      return;
-    }
-    const t = {
-      id: uid(),
-      name: name.trim(),
-      assignee: "",
-      start: parentId ? newSubtaskDates[parentId]?.start || "" : newStart,
-      due: parentId ? newSubtaskDates[parentId]?.due || "" : newDue,
-      priority: parentId ? "Low" : newPriority,
-      expanded: false,
-      subtasks: []
-    };
-    if (parentId === null) {
-      setTasks(s => [t, ...s]);
-      setNewName(""); setNewStart(""); setNewDue(""); setNewPriority("Low"); setAddingTop(false);
-    } else {
-      setTasks(s => s.map(x => x.id === parentId ? { ...x, subtasks: [t, ...x.subtasks] } : x));
-      setNewSubtaskNames(s => ({ ...s, [parentId]: "" }));
-      setNewSubtaskDates(s => ({ ...s, [parentId]: { start: "", due: "" } }));
-    }
-  };
-
-
-  const addEvent = () => {
-    if (!newEventName.trim() || !newEventDate) return;
-    setEvents(s => [...s, { id: uid(), name: newEventName.trim(), date: newEventDate, type: newEventType }]);
-    setNewEventName(""); setNewEventDate(""); setAddingEvent(false);
-  };
-
-  const updateTask = (taskId, patch, parentId = null) => {
-    setTasks(s => s.map(t => {
-      if (parentId === null && t.id === taskId) return { ...t, ...patch };
-      if (parentId && t.id === parentId) return { ...t, subtasks: t.subtasks.map(st => st.id === taskId ? { ...st, ...patch } : st) };
-      return t;
-    }));
-  };
-
-  const deleteTask = (taskId, parentId = null) => {
-    if (!parentId) setTasks(s => s.filter(t => t.id !== taskId));
-    else setTasks(s => s.map(t => t.id === parentId ? { ...t, subtasks: t.subtasks.filter(st => st.id !== taskId) } : t));
-  };
+  useEffect(() => { 
+    if (addingTop && inputRef.current) inputRef.current.focus(); 
+  }, [addingTop]);
 
   const toggleExpand = (id) => setTasks(s => s.map(t => t.id === id ? { ...t, expanded: !t.expanded } : t));
+  
+  // Filter tasks for calendar view
   const filteredTasks = tasks.filter(t => filterPriority === "All" || t.priority === filterPriority);
 
   const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
@@ -108,14 +75,138 @@ export default function CourseDashboardEnhanced() {
   for (let i = 0; i < firstDay; i++) calendar.push(null);
   for (let d = 1; d <= daysInMonth; d++) calendar.push(d);
 
+  const addProject = () => {
+    if (!newProjectName.trim()) return;
+    const p = {
+      id: uid(),
+      name: newProjectName.trim(),
+      description: newProjectDescription,
+      assignee: newProjectAssignee,
+      due: newProjectDue,
+      priority: newProjectPriority,
+      expanded: false,
+      tasks: []
+    };
+    setProjects(s => [p, ...s]);
+    setNewProjectName(""); 
+    setNewProjectDescription("");
+    setNewProjectAssignee("");
+    setNewProjectDue(""); 
+    setNewProjectPriority("Low"); 
+    setAddingTop(false);
+  };
+
+  const addTask = (projectID) => {
+    const name = newTaskNames[projectID]?.trim();
+    if (!name) return;
+    const t = {
+      id: uid(),
+      name,
+      start: newTaskDates[projectID]?.start || "",
+      due: newTaskDates[projectID]?.due || "",
+      priority: newTaskPriority[projectID] || "Low",
+      expanded: false,
+      subtasks: []
+    };
+
+    setProjects(s =>
+      s.map(p =>
+        p.id === projectID ? { ...p, tasks: [t, ...p.tasks] } : p
+      )
+    );
+
+    setNewTaskNames(s => ({ ...s, [projectID]: "" }));
+    setNewTaskDates(s => ({ ...s, [projectID]: { start: "", due: "" } }));
+    setNewTaskPriority(s => ({ ...s, [projectID]: "Low" }));
+    setAddingTaskFor(null);
+  };
+
+  const addSubtask = (projectID, taskID) => {
+    const name = newSubtaskNames[taskID]?.trim();
+    if (!name) return;
+    const st = {
+      id: uid(),
+      name,
+      start: newSubtaskDates[taskID]?.start || "",
+      due: newSubtaskDates[taskID]?.due || "",
+      priority: "Low"
+    };
+    setProjects(s => s.map(p => p.id === projectID ? {
+      ...p,
+      tasks: p.tasks.map(t => t.id === taskID ? { ...t, subtasks: [st, ...t.subtasks] } : t)
+    } : p));
+    setNewSubtaskNames(s => ({ ...s, [taskID]: "" }));
+    setNewSubtaskDates(s => ({ ...s, [taskID]: { start: "", due: "" } }));
+  };
+
+  const updateTask = (projectId, taskId, patch, parentId = null) => {
+    setProjects(projects => projects.map(p => {
+      if (p.id !== projectId) return p;
+
+      return {
+        ...p,
+        tasks: p.tasks.map(t => {
+          if (parentId === null && t.id === taskId) return { ...t, ...patch };
+          if (parentId && t.id === parentId) {
+            return { ...t, subtasks: t.subtasks.map(st => st.id === taskId ? { ...st, ...patch } : st) };
+          }
+          return t;
+        })
+      };
+    }));
+  };
+
+  const deleteProject = (projectId) => {
+    setProjects(s => s.filter(p => p.id !== projectId));
+  };
+
+  const deleteTask = (projectId, taskId, parentId = null) => {
+    setProjects(projects => projects.map(p => {
+      if (p.id !== projectId) return p;
+
+      return {
+        ...p,
+        tasks: p.tasks.map(t => {
+          if (parentId === null && t.id === taskId) return null;
+          if (parentId && t.id === parentId) {
+            return { ...t, subtasks: t.subtasks.filter(st => st.id !== taskId) };
+          }
+          return t;
+        }).filter(Boolean)
+      };
+    }));
+  };
+
+  const addEvent = () => {
+    if (!newEventName.trim() || !newEventDate) return;
+    setEvents(s => [...s, { 
+      id: uid(), 
+      name: newEventName.trim(), 
+      date: newEventDate, 
+      type: newEventType 
+    }]);
+    setNewEventName(""); 
+    setNewEventDate(""); 
+    setAddingTop(false);
+  };
+
+  // Fix: Properly handle task dates for calendar
   const tasksByDay = {};
-  filteredTasks.forEach(t => {
-    const allTasks = [t, ...t.subtasks];
-    allTasks.forEach(task => {
-      if (!task.due) return;
-      const dueDateStr = task.due;
-      tasksByDay[dueDateStr] = tasksByDay[dueDateStr] || [];
-      tasksByDay[dueDateStr].push({ ...task, parentId: t.id });
+  projects.forEach(project => {
+    project.tasks.forEach(task => {
+      if (task.due) {
+        const dueDateStr = task.due;
+        tasksByDay[dueDateStr] = tasksByDay[dueDateStr] || [];
+        tasksByDay[dueDateStr].push({ ...task, projectId: project.id, isTask: true });
+      }
+      // Also include subtasks
+      task.subtasks.forEach(subtask => {
+        if (subtask.due) {
+          const dueDateStr = subtask.due;
+          tasksByDay[dueDateStr] = tasksByDay[dueDateStr] || [];
+          tasksByDay[dueDateStr].push({ ...subtask, projectId: project.id, taskId: task.id, isSubtask: true });
+        }
+      });
     });
   });
 
@@ -135,96 +226,593 @@ export default function CourseDashboardEnhanced() {
     setCurrentYear(newYear);
   };
 
-  const renderTask = (task, parentId = null, level = 0) => (
-    <div key={task.id} style={{ border: "1px solid #f0f0f2", borderRadius: 6, padding: 10, marginBottom: 4, background: priorityColors[task.priority] + "20", marginLeft: level * 20 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-        {task.subtasks.length > 0 && (
-          <button onClick={() => toggleExpand(task.id)} style={{ padding: 6, cursor: "pointer", background: "transparent", border: "none" }}>
-            {task.expanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+  const renderProject = (project) => (
+    <div
+      key={project.id}
+      style={{
+        border: "1px solid #e5e7eb",
+        borderRadius: 12,
+        padding: 16,
+        marginBottom: 20,
+        background: "#ffffff",
+        boxShadow: "0 2px 6px rgba(0,0,0,0.06)",
+        transition: "transform 0.2s ease, box-shadow 0.2s ease",
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.transform = "translateY(-2px)";
+        e.currentTarget.style.boxShadow = "0 4px 12px rgba(0,0,0,0.08)";
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.transform = "translateY(0)";
+        e.currentTarget.style.boxShadow = "0 2px 6px rgba(0,0,0,0.06)";
+      }}
+    >
+      {/* Header */}
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          flexWrap: "wrap",
+          rowGap: 12,
+          marginBottom: 12,
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
+          {/* Expand/Collapse Button */}
+          <button
+            onClick={() =>
+              setProjects((s) =>
+                s.map((p) =>
+                  p.id === project.id ? { ...p, expanded: !p.expanded } : p
+                )
+              )
+            }
+            style={{
+              background: "transparent",
+              border: "none",
+              borderRadius: 6,
+              padding: 6,
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              transition: "background 0.2s ease",
+            }}
+            onMouseEnter={(e) =>
+              (e.currentTarget.style.background = "#f3f4f6")
+            }
+            onMouseLeave={(e) =>
+              (e.currentTarget.style.background = "transparent")
+            }
+          >
+            <span
+              style={{
+                display: "inline-block",
+                transform: project.expanded ? "rotate(90deg)" : "rotate(0deg)",
+                transition: "transform 0.25s ease",
+                fontSize: 16,
+              }}
+            >
+              ▶
+            </span>
           </button>
-        )}
-        {editing[task.id] ? (
-          <input style={{ padding: 6, borderRadius: 6, border: "1px solid #e6e9ef", width: "100%" }}
-            value={task.name} onChange={e => updateTask(task.id, { name: e.target.value }, parentId)}
-            onBlur={() => setEditing(s => ({ ...s, [task.id]: false }))} />
-        ) : (
-          <div onDoubleClick={() => setEditing(s => ({ ...s, [task.id]: true }))} style={{ fontWeight: 600 }}>{task.name}</div>
-        )}
-      </div>
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center", marginTop: 6 }}>
-        <div style={{ width: 30, height: 30, display: "flex", alignItems: "center", justifyContent: "center", background: "#e2e8f0", borderRadius: "50%" }}>{task.assignee ? task.assignee[0] : <User size={14} />}</div>
-        <input type="date" style={{ padding: 6, borderRadius: 6, border: "1px solid #e6e9ef" }} value={task.start} onChange={e => updateTask(task.id, { start: e.target.value }, parentId)} />
-        <input type="date" style={{ padding: 6, borderRadius: 6, border: "1px solid #e6e9ef" }} value={task.due} onChange={e => updateTask(task.id, { due: e.target.value }, parentId)} />
-        <select style={{ padding: 6, borderRadius: 6, border: "1px solid #e6e9ef" }} value={task.priority} onChange={e => updateTask(task.id, { priority: e.target.value }, parentId)}>
-          {priorities.map(p => <option key={p} value={p}>{p}</option>)}
-        </select>
-        <div style={{ marginLeft: "auto", display: "flex", gap: 4 }}>
-          <button onClick={() => setEditing(s => ({ ...s, [task.id]: !s[task.id] }))} style={{ padding: 6, border: "none", background: "#e5e7eb", borderRadius: 4, cursor: "pointer" }}><Edit2 size={14} /></button>
-          <button onClick={() => deleteTask(task.id, parentId)} style={{ padding: 6, border: "none", background: "#ef4444", color: "#fff", borderRadius: 4, cursor: "pointer" }}><Trash2 size={14} /></button>
+
+          {/* Editable Project Name */}
+          {editing[project.id] ? (
+            <input
+              type="text"
+              value={project.name}
+              autoFocus
+              onChange={(e) =>
+                setProjects((prev) =>
+                  prev.map((p) =>
+                    p.id === project.id ? { ...p, name: e.target.value } : p
+                  )
+                )
+              }
+              onBlur={() =>
+                setEditing((prev) => ({ ...prev, [project.id]: false }))
+              }
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === "Escape") e.target.blur();
+              }}
+              style={{
+                fontWeight: 600,
+                fontSize: 16,
+                border: "1px solid #d1d5db",
+                borderRadius: 8,
+                padding: "6px 10px",
+                outline: "none",
+                width: 180,
+                boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
+              }}
+              onFocus={(e) => (e.target.style.borderColor = "#2563eb")}
+            />
+          ) : (
+            <div
+              style={{
+                fontWeight: 600,
+                fontSize: 16,
+                cursor: "pointer",
+                padding: "6px 10px",
+                borderRadius: 6,
+                transition: "background 0.2s ease",
+              }}
+              onDoubleClick={() =>
+                setEditing((prev) => ({ ...prev, [project.id]: true }))
+              }
+              onMouseEnter={(e) =>
+                (e.currentTarget.style.background = "#f9fafb")
+              }
+              onMouseLeave={(e) =>
+                (e.currentTarget.style.background = "transparent")
+              }
+            >
+              {project.name || "Untitled Project"}
+            </div>
+          )}
+
+          {/* Meta Info */}
+          <div style={{ display: "flex", alignItems: "center", gap: 16, fontSize: 14, color: "#4b5563", flexWrap: "wrap" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+              <User size={14} />
+              {project.assignee || "Unassigned"}
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+              <CalendarIcon size={14} />
+              {project.due || "No Due Date"}
+            </div>
+            <div
+              style={{
+                padding: "3px 8px",
+                borderRadius: 6,
+                fontSize: 12,
+                fontWeight: 500,
+                color: "#fff",
+                background: priorityColors[project.priority] || "#9ca3af",
+              }}
+            >
+              {project.priority}
+            </div>
+          </div>
+        </div>
+
+        {/* Right Section: Action Buttons */}
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
+          <button
+            onClick={() => setAddingTaskFor(project.id)}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+              padding: "6px 14px",
+              borderRadius: 8,
+              border: "none",
+              background: "#4f46e5",
+              color: "#fff",
+              cursor: "pointer",
+              fontSize: 14,
+              fontWeight: 500,
+              transition: "background 0.2s ease",
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.background = "#4338ca")}
+            onMouseLeave={(e) => (e.currentTarget.style.background = "#4f46e5")}
+          >
+            <Plus size={14} /> Add Task
+          </button>
+          <button
+            onClick={() => deleteProject(project.id)}
+            style={{
+              background: "#ef4444",
+              border: "none",
+              borderRadius: 8,
+              padding: 8,
+              cursor: "pointer",
+              color: "#fff",
+              transition: "background 0.2s ease",
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.background = "#dc2626")}
+            onMouseLeave={(e) => (e.currentTarget.style.background = "#ef4444")}
+          >
+            <Trash2 size={14} />
+          </button>
         </div>
       </div>
 
-      {task.expanded && task.subtasks.map(st => renderTask(st, task.id, level + 1))}
+      {/* Description */}
+      {project.description && (
+        <div style={{ marginBottom: 12, paddingLeft: 28, color: "#6b7280", fontSize: 14 }}>
+          {project.description}
+        </div>
+      )}
 
-      {task.expanded && (
-        <div style={{ marginTop: 6, display: "flex", gap: 4, flexWrap: "wrap" }}>
-          <input style={{ padding: 6, borderRadius: 6, border: "1px solid #e6e9ef", flex: 1 }} placeholder="Subtask name"
-            value={newSubtaskNames[task.id] || ""} onChange={e => setNewSubtaskNames(s => ({ ...s, [task.id]: e.target.value }))} />
-          <input type="date" style={{ padding: 6, borderRadius: 6, border: "1px solid #e6e9ef" }}
-            value={newSubtaskDates[task.id]?.start || ""} onChange={e => setNewSubtaskDates(s => ({ ...s, [task.id]: { ...s[task.id], start: e.target.value } }))} />
-          <input type="date" style={{ padding: 6, borderRadius: 6, border: "1px solid #e6e9ef" }}
-            value={newSubtaskDates[task.id]?.due || ""} onChange={e => setNewSubtaskDates(s => ({ ...s, [task.id]: { ...s[task.id], due: e.target.value } }))} />
-          <button style={{ padding: "6px 12px", background: "#4f46e5", color: "#fff", border: "none", borderRadius: 4, cursor: "pointer" }} onClick={() => addTask(task.id)}>Add</button>
+      {/* Add Task Form */}
+      {addingTaskFor === project.id && (
+        <div style={{ padding: "12px 28px", background: "#f8fafc", borderRadius: 8, marginBottom: 12 }}>
+          <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+            <input
+              value={newTaskNames[project.id] || ""}
+              onChange={(e) => setNewTaskNames(s => ({ ...s, [project.id]: e.target.value }))}
+              placeholder="Task name"
+              style={{ flex: 1, minWidth: 200, padding: "6px 10px", borderRadius: 6, border: "1px solid #d1d5db" }}
+            />
+            <input
+              type="date"
+              value={newTaskDates[project.id]?.due || ""}
+              onChange={(e) => setNewTaskDates(s => ({ 
+                ...s, 
+                [project.id]: { 
+                  ...s[project.id], 
+                  due: e.target.value 
+                } 
+              }))}
+              style={{ padding: "6px 10px", borderRadius: 6, border: "1px solid #d1d5db" }}
+            />
+            <select
+              value={newTaskPriority[project.id] || "Low"}
+              onChange={(e) => setNewTaskPriority(s => ({ ...s, [project.id]: e.target.value }))}
+              style={{ padding: "6px 10px", borderRadius: 6, border: "1px solid #d1d5db" }}
+            >
+              {priorities.map(p => <option key={p} value={p}>{p}</option>)}
+            </select>
+            <button
+              onClick={() => addTask(project.id)}
+              style={{
+                padding: "6px 12px",
+                borderRadius: 6,
+                border: "none",
+                background: "#10b981",
+                color: "#fff",
+                cursor: "pointer",
+              }}
+            >
+              Add
+            </button>
+            <button
+              onClick={() => setAddingTaskFor(null)}
+              style={{
+                padding: "6px 12px",
+                borderRadius: 6,
+                border: "none",
+                background: "#6b7280",
+                color: "#fff",
+                cursor: "pointer",
+              }}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Tasks Section */}
+      {project.expanded && (
+        <div
+          style={{
+            marginTop: 12,
+            paddingLeft: 28,
+            borderTop: "1px solid #f3f4f6",
+            paddingTop: 12,
+          }}
+        >
+          {project.tasks.length > 0 ? (
+            project.tasks.map((t) => renderTask(t, project.id))
+          ) : (
+            <div
+              style={{
+                color: "#6b7280",
+                fontSize: 14,
+                fontStyle: "italic",
+                padding: "4px 0",
+              }}
+            >
+              No tasks yet. Add one!
+            </div>
+          )}
         </div>
       )}
     </div>
   );
 
-  // --- DIALOG COMPONENT ---
-  const Dialog = ({ visible, onClose, title, children }) => {
-    if (!visible) return null;
-    return (
-      <div style={{ position: "fixed", top: 0, left: 0, width: "100%", height: "100%", background: "#00000066", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 999 }}>
-        <div style={{ background: "#fff", borderRadius: 8, padding: 20, minWidth: 300, maxWidth: 400, width: "90%" }}>
-          <div style={{ fontWeight: 600, marginBottom: 12 }}>{title}</div>
-          {children}
-          <button onClick={onClose} style={{ marginTop: 12, padding: "6px 12px", background: "#e5e7eb", border: "none", borderRadius: 4, cursor: "pointer" }}>Close</button>
-        </div>
+  const renderTask = (task, projectId) => (
+    <div
+      key={task.id}
+      style={{
+        display: "grid",
+        gridTemplateColumns: "3fr 1fr 150px",
+        alignItems: "center",
+        padding: "8px 12px",
+        borderBottom: "1px solid #e5e7eb",
+        borderRadius: 6,
+        background: "#f9fafb",
+        marginBottom: 4,
+      }}
+    >
+      {/* Task Name */}
+      <div style={{ fontWeight: 500 }}>{task.name}</div>
+
+      {/* Priority */}
+      <div
+        style={{
+          display: "inline-block",
+          padding: "2px 8px",
+          borderRadius: 6,
+          background: priorityColors[task.priority] || "#9ca3af",
+          color: "#fff",
+          textAlign: "center",
+          fontSize: 12,
+        }}
+      >
+        {task.priority}
       </div>
-    );
-  };
+
+      {/* Actions */}
+      <div style={{ display: "flex", gap: 6 }}>
+        {task.subtasks.length > 0 && (
+          <button
+            onClick={() => updateTask(projectId, task.id, { expanded: !task.expanded })}
+            style={{
+              padding: "4px 8px",
+              borderRadius: 4,
+              border: "none",
+              background: "#4f46e5",
+              color: "#fff",
+              cursor: "pointer",
+              fontSize: 12,
+            }}
+          >
+            {task.expanded ? "Collapse" : "Expand"}
+          </button>
+        )}
+        <button
+          onClick={() => deleteTask(projectId, task.id)}
+          style={{
+            padding: "4px 8px",
+            borderRadius: 4,
+            border: "none",
+            background: "#ef4444",
+            color: "#fff",
+            cursor: "pointer",
+            fontSize: 12,
+          }}
+        >
+          Delete
+        </button>
+      </div>
+
+      {/* Nested Subtasks */}
+      {task.expanded && (
+        <div
+          style={{
+            gridColumn: "1 / -1",
+            marginTop: 8,
+            paddingLeft: 20,
+            display: "flex",
+            flexDirection: "column",
+            gap: 4,
+          }}
+        >
+          {task.subtasks.length > 0 ? (
+            task.subtasks.map((st) => (
+              <div
+                key={st.id}
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "3fr 1fr 150px",
+                  alignItems: "center",
+                  padding: "6px 8px",
+                  borderRadius: 4,
+                  background: "#ffffff",
+                  border: "1px solid #e5e7eb",
+                }}
+              >
+                <div>{st.name}</div>
+                <div
+                  style={{
+                    display: "inline-block",
+                    padding: "2px 8px",
+                    borderRadius: 6,
+                    background: priorityColors[st.priority] || "#9ca3af",
+                    color: "#fff",
+                    textAlign: "center",
+                    fontSize: 12,
+                  }}
+                >
+                  {st.priority}
+                </div>
+                <div>
+                  <button
+                    onClick={() => deleteTask(projectId, st.id, task.id)}
+                    style={{
+                      padding: "2px 6px",
+                      borderRadius: 4,
+                      border: "none",
+                      background: "#ef4444",
+                      color: "#fff",
+                      cursor: "pointer",
+                      fontSize: 12,
+                    }}
+                  >
+                    Delete
+                  </button>
+                </div>
+              </div>
+            ))
+          ) : (
+            <div style={{ color: "#6b7280", fontSize: 12, fontStyle: "italic" }}>
+              No subtasks
+            </div>
+          )}
+
+          {/* Add New Subtask */}
+          <div style={{ display: "flex", gap: 4, marginTop: 8 }}>
+            <input
+              value={newSubtaskNames[task.id] || ""}
+              onChange={(e) =>
+                setNewSubtaskNames((s) => ({ ...s, [task.id]: e.target.value }))
+              }
+              placeholder="New subtask"
+              style={{ flex: 1, padding: "4px 8px", borderRadius: 4, border: "1px solid #d1d5db" }}
+            />
+            <input
+              type="date"
+              value={newSubtaskDates[task.id]?.due || ""}
+              onChange={(e) => setNewSubtaskDates(s => ({ 
+                ...s, 
+                [task.id]: { 
+                  ...s[task.id], 
+                  due: e.target.value 
+                } 
+              }))}
+              style={{ padding: "4px 8px", borderRadius: 4, border: "1px solid #d1d5db" }}
+            />
+            <button
+              onClick={() => addSubtask(projectId, task.id)}
+              style={{
+                padding: "4px 12px",
+                borderRadius: 6,
+                border: "none",
+                background: "#4f46e5",
+                color: "#fff",
+                cursor: "pointer",
+                fontSize: 12,
+              }}
+            >
+              Add
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
 
   return (
-    <div style={{ minHeight: "100vh", fontFamily: "Inter, Roboto, Arial, sans-serif" }}>
-      <div style={{ margin: "0 auto", background: "#fff", borderRadius: 8, padding: 12 }}>
+    <div style={{ minHeight: "100vh", fontFamily: "Inter, Roboto, Arial, sans-serif", background: "#f8fafc", padding: 16 }}>
+      <div style={{ margin: "0 auto", background: "#fff", borderRadius: 12, padding: 20, boxShadow: "0 4px 6px rgba(0,0,0,0.05)" }}>
         {/* Header */}
-        <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center", gap: 12, marginBottom: 12 }}>
-          <div style={{ fontWeight: 600, fontSize: 18 }}>Task & Event Management</div>
+        <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center", gap: 12, marginBottom: 20 }}>
+          <div style={{ fontWeight: 600, fontSize: 20 }}>Task & Event Management</div>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-            <div onClick={() => setView(0)} style={{ padding: "6px 12px", cursor: "pointer", background: view === 0 ? "#e0e7ff" : "transparent", borderRadius: 4 }}><ListIcon size={16} /> List</div>
-            <div onClick={() => setView(1)} style={{ padding: "6px 12px", cursor: "pointer", background: view === 1 ? "#e0e7ff" : "transparent", borderRadius: 4 }}><CalendarIcon size={16} /> Calendar</div>
-            <select value={filterPriority} onChange={e => setFilterPriority(e.target.value)} style={{ padding: 6, borderRadius: 4, border: "1px solid #e6e9ef" }}>
-              <option>All</option>
-              {priorities.map(p => <option key={p}>{p}</option>)}
+            <button 
+              onClick={() => setView(0)} 
+              style={{ 
+                display: "flex", 
+                alignItems: "center", 
+                gap: 6, 
+                padding: "8px 16px", 
+                cursor: "pointer", 
+                background: view === 0 ? "#4f46e5" : "transparent", 
+                color: view === 0 ? "#fff" : "#374151",
+                border: view === 0 ? "none" : "1px solid #d1d5db",
+                borderRadius: 6 
+              }}
+            >
+              <ListIcon size={16} /> List
+            </button>
+            <button 
+              onClick={() => setView(1)} 
+              style={{ 
+                display: "flex", 
+                alignItems: "center", 
+                gap: 6, 
+                padding: "8px 16px", 
+                cursor: "pointer", 
+                background: view === 1 ? "#4f46e5" : "transparent", 
+                color: view === 1 ? "#fff" : "#374151",
+                border: view === 1 ? "none" : "1px solid #d1d5db",
+                borderRadius: 6 
+              }}
+            >
+              <CalendarIcon size={16} /> Calendar
+            </button>
+            <select 
+              value={filterPriority} 
+              onChange={e => setFilterPriority(e.target.value)} 
+              style={{ 
+                padding: "8px 12px", 
+                borderRadius: 6, 
+                border: "1px solid #d1d5db",
+                background: "#fff"
+              }}
+            >
+              <option value="All">All Priorities</option>
+              {priorities.map(p => <option key={p} value={p}>{p}</option>)}
             </select>
-            <button onClick={() => setAddingTop(true)} style={{ padding: "6px 12px", cursor: "pointer", background: "#4f46e5", color: "#fff", border: "none", borderRadius: 4 }}><Plus size={14} /> Add Task/Remainder</button>
+            <button 
+              onClick={() => setAddingTop(true)} 
+              style={{ 
+                display: "flex", 
+                alignItems: "center", 
+                gap: 6,
+                padding: "8px 16px", 
+                cursor: "pointer", 
+                background: "#4f46e5", 
+                color: "#fff", 
+                border: "none", 
+                borderRadius: 6,
+                fontWeight: 500
+              }}
+            >
+              <Plus size={16} /> Add Project/Event
+            </button>
           </div>
         </div>
 
         {/* List View */}
-        {view === 0 && filteredTasks.map(task => renderTask(task))}
+        {view === 0 && (
+          <div>
+            {projects.length > 0 ? (
+              projects.map(p => renderProject(p))
+            ) : (
+              <div style={{ textAlign: "center", padding: 40, color: "#6b7280" }}>
+                No projects yet. Click "Add Project/Event" to create your first project.
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Calendar View */}
         {view === 1 && (
           <div style={{ overflowX: "auto" }}>
-            <div style={{ display: "flex", justifyContent: "center", alignItems: "center", fontWeight: 600, marginBottom: 6, fontSize: 16, gap: 12 }}>
-              <button onClick={() => changeMonth(-1)} style={{ border: "none", background: "transparent", cursor: "pointer" }}><ChevronLeft /></button>
+            <div style={{ display: "flex", justifyContent: "center", alignItems: "center", fontWeight: 600, marginBottom: 16, fontSize: 18, gap: 16 }}>
+              <button 
+                onClick={() => changeMonth(-1)} 
+                style={{ 
+                  border: "none", 
+                  background: "transparent", 
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  padding: 8,
+                  borderRadius: 6
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.background = "#f3f4f6"}
+                onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
+              >
+                <ChevronLeft size={20} />
+              </button>
               {monthNames[currentMonth]} {currentYear}
-              <button onClick={() => changeMonth(1)} style={{ border: "none", background: "transparent", cursor: "pointer" }}><ArrowRight /></button>
+              <button 
+                onClick={() => changeMonth(1)} 
+                style={{ 
+                  border: "none", 
+                  background: "transparent", 
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  padding: 8,
+                  borderRadius: 6
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.background = "#f3f4f6"}
+                onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
+              >
+                <ArrowRight size={20} />
+              </button>
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(7, minmax(80px, 1fr))", gap: 4 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(7, minmax(100px, 1fr))", gap: 4 }}>
               {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map(day => (
-                <div key={day} style={{ fontWeight: 700, textAlign: "center", padding: 4 }}>{day}</div>
+                <div key={day} style={{ fontWeight: 700, textAlign: "center", padding: 8, background: "#f8fafc", borderRadius: 4 }}>{day}</div>
               ))}
               {calendar.map((day, idx) => {
                 const dateStr = day ? new Date(currentYear, currentMonth, day).toISOString().split("T")[0] : null;
@@ -232,28 +820,74 @@ export default function CourseDashboardEnhanced() {
                 const dayEvents = dateStr ? eventsByDay[dateStr] || [] : [];
                 const isToday = day && dateStr === new Date().toISOString().split("T")[0];
                 return (
-                  <div key={idx} style={{ minHeight: 60, border: "1px solid #e9e9ec", borderRadius: 4, padding: 2, background: isToday ? "#fffbeb" : dayTasks.length || dayEvents.length ? "#f0f4ff" : "#fff" }}>
-                    {day && <div style={{ fontWeight: 600 }}>{day}</div>}
-                    {dayTasks.map(t => (
-                      <div key={t.id + "-task"} style={{ fontSize: 12, marginTop: 2, padding: "2px 4px", borderRadius: 4, background: priorityColors[t.priority], color: "#fff", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", cursor: "pointer" }}
-                        onDoubleClick={() => setEditing(s => ({ ...s, [t.id]: true }))}>
-                        {editing[t.id] ? (
-                          <input value={t.name} onChange={e => updateTask(t.id, { name: e.target.value }, t.parentId)} onBlur={() => setEditing(s => ({ ...s, [t.id]: false }))} style={{ width: "100%", fontSize: 12, border: "none", borderRadius: 2 }} />
-                        ) : t.name}
+                  <div 
+                    key={idx} 
+                    style={{ 
+                      minHeight: 100, 
+                      border: "1px solid #e5e7eb", 
+                      borderRadius: 6, 
+                      padding: 8, 
+                      background: isToday ? "#fffbeb" : (dayTasks.length || dayEvents.length ? "#f0f9ff" : "#fff"),
+                      position: "relative"
+                    }}
+                  >
+                    {day && (
+                      <div style={{ 
+                        fontWeight: 600, 
+                        marginBottom: 4,
+                        color: isToday ? "#d97706" : "#111827"
+                      }}>
+                        {day}
+                      </div>
+                    )}
+                    {dayTasks.map(item => (
+                      <div 
+                        key={item.id} 
+                        style={{ 
+                          fontSize: 11, 
+                          marginTop: 2, 
+                          padding: "2px 6px", 
+                          borderRadius: 4, 
+                          background: priorityColors[item.priority], 
+                          color: "#fff", 
+                          whiteSpace: "nowrap", 
+                          overflow: "hidden", 
+                          textOverflow: "ellipsis",
+                          cursor: "default"
+                        }}
+                        title={item.name}
+                      >
+                        {item.name}
                       </div>
                     ))}
                     {dayEvents.map(e => (
-                      <div key={e.id + "-event"} style={{ fontSize: 12, marginTop: 2, padding: "2px 4px", borderRadius: 4, background: eventColors[e.type], color: "#fff", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", cursor: "default" }}>
+                      <div 
+                        key={e.id} 
+                        style={{ 
+                          fontSize: 11, 
+                          marginTop: 2, 
+                          padding: "2px 6px", 
+                          borderRadius: 4, 
+                          background: eventColors[e.type], 
+                          color: "#fff", 
+                          whiteSpace: "nowrap", 
+                          overflow: "hidden", 
+                          textOverflow: "ellipsis",
+                          cursor: "default"
+                        }}
+                        title={e.name}
+                      >
                         {e.name} ({e.type})
                       </div>
                     ))}
                   </div>
-                )
+                );
               })}
             </div>
           </div>
         )}
 
+        {/* Add Project/Event Modal */}
         {addingTop && (
           <div style={{
             position: "fixed",
@@ -267,22 +901,32 @@ export default function CourseDashboardEnhanced() {
             justifyContent: "center",
             zIndex: 999
           }}>
-            <div style={{ background: "#fff", borderRadius: 8, padding: 20, width: "90%", maxWidth: 700, maxHeight: "90vh", overflowY: "auto" }}>
-
+            <div style={{ 
+              background: "#fff", 
+              borderRadius: 12, 
+              padding: 24, 
+              width: "90%", 
+              maxWidth: 600, 
+              maxHeight: "90vh", 
+              overflowY: "auto",
+              boxShadow: "0 10px 25px rgba(0,0,0,0.15)"
+            }}>
               {/* Tabs */}
-              <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
+              <div style={{ display: "flex", gap: 8, marginBottom: 20, borderBottom: "1px solid #e5e7eb", paddingBottom: 8 }}>
                 {["Task", "Event"].map(tab => (
                   <button
                     key={tab}
                     onClick={() => setToggleMode(tab.toLowerCase())}
                     style={{
                       flex: 1,
-                      padding: "8px 12px",
+                      padding: "10px 16px",
                       border: "none",
                       borderBottom: toggleMode === tab.toLowerCase() ? "3px solid #4f46e5" : "3px solid transparent",
                       background: "transparent",
                       fontWeight: toggleMode === tab.toLowerCase() ? "600" : "400",
-                      cursor: "pointer"
+                      cursor: "pointer",
+                      color: toggleMode === tab.toLowerCase() ? "#4f46e5" : "#6b7280",
+                      fontSize: 16
                     }}
                   >
                     {tab}
@@ -292,231 +936,283 @@ export default function CourseDashboardEnhanced() {
 
               {/* Task Form */}
               {toggleMode === "task" && (
-                <div style={{ marginBottom: 16, display: "flex", flexDirection: "column", gap: 12 }}>
-                  {/* Title */}
-                  <div><h5 style={{ margin: 0, fontSize: "14px", color: "#4d4c4cff" }}>Task Title</h5>
+                <div style={{ marginBottom: 16, display: "flex", flexDirection: "column", gap: 16 }}>
+                  <div>
+                    <label style={{ display: "block", marginBottom: 6, fontSize: 14, fontWeight: 500, color: "#374151" }}>
+                      Project Title
+                    </label>
                     <input
                       ref={inputRef}
-                      // placeholder="Task Title"
-                      value={newName}
-                      onChange={e => setNewName(e.target.value)}
-                      style={{ padding: 10, borderRadius: 6, border: "1px solid #e6e9ef", width: "100%", fontSize: 16, fontFamily: "sans-serif" }}
-                    /></div>
+                      value={newProjectName}
+                      onChange={e => setNewProjectName(e.target.value)}
+                      placeholder="Enter project title"
+                      style={{ 
+                        padding: "10px 12px", 
+                        borderRadius: 8, 
+                        border: "1px solid #d1d5db", 
+                        width: "100%", 
+                        fontSize: 16,
+                        outline: "none",
+                        transition: "border-color 0.2s"
+                      }}
+                      onFocus={e => e.target.style.borderColor = "#4f46e5"}
+                      onBlur={e => e.target.style.borderColor = "#d1d5db"}
+                    />
+                  </div>
 
-
-                  {/* Description */}
-                  <div><h5 style={{ margin: 0, fontSize: "14px", color: "#4d4c4cff" }}>Description</h5>
+                  <div>
+                    <label style={{ display: "block", marginBottom: 6, fontSize: 14, fontWeight: 500, color: "#374151" }}>
+                      Description
+                    </label>
                     <textarea
-                      // placeholder="Description"
-                      style={{ padding: 10, borderRadius: 6, border: "1px solid #e6e9ef", width: "100%", minHeight: 60, fontSize: 16, fontFamily: "sans-serif" }}
-                    /></div>
+                      value={newProjectDescription}
+                      onChange={e => setNewProjectDescription(e.target.value)}
+                      placeholder="Enter project description"
+                      style={{ 
+                        padding: "10px 12px", 
+                        borderRadius: 8, 
+                        border: "1px solid #d1d5db", 
+                        width: "100%", 
+                        minHeight: 80, 
+                        fontSize: 16,
+                        outline: "none",
+                        transition: "border-color 0.2s",
+                        resize: "vertical"
+                      }}
+                      onFocus={e => e.target.style.borderColor = "#4f46e5"}
+                      onBlur={e => e.target.style.borderColor = "#d1d5db"}
+                    />
+                  </div>
 
-                  <div style={{ display: "flex", gap: 12, marginBottom: 12, fontSize: 16, fontFamily: "sans-serif" }}>
-
-                    {/* Assignee */}
-                    <div style={{ marginBottom: 16 }}>
-                      <h5 style={{ margin: 0, marginBottom: 4, fontSize: 14, color: "#4d4c4c" }}>
+                  <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
+                    <div style={{ flex: "1 1 200px" }}>
+                      <label style={{ display: "block", marginBottom: 6, fontSize: 14, fontWeight: 500, color: "#374151" }}>
                         Assignee
-                      </h5>
+                      </label>
                       <input
-                        // placeholder="Assignee"
+                        value={newProjectAssignee}
+                        onChange={e => setNewProjectAssignee(e.target.value)}
+                        placeholder="Assignee name"
                         style={{
-                          padding: 8,
-                          borderRadius: 6,
-                          border: "1px solid #e6e9ef",
+                          padding: "10px 12px",
+                          borderRadius: 8,
+                          border: "1px solid #d1d5db",
+                          width: "100%",
                           fontSize: 16,
-                          fontFamily: "sans-serif",
-                          outline: "none"
+                          outline: "none",
+                          transition: "border-color 0.2s"
                         }}
+                        onFocus={e => e.target.style.borderColor = "#4f46e5"}
+                        onBlur={e => e.target.style.borderColor = "#d1d5db"}
                       />
                     </div>
 
-
-                    {/* Due Date */}
-                    <div style={{ marginBottom: 16, width: "35%" }}>
-                      <h5 style={{ margin: 0, marginBottom: 4, fontSize: 14, color: "#4d4c4c" }}>
+                    <div style={{ flex: "1 1 200px" }}>
+                      <label style={{ display: "block", marginBottom: 6, fontSize: 14, fontWeight: 500, color: "#374151" }}>
                         Due Date
-                      </h5>
+                      </label>
                       <input
                         type="date"
-                        value={newDue}
-                        onChange={e => setNewDue(e.target.value)}
+                        value={newProjectDue}
+                        onChange={e => setNewProjectDue(e.target.value)}
                         style={{
-                          padding: 8,
-                          borderRadius: 6,
-                          border: "1px solid #e6e9ef",
-                          width: "100%", // fills the container
+                          padding: "10px 12px",
+                          borderRadius: 8,
+                          border: "1px solid #d1d5db",
+                          width: "100%",
                           fontSize: 16,
-                          fontFamily: "sans-serif",
-                          outline: "none"
+                          outline: "none",
+                          transition: "border-color 0.2s"
                         }}
+                        onFocus={e => e.target.style.borderColor = "#4f46e5"}
+                        onBlur={e => e.target.style.borderColor = "#d1d5db"}
                       />
                     </div>
 
-
-                    <div style={{ position: "relative", width: "20%", marginBottom: 16 }}>
-                      <h5 style={{ margin: 0, marginBottom: 4, fontSize: 14, color: "#4d4c4c" }}>
+                    <div style={{ flex: "1 1 150px" }}>
+                      <label style={{ display: "block", marginBottom: 6, fontSize: 14, fontWeight: 500, color: "#374151" }}>
                         Priority
-                      </h5>
+                      </label>
                       <select
-                        value={filterPriority}
-                        onChange={e => setFilterPriority(e.target.value)}
+                        value={newProjectPriority}
+                        onChange={e => setNewProjectPriority(e.target.value)}
                         style={{
-                          padding: "8px 12px",
-                          borderRadius: 6,
-                          border: "1px solid #e6e9ef",
+                          padding: "10px 12px",
+                          borderRadius: 8,
+                          border: "1px solid #d1d5db",
                           width: "100%",
                           appearance: "none",
-                          WebkitAppearance: "none",
-                          MozAppearance: "none",
-                          background: "#fff url('data:image/svg+xml;charset=US-ASCII,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 4 5%22><path fill=%22%234f46e5%22 d=%22M2 0L0 2h4L2 0zM2 5L0 3h4l-2 2z%22/></svg>') no-repeat right 10px center",
+                          background: `#fff url('data:image/svg+xml;charset=US-ASCII,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 4 5"><path fill="%234f46e5" d="M2 0L0 2h4L2 0zM2 5L0 3h4l-2 2z"/></svg>') no-repeat right 12px center`,
                           backgroundSize: "10px",
                           cursor: "pointer",
-                          fontWeight: 500,
-                          color: "#111827",
-                          fontFamily: "sans-serif",
-                          outline: "none"
+                          fontSize: 16,
+                          outline: "none",
+                          transition: "border-color 0.2s"
                         }}
+                        onFocus={e => e.target.style.borderColor = "#4f46e5"}
+                        onBlur={e => e.target.style.borderColor = "#d1d5db"}
                       >
-                        <option value="High">High</option>
-                        <option value="Medium">Medium</option>
-                        <option value="Low">Low</option>
+                        {priorities.map(p => (
+                          <option key={p} value={p}>{p}</option>
+                        ))}
                       </select>
                     </div>
                   </div>
 
-                  {/* Button */}
-                  <div style={{ display: "flex", width: "100%", gap: "10px"  }}>
+                  <div style={{ display: "flex", gap: 12, marginTop: 8 }}>
                     <button
-                      onClick={addTask}
-                      style={{ padding: "8px 16px", background: "#4f46e5", color: "#fff", border: "none", borderRadius: 6, cursor: "pointer" }}
+                      onClick={addProject}
+                      style={{ 
+                        padding: "10px 20px", 
+                        background: "#4f46e5", 
+                        color: "#fff", 
+                        border: "none", 
+                        borderRadius: 8, 
+                        cursor: "pointer",
+                        fontWeight: 500,
+                        fontSize: 16,
+                        flex: 1
+                      }}
                     >
-                      Create Task
+                      Create Project
                     </button>
-                    <button onClick={() => setAddingTop(false)} style={{ padding: "8px 16px", background: "#e5e7eb", border: "none", borderRadius: 4, cursor: "pointer" }}>
-                      Close
+                    <button 
+                      onClick={() => setAddingTop(false)} 
+                      style={{ 
+                        padding: "10px 20px", 
+                        background: "#f3f4f6", 
+                        color: "#374151",
+                        border: "none", 
+                        borderRadius: 8, 
+                        cursor: "pointer",
+                        fontWeight: 500,
+                        fontSize: 16,
+                        flex: 1
+                      }}
+                    >
+                      Cancel
                     </button>
                   </div>
-
                 </div>
               )}
 
               {/* Event Form */}
               {toggleMode === "event" && (
-                <div style={{ marginBottom: 16, display: "flex", flexDirection: "column", gap: 12, fontSize: 16, fontFamily: "sans-serif" }}>
-
-                  {/* Event Name */}
-                  <div style={{ marginBottom: 16, width: "100%" }}>
-                    <h5 style={{ margin: 0, marginBottom: 4, fontSize: 13, color: "#4d4c4c" }}>
+                <div style={{ marginBottom: 16, display: "flex", flexDirection: "column", gap: 16 }}>
+                  <div>
+                    <label style={{ display: "block", marginBottom: 6, fontSize: 14, fontWeight: 500, color: "#374151" }}>
                       Event Name
-                    </h5>
+                    </label>
                     <input
-                      // placeholder="Event Name"
                       value={newEventName}
                       onChange={e => setNewEventName(e.target.value)}
+                      placeholder="Enter event name"
                       style={{
-                        padding: 10,
+                        padding: "10px 12px",
                         borderRadius: 8,
-                        border: "1px solid #e6e9ef",
+                        border: "1px solid #d1d5db",
                         width: "100%",
-                        fontSize: 14,
-                        fontFamily: "sans-serif",
+                        fontSize: 16,
                         outline: "none",
-                        transition: "border-color 0.2s ease"
+                        transition: "border-color 0.2s"
                       }}
                       onFocus={e => e.target.style.borderColor = "#4f46e5"}
-                      onBlur={e => e.target.style.borderColor = "#e6e9ef"}
+                      onBlur={e => e.target.style.borderColor = "#d1d5db"}
                     />
                   </div>
 
-                  {/* Event Date & Type */}
-                  <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-                    {/* Event Date */}
-                    <div style={{ marginBottom: 16, width: "49%" }}>
-                      <h5 style={{ margin: 0, marginBottom: 4, fontSize: 13, color: "#4d4c4c" }}>
+                  <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
+                    <div style={{ flex: "1 1 250px" }}>
+                      <label style={{ display: "block", marginBottom: 6, fontSize: 14, fontWeight: 500, color: "#374151" }}>
                         Date
-                      </h5>
+                      </label>
                       <input
                         type="date"
                         value={newEventDate}
                         onChange={e => setNewEventDate(e.target.value)}
                         style={{
-                          width: "100%",
-                          padding: 10,
+                          padding: "10px 12px",
                           borderRadius: 8,
-                          border: "1px solid #e6e9ef",
-                          fontSize: 14,
-                          fontFamily: "sans-serif",
+                          border: "1px solid #d1d5db",
+                          width: "100%",
+                          fontSize: 16,
                           outline: "none",
-                          transition: "border-color 0.2s ease"
+                          transition: "border-color 0.2s"
                         }}
                         onFocus={e => e.target.style.borderColor = "#4f46e5"}
-                        onBlur={e => e.target.style.borderColor = "#e6e9ef"}
+                        onBlur={e => e.target.style.borderColor = "#d1d5db"}
                       />
                     </div>
 
-                    {/* Event Type Dropdown */}
-                    <div style={{ marginBottom: 16, position: "relative", width: "49%" }}>
-                      <h5 style={{ margin: 0, marginBottom: 4, fontSize: 13, color: "#4d4c4c" }}>
+                    <div style={{ flex: "1 1 200px" }}>
+                      <label style={{ display: "block", marginBottom: 6, fontSize: 14, fontWeight: 500, color: "#374151" }}>
                         Event Type
-                      </h5>
+                      </label>
                       <select
                         value={newEventType}
                         onChange={e => setNewEventType(e.target.value)}
                         style={{
-                          padding: 10,
+                          padding: "10px 12px",
                           borderRadius: 8,
-                          border: "1px solid #e6e9ef",
+                          border: "1px solid #d1d5db",
                           width: "100%",
                           appearance: "none",
-                          WebkitAppearance: "none",
-                          MozAppearance: "none",
-                          background: `#fff url('data:image/svg+xml;charset=US-ASCII,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 4 5%22><path fill=%22%234f46e5%22 d=%22M2 0L0 2h4L2 0zM2 5L0 3h4l-2 2z%22/></svg>') no-repeat right 12px center`,
+                          background: `#fff url('data:image/svg+xml;charset=US-ASCII,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 4 5"><path fill="%234f46e5" d="M2 0L0 2h4L2 0zM2 5L0 3h4l-2 2z"/></svg>') no-repeat right 12px center`,
                           backgroundSize: "10px",
                           cursor: "pointer",
-                          fontSize: 14,
-                          fontFamily: "sans-serif",
+                          fontSize: 16,
                           outline: "none",
-                          transition: "border-color 0.2s ease",
+                          transition: "border-color 0.2s"
                         }}
                         onFocus={e => e.target.style.borderColor = "#4f46e5"}
-                        onBlur={e => e.target.style.borderColor = "#e6e9ef"}
+                        onBlur={e => e.target.style.borderColor = "#d1d5db"}
                       >
-                        <option>Meeting</option>
-                        <option>Event</option>
+                        <option value="Meeting">Meeting</option>
+                        <option value="Event">Event</option>
                       </select>
                     </div>
-
                   </div>
 
-
-                  {/* Button */}
-                  <div style={{ display: "flex", width: "100%", gap: "10px" }}>
+                  <div style={{ display: "flex", gap: 12, marginTop: 8 }}>
                     <button
-                      onClick={addTask}
-                      style={{ padding: "8px 16px", background: "#4f46e5", color: "#fff", border: "none", borderRadius: 6, cursor: "pointer" }}
+                      onClick={addEvent}
+                      style={{ 
+                        padding: "10px 20px", 
+                        background: "#4f46e5", 
+                        color: "#fff", 
+                        border: "none", 
+                        borderRadius: 8, 
+                        cursor: "pointer",
+                        fontWeight: 500,
+                        fontSize: 16,
+                        flex: 1
+                      }}
                     >
-                      Create Task
+                      Create Event
                     </button>
-                    <button onClick={() => setAddingTop(false)} style={{ padding: "8px 16px", background: "#e5e7eb", border: "none", borderRadius: 4, cursor: "pointer" }}>
-                      Close
+                    <button 
+                      onClick={() => setAddingTop(false)} 
+                      style={{ 
+                        padding: "10px 20px", 
+                        background: "#f3f4f6", 
+                        color: "#374151",
+                        border: "none", 
+                        borderRadius: 8, 
+                        cursor: "pointer",
+                        fontWeight: 500,
+                        fontSize: 16,
+                        flex: 1
+                      }}
+                    >
+                      Cancel
                     </button>
                   </div>
-
                 </div>
-
               )}
-
-
-              {/* Close Button */}
-
             </div>
           </div>
         )}
-
-
       </div>
     </div>
   );
 }
-

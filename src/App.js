@@ -10,8 +10,6 @@ import Dashboard from './components/desktop';
 import Schedule from './components/schedule';
 import Attendance from './components/attendance';
 import ProtectedRoute from './components/ProtectedRoute';
-
-
 import { FavoritesProvider } from './components/favorites';
 
 
