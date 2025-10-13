@@ -13,15 +13,15 @@ import {
   ChevronRight as ArrowRight,
   MoreVertical
 } from "lucide-react";
+import Calendar from './calender';
 
 export default function CourseDashboardEnhanced() {
   // --- General State ---
   const [view, setView] = useState(0);
-  const [addingTop, setAddingTop] = useState(false);
   const [toggleMode, setToggleMode] = useState("task");
   const [editing, setEditing] = useState({});
   const [filterPriority, setFilterPriority] = useState("All");
-  const [activeModal, setActiveModal] = useState(null); // 'project', 'task', 'subtask'
+  const [activeModal, setActiveModal] = useState(null); // 'project', 'task', 'subtask', 'event'
 
   // --- Project Form ---
   const [newProjectName, setNewProjectName] = useState("");
@@ -36,7 +36,15 @@ export default function CourseDashboardEnhanced() {
   const [newTaskPriority, setNewTaskPriority] = useState("Low");
   const [newTaskAssignee, setNewTaskAssignee] = useState("");
   const [newTaskDescription, setNewTaskDescription] = useState("");
-  const [taskParentId, setTaskParentId] = useState(null); // project ID for task, task ID for subtask
+  const [taskParentId, setTaskParentId] = useState(null);
+
+  // --- Subtask Form ---
+  const [newSubtaskName, setNewSubtaskName] = useState("");
+  const [newSubtaskDue, setNewSubtaskDue] = useState("");
+  const [newSubtaskPriority, setNewSubtaskPriority] = useState("Low");
+  const [newSubtaskAssignee, setNewSubtaskAssignee] = useState("");
+  const [newSubtaskDescription, setNewSubtaskDescription] = useState("");
+  const [subtaskParentId, setSubtaskParentId] = useState(null);
 
   // --- Projects & Data ---
   const [projects, setProjects] = useState([]);
@@ -52,36 +60,38 @@ export default function CourseDashboardEnhanced() {
   const eventColors = { Meeting: "#fbbf24", Event: "#34d399" };
   const uid = () => Math.floor(Math.random() * 1000000);
 
-  // --- Refs ---
-  const inputRef = useRef(null);
-
-  useEffect(() => { 
-    if (addingTop && inputRef.current) inputRef.current.focus(); 
-  }, [addingTop]);
-
   // --- Modal Management ---
   const openProjectModal = () => {
     setActiveModal('project');
-    setAddingTop(true);
+    setToggleMode('task'); // Default to project tab
   };
 
   const openTaskModal = (parentId) => {
+    console.log("Opening task modal for project:", parentId);
     setActiveModal('task');
     setTaskParentId(parentId);
-    setAddingTop(true);
+    resetTaskForm();
   };
 
   const openSubtaskModal = (parentId) => {
+    console.log("Opening subtask modal for task:", parentId);
     setActiveModal('subtask');
-    setTaskParentId(parentId);
-    setAddingTop(true);
+    setSubtaskParentId(parentId);
+    resetSubtaskForm();
+  };
+
+  const openEventModal = () => {
+    setActiveModal('event');
+    resetTaskForm();
   };
 
   const closeModal = () => {
     setActiveModal(null);
-    setAddingTop(false);
-    resetTaskForm();
     resetProjectForm();
+    resetTaskForm();
+    resetSubtaskForm();
+    setTaskParentId(null);
+    setSubtaskParentId(null);
   };
 
   // --- Form Reset ---
@@ -99,8 +109,30 @@ export default function CourseDashboardEnhanced() {
     setNewTaskAssignee("");
     setNewTaskDue("");
     setNewTaskPriority("Low");
-    setTaskParentId(null);
   };
+
+  const resetSubtaskForm = () => {
+    setNewSubtaskName("");
+    setNewSubtaskDescription("");
+    setNewSubtaskAssignee("");
+    setNewSubtaskDue("");
+    setNewSubtaskPriority("Low");
+  };
+  // Add this function to your main component if it's missing
+const changeMonth = (delta) => {
+  let newMonth = currentMonth + delta;
+  let newYear = currentYear;
+  if (newMonth > 11) { 
+    newMonth = 0; 
+    newYear += 1; 
+  }
+  if (newMonth < 0) { 
+    newMonth = 11; 
+    newYear -= 1; 
+  }
+  setCurrentMonth(newMonth);
+  setCurrentYear(newYear);
+};
 
   // --- Data Management ---
   const addProject = () => {
@@ -121,8 +153,11 @@ export default function CourseDashboardEnhanced() {
   };
 
   const addTask = () => {
-    if (!newTaskName.trim() || !taskParentId) return;
-    
+    if (!newTaskName.trim() || !taskParentId) {
+      console.log("Cannot add task - missing name or parent ID:", newTaskName, taskParentId);
+      return;
+    }
+
     const task = {
       id: uid(),
       name: newTaskName.trim(),
@@ -134,36 +169,55 @@ export default function CourseDashboardEnhanced() {
       subtasks: []
     };
 
-    if (activeModal === 'task') {
-      // Add task to project
-      setProjects(s =>
-        s.map(p =>
-          p.id === taskParentId ? { ...p, tasks: [task, ...p.tasks] } : p
-        )
-      );
-    } else if (activeModal === 'subtask') {
-      // Add subtask to task
-      setProjects(s =>
-        s.map(p => ({
-          ...p,
-          tasks: p.tasks.map(t =>
-            t.id === taskParentId ? { ...t, subtasks: [task, ...t.subtasks] } : t
-          )
-        }))
-      );
-    }
+    console.log("Adding task to project:", taskParentId, task);
+
+    setProjects(s =>
+      s.map(p =>
+        p.id === taskParentId ? { ...p, tasks: [task, ...p.tasks] } : p
+      )
+    );
 
     resetTaskForm();
     closeModal();
   };
 
+  const addSubtask = () => {
+    if (!newSubtaskName.trim() || !subtaskParentId) {
+      console.log("Cannot add subtask - missing name or parent ID:", newSubtaskName, subtaskParentId);
+      return;
+    }
+
+    const subtask = {
+      id: uid(),
+      name: newSubtaskName.trim(),
+      description: newSubtaskDescription,
+      assignee: newSubtaskAssignee,
+      due: newSubtaskDue,
+      priority: newSubtaskPriority
+    };
+
+    console.log("Adding subtask to task:", subtaskParentId, subtask);
+
+    setProjects(s =>
+      s.map(p => ({
+        ...p,
+        tasks: p.tasks.map(t =>
+          t.id === subtaskParentId ? { ...t, subtasks: [subtask, ...t.subtasks] } : t
+        )
+      }))
+    );
+
+    resetSubtaskForm();
+    closeModal();
+  };
+
   const addEvent = () => {
     if (!newTaskName.trim() || !newTaskDue) return;
-    setEvents(s => [...s, { 
-      id: uid(), 
-      name: newTaskName.trim(), 
-      date: newTaskDue, 
-      type: "Event" 
+    setEvents(s => [...s, {
+      id: uid(),
+      name: newTaskName.trim(),
+      date: newTaskDue,
+      type: "Event"
     }]);
     resetTaskForm();
     closeModal();
@@ -202,47 +256,6 @@ export default function CourseDashboardEnhanced() {
       })));
     }
   };
-
-  // --- Calendar Functions ---
-  const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-  const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
-  const firstDay = new Date(currentYear, currentMonth, 1).getDay();
-  const calendar = [];
-  for (let i = 0; i < firstDay; i++) calendar.push(null);
-  for (let d = 1; d <= daysInMonth; d++) calendar.push(d);
-
-  const changeMonth = (delta) => {
-    let newMonth = currentMonth + delta;
-    let newYear = currentYear;
-    if (newMonth > 11) { newMonth = 0; newYear += 1; }
-    if (newMonth < 0) { newMonth = 11; newYear -= 1; }
-    setCurrentMonth(newMonth);
-    setCurrentYear(newYear);
-  };
-
-  // --- Calendar Data ---
-  const tasksByDay = {};
-  projects.forEach(project => {
-    project.tasks.forEach(task => {
-      if (task.due) {
-        tasksByDay[task.due] = tasksByDay[task.due] || [];
-        tasksByDay[task.due].push({ ...task, type: 'task', projectName: project.name });
-      }
-      task.subtasks.forEach(subtask => {
-        if (subtask.due) {
-          tasksByDay[subtask.due] = tasksByDay[subtask.due] || [];
-          tasksByDay[subtask.due].push({ ...subtask, type: 'subtask', projectName: project.name });
-        }
-      });
-    });
-  });
-
-  const eventsByDay = {};
-  events.forEach(e => {
-    if (!e.date) return;
-    eventsByDay[e.date] = eventsByDay[e.date] || [];
-    eventsByDay[e.date].push(e);
-  });
 
   // --- Inline Style Objects ---
   const styles = {
@@ -331,14 +344,6 @@ export default function CourseDashboardEnhanced() {
       marginBottom: 12,
       background: '#fff',
       transition: 'all 0.2s'
-    },
-    itemHover: {
-      border: '1px solid #e5e7eb',
-      borderRadius: 8,
-      marginBottom: 12,
-      background: '#fff',
-      transition: 'all 0.2s',
-      boxShadow: '0 4px 12px rgba(0,0,0,0.08)'
     },
     itemHeader: {
       display: 'flex',
@@ -472,6 +477,34 @@ export default function CourseDashboardEnhanced() {
       overflowY: 'auto',
       boxShadow: '0 20px 25px rgba(0,0,0,0.15)'
     },
+    modalHeader: {
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 20,
+      paddingBottom: 16,
+      borderBottom: '1px solid #e5e7eb'
+    },
+    modalTitle: {
+      fontWeight: 600,
+      fontSize: 20,
+      color: '#111827'
+    },
+    closeBtn: {
+      background: 'transparent',
+      border: 'none',
+      cursor: 'pointer',
+      padding: 8,
+      borderRadius: 6,
+      color: '#6b7280',
+      transition: 'background 0.2s',
+      fontSize: 24,
+      width: 32,
+      height: 32,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center'
+    },
     modalTabs: {
       display: 'flex',
       gap: 8,
@@ -502,11 +535,6 @@ export default function CourseDashboardEnhanced() {
       color: '#4f46e5',
       fontSize: 16,
       transition: 'all 0.2s'
-    },
-    modalTitle: {
-      fontWeight: 600,
-      fontSize: 18,
-      color: '#111827'
     },
     modalForm: {
       display: 'flex',
@@ -593,68 +621,6 @@ export default function CourseDashboardEnhanced() {
       fontSize: 16,
       flex: 1,
       transition: 'background 0.2s'
-    },
-    calendarView: {
-      overflowX: 'auto'
-    },
-    calendarHeader: {
-      display: 'flex',
-      justifyContent: 'center',
-      alignItems: 'center',
-      gap: 16,
-      fontWeight: 600,
-      marginBottom: 16,
-      fontSize: 18
-    },
-    monthNav: {
-      border: 'none',
-      background: 'transparent',
-      cursor: 'pointer',
-      display: 'flex',
-      alignItems: 'center',
-      padding: 8,
-      borderRadius: 6,
-      transition: 'background 0.2s'
-    },
-    currentMonth: {
-      fontWeight: 600
-    },
-    calendarGrid: {
-      display: 'grid',
-      gridTemplateColumns: 'repeat(7, minmax(100px, 1fr))',
-      gap: 4
-    },
-    calendarDayHeader: {
-      fontWeight: 700,
-      textAlign: 'center',
-      padding: '12px 8px',
-      background: '#f8fafc',
-      borderRadius: 4,
-      fontSize: 14
-    },
-    calendarDay: {
-      minHeight: 100,
-      border: '1px solid #e5e7eb',
-      borderRadius: 6,
-      padding: 8,
-      background: '#fff',
-      position: 'relative'
-    },
-    dayNumber: {
-      fontWeight: 600,
-      marginBottom: 4,
-      color: '#111827'
-    },
-    calendarItem: {
-      fontSize: 11,
-      marginTop: 2,
-      padding: '2px 6px',
-      borderRadius: 4,
-      color: '#fff',
-      whiteSpace: 'nowrap',
-      overflow: 'hidden',
-      textOverflow: 'ellipsis',
-      cursor: 'default'
     }
   };
 
@@ -691,14 +657,14 @@ export default function CourseDashboardEnhanced() {
             />
           ) : (
             <div
-              style={{...styles.nameBase, fontSize: 16}}
+              style={{ ...styles.nameBase, fontSize: 16 }}
               onDoubleClick={() => setEditing((prev) => ({ ...prev, [project.id]: true }))}
             >
               {project.name || "Untitled Project"}
             </div>
           )}
 
-          <div style={{...styles.metaBase, fontSize: 14}}>
+          <div style={{ ...styles.metaBase, fontSize: 14 }}>
             <div style={styles.metaItem}>
               <User size={14} />
               {project.assignee || "Unassigned"}
@@ -707,8 +673,8 @@ export default function CourseDashboardEnhanced() {
               <CalendarIcon size={14} />
               {project.due || "No Due Date"}
             </div>
-            <div 
-              style={{...styles.priorityBadge, background: priorityColors[project.priority]}}
+            <div
+              style={{ ...styles.priorityBadge, background: priorityColors[project.priority] }}
             >
               {project.priority}
             </div>
@@ -740,7 +706,7 @@ export default function CourseDashboardEnhanced() {
 
       {/* Tasks List */}
       {project.expanded && (
-        <div style={{...styles.container, paddingLeft: 12}}>
+        <div style={{ ...styles.container, paddingLeft: 12 }}>
           {project.tasks.length > 0 ? (
             project.tasks.map((task) => renderTask(task, project.id))
           ) : (
@@ -784,18 +750,18 @@ export default function CourseDashboardEnhanced() {
               onKeyDown={(e) => {
                 if (e.key === "Enter" || e.key === "Escape") e.target.blur();
               }}
-              style={{...styles.editableInput, fontSize: '14px'}}
+              style={{ ...styles.editableInput, fontSize: '14px' }}
             />
           ) : (
             <div
-              style={{...styles.nameBase, fontSize: '14px'}}
+              style={{ ...styles.nameBase, fontSize: '14px' }}
               onDoubleClick={() => setEditing((prev) => ({ ...prev, [task.id]: true }))}
             >
               {task.name || "Untitled Task"}
             </div>
           )}
 
-          <div style={{...styles.metaBase, fontSize: 12}}>
+          <div style={{ ...styles.metaBase, fontSize: 12 }}>
             <div style={styles.metaItem}>
               <User size={12} />
               {task.assignee || "Unassigned"}
@@ -804,8 +770,8 @@ export default function CourseDashboardEnhanced() {
               <CalendarIcon size={12} />
               {task.due || "No Due Date"}
             </div>
-            <div 
-              style={{...styles.priorityBadge, background: priorityColors[task.priority]}}
+            <div
+              style={{ ...styles.priorityBadge, background: priorityColors[task.priority] }}
             >
               {task.priority}
             </div>
@@ -815,7 +781,7 @@ export default function CourseDashboardEnhanced() {
         <div style={styles.actions}>
           <button
             onClick={() => openSubtaskModal(task.id)}
-            style={{...styles.addTaskBtn, padding: '4px 8px', fontSize: 11}}
+            style={{ ...styles.addTaskBtn, padding: '4px 8px', fontSize: 11 }}
           >
             <Plus size={12} /> Add Subtask
           </button>
@@ -830,14 +796,14 @@ export default function CourseDashboardEnhanced() {
 
       {/* Task Description */}
       {task.description && (
-        <div style={{...styles.description, fontSize: 13, paddingLeft: 52}}>
+        <div style={{ ...styles.description, fontSize: 13, paddingLeft: 52 }}>
           {task.description}
         </div>
       )}
 
       {/* Subtasks List */}
       {task.expanded && (
-        <div style={{...styles.container, paddingLeft: 18}}>
+        <div style={{ ...styles.container, paddingLeft: 18 }}>
           {task.subtasks.length > 0 ? (
             task.subtasks.map((subtask) => renderSubtask(subtask, projectId))
           ) : (
@@ -876,18 +842,18 @@ export default function CourseDashboardEnhanced() {
               onKeyDown={(e) => {
                 if (e.key === "Enter" || e.key === "Escape") e.target.blur();
               }}
-              style={{...styles.editableInput, fontSize: '13px'}}
+              style={{ ...styles.editableInput, fontSize: '13px' }}
             />
           ) : (
             <div
-              style={{...styles.nameBase, fontSize: '13px'}}
+              style={{ ...styles.nameBase, fontSize: '13px' }}
               onDoubleClick={() => setEditing((prev) => ({ ...prev, [subtask.id]: true }))}
             >
               {subtask.name || "Untitled Subtask"}
             </div>
           )}
 
-          <div style={{...styles.metaBase, fontSize: 11}}>
+          <div style={{ ...styles.metaBase, fontSize: 11 }}>
             <div style={styles.metaItem}>
               <User size={11} />
               {subtask.assignee || "Unassigned"}
@@ -896,8 +862,8 @@ export default function CourseDashboardEnhanced() {
               <CalendarIcon size={11} />
               {subtask.due || "No Due Date"}
             </div>
-            <div 
-              style={{...styles.priorityBadge, background: priorityColors[subtask.priority]}}
+            <div
+              style={{ ...styles.priorityBadge, background: priorityColors[subtask.priority] }}
             >
               {subtask.priority}
             </div>
@@ -916,7 +882,7 @@ export default function CourseDashboardEnhanced() {
 
       {/* Subtask Description */}
       {subtask.description && (
-        <div style={{...styles.description, fontSize: 12, paddingLeft: 68}}>
+        <div style={{ ...styles.description, fontSize: 12, paddingLeft: 68 }}>
           {subtask.description}
         </div>
       )}
@@ -924,14 +890,90 @@ export default function CourseDashboardEnhanced() {
   );
 
   // --- Modal Content ---
-  const renderModalContent = () => {
-    const isProject = activeModal === 'project';
-    const isTask = activeModal === 'task';
-    const isSubtask = activeModal === 'subtask';
-    const isEvent = toggleMode === 'event';
+  const renderProjectModal = () => (
+    <div>
+      <div style={styles.modalTabs}>
+        <button
+          onClick={() => setToggleMode("task")}
+          style={toggleMode === "task" ? styles.modalTabActive : styles.modalTab}
+        >
+          Project
+        </button>
+        <button
+          onClick={() => setToggleMode("event")}
+          style={toggleMode === "event" ? styles.modalTabActive : styles.modalTab}
+        >
+          Event
+        </button>
+      </div>
 
-    if (isEvent) {
-      return (
+      {toggleMode === "task" ? (
+        <div style={styles.modalForm}>
+          <div style={styles.formGroup}>
+            <label style={styles.label}>Project Title</label>
+            <input
+              value={newProjectName}
+              onChange={e => setNewProjectName(e.target.value)}
+              placeholder="Enter project title"
+              style={styles.input}
+            />
+          </div>
+
+          <div style={styles.formGroup}>
+            <label style={styles.label}>Description</label>
+            <textarea
+              value={newProjectDescription}
+              onChange={e => setNewProjectDescription(e.target.value)}
+              placeholder="Enter description"
+              style={styles.textarea}
+            />
+          </div>
+
+          <div style={styles.formRow}>
+            <div style={styles.formRowGroup}>
+              <label style={styles.label}>Assignee</label>
+              <input
+                value={newProjectAssignee}
+                onChange={e => setNewProjectAssignee(e.target.value)}
+                placeholder="Assignee name"
+                style={styles.input}
+              />
+            </div>
+
+            <div style={styles.formRowGroup}>
+              <label style={styles.label}>Due Date</label>
+              <input
+                type="date"
+                value={newProjectDue}
+                onChange={e => setNewProjectDue(e.target.value)}
+                style={styles.input}
+              />
+            </div>
+
+            <div style={styles.formRowGroup}>
+              <label style={styles.label}>Priority</label>
+              <select
+                value={newProjectPriority}
+                onChange={e => setNewProjectPriority(e.target.value)}
+                style={styles.select}
+              >
+                {priorities.map(p => (
+                  <option key={p} value={p}>{p}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div style={styles.formActions}>
+            <button onClick={addProject} style={styles.primaryBtn}>
+              Create Project
+            </button>
+            <button onClick={closeModal} style={styles.secondaryBtn}>
+              Cancel
+            </button>
+          </div>
+        </div>
+      ) : (
         <div style={styles.modalForm}>
           <div style={styles.formGroup}>
             <label style={styles.label}>Event Name</label>
@@ -962,81 +1004,198 @@ export default function CourseDashboardEnhanced() {
             </button>
           </div>
         </div>
-      );
-    }
+      )}
+    </div>
+  );
 
-    return (
-      <div style={styles.modalForm}>
-        <div style={styles.formGroup}>
-          <label style={styles.label}>{isProject ? 'Project' : isTask ? 'Task' : 'Subtask'} Title</label>
+  const renderTaskModal = () => (
+    <div style={styles.modalForm}>
+      <div style={styles.formGroup}>
+        <label style={styles.label}>Task Title</label>
+        <input
+          value={newTaskName}
+          onChange={e => setNewTaskName(e.target.value)}
+          placeholder="Enter task title"
+          style={styles.input}
+        />
+      </div>
+
+      <div style={styles.formGroup}>
+        <label style={styles.label}>Description</label>
+        <textarea
+          value={newTaskDescription}
+          onChange={e => setNewTaskDescription(e.target.value)}
+          placeholder="Enter description"
+          style={styles.textarea}
+        />
+      </div>
+
+      <div style={styles.formRow}>
+        <div style={styles.formRowGroup}>
+          <label style={styles.label}>Assignee</label>
           <input
-            ref={isProject ? inputRef : null}
-            value={isProject ? newProjectName : newTaskName}
-            onChange={e => isProject ? setNewProjectName(e.target.value) : setNewTaskName(e.target.value)}
-            placeholder={`Enter ${isProject ? 'project' : isTask ? 'task' : 'subtask'} title`}
+            value={newTaskAssignee}
+            onChange={e => setNewTaskAssignee(e.target.value)}
+            placeholder="Assignee name"
             style={styles.input}
           />
         </div>
 
-        <div style={styles.formGroup}>
-          <label style={styles.label}>Description</label>
-          <textarea
-            value={isProject ? newProjectDescription : newTaskDescription}
-            onChange={e => isProject ? setNewProjectDescription(e.target.value) : setNewTaskDescription(e.target.value)}
-            placeholder="Enter description"
-            style={styles.textarea}
+        <div style={styles.formRowGroup}>
+          <label style={styles.label}>Due Date</label>
+          <input
+            type="date"
+            value={newTaskDue}
+            onChange={e => setNewTaskDue(e.target.value)}
+            style={styles.input}
           />
         </div>
 
-        <div style={styles.formRow}>
-          <div style={styles.formRowGroup}>
-            <label style={styles.label}>Assignee</label>
-            <input
-              value={isProject ? newProjectAssignee : newTaskAssignee}
-              onChange={e => isProject ? setNewProjectAssignee(e.target.value) : setNewTaskAssignee(e.target.value)}
-              placeholder="Assignee name"
-              style={styles.input}
-            />
-          </div>
-
-          <div style={styles.formRowGroup}>
-            <label style={styles.label}>Due Date</label>
-            <input
-              type="date"
-              value={isProject ? newProjectDue : newTaskDue}
-              onChange={e => isProject ? setNewProjectDue(e.target.value) : setNewTaskDue(e.target.value)}
-              style={styles.input}
-            />
-          </div>
-
-          <div style={styles.formRowGroup}>
-            <label style={styles.label}>Priority</label>
-            <select
-              value={isProject ? newProjectPriority : newTaskPriority}
-              onChange={e => isProject ? setNewProjectPriority(e.target.value) : setNewTaskPriority(e.target.value)}
-              style={styles.select}
-            >
-              {priorities.map(p => (
-                <option key={p} value={p}>{p}</option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        <div style={styles.formActions}>
-          <button 
-            onClick={isProject ? addProject : addTask} 
-            style={styles.primaryBtn}
+        <div style={styles.formRowGroup}>
+          <label style={styles.label}>Priority</label>
+          <select
+            value={newTaskPriority}
+            onChange={e => setNewTaskPriority(e.target.value)}
+            style={styles.select}
           >
-            Create {isProject ? 'Project' : isTask ? 'Task' : 'Subtask'}
-          </button>
-          <button onClick={closeModal} style={styles.secondaryBtn}>
-            Cancel
-          </button>
+            {priorities.map(p => (
+              <option key={p} value={p}>{p}</option>
+            ))}
+          </select>
         </div>
       </div>
-    );
+
+      <div style={styles.formActions}>
+        <button onClick={addTask} style={styles.primaryBtn}>
+          Create Task
+        </button>
+        <button onClick={closeModal} style={styles.secondaryBtn}>
+          Cancel
+        </button>
+      </div>
+    </div>
+  );
+
+  const renderSubtaskModal = () => (
+    <div style={styles.modalForm}>
+      <div style={styles.formGroup}>
+        <label style={styles.label}>Subtask Title</label>
+        <input
+          value={newSubtaskName}
+          onChange={e => setNewSubtaskName(e.target.value)}
+          placeholder="Enter subtask title"
+          style={styles.input}
+        />
+      </div>
+
+      <div style={styles.formGroup}>
+        <label style={styles.label}>Description</label>
+        <textarea
+          value={newSubtaskDescription}
+          onChange={e => setNewSubtaskDescription(e.target.value)}
+          placeholder="Enter description"
+          style={styles.textarea}
+        />
+      </div>
+
+      <div style={styles.formRow}>
+        <div style={styles.formRowGroup}>
+          <label style={styles.label}>Assignee</label>
+          <input
+            value={newSubtaskAssignee}
+            onChange={e => setNewSubtaskAssignee(e.target.value)}
+            placeholder="Assignee name"
+            style={styles.input}
+          />
+        </div>
+
+        <div style={styles.formRowGroup}>
+          <label style={styles.label}>Due Date</label>
+          <input
+            type="date"
+            value={newSubtaskDue}
+            onChange={e => setNewSubtaskDue(e.target.value)}
+            style={styles.input}
+          />
+        </div>
+
+        <div style={styles.formRowGroup}>
+          <label style={styles.label}>Priority</label>
+          <select
+            value={newSubtaskPriority}
+            onChange={e => setNewSubtaskPriority(e.target.value)}
+            style={styles.select}
+          >
+            {priorities.map(p => (
+              <option key={p} value={p}>{p}</option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      <div style={styles.formActions}>
+        <button onClick={addSubtask} style={styles.primaryBtn}>
+          Create Subtask
+        </button>
+        <button onClick={closeModal} style={styles.secondaryBtn}>
+          Cancel
+        </button>
+      </div>
+    </div>
+  );
+
+  const getModalTitle = () => {
+    switch (activeModal) {
+      case 'project': return 'Create New Project or Event';
+      case 'task': return 'Create New Task';
+      case 'subtask': return 'Create New Subtask';
+      case 'event': return 'Create New Event';
+      default: return '';
+    }
   };
+
+  const renderModalContent = () => {
+    switch (activeModal) {
+      case 'project': return renderProjectModal();
+      case 'task': return renderTaskModal();
+      case 'subtask': return renderSubtaskModal();
+      case 'event': return renderEventModal();
+      default: return null;
+    }
+  };
+
+  const renderEventModal = () => (
+    <div style={styles.modalForm}>
+      <div style={styles.formGroup}>
+        <label style={styles.label}>Event Name</label>
+        <input
+          value={newTaskName}
+          onChange={e => setNewTaskName(e.target.value)}
+          placeholder="Enter event name"
+          style={styles.input}
+        />
+      </div>
+      <div style={styles.formRow}>
+        <div style={styles.formRowGroup}>
+          <label style={styles.label}>Date</label>
+          <input
+            type="date"
+            value={newTaskDue}
+            onChange={e => setNewTaskDue(e.target.value)}
+            style={styles.input}
+          />
+        </div>
+      </div>
+      <div style={styles.formActions}>
+        <button onClick={addEvent} style={styles.primaryBtn}>
+          Create Event
+        </button>
+        <button onClick={closeModal} style={styles.secondaryBtn}>
+          Cancel
+        </button>
+      </div>
+    </div>
+  );
 
   return (
     <div style={styles.appContainer}>
@@ -1045,27 +1204,27 @@ export default function CourseDashboardEnhanced() {
         <div style={styles.header}>
           <div style={styles.headerTitle}>Task & Event Management</div>
           <div style={styles.headerControls}>
-            <button 
-              onClick={() => setView(0)} 
+            <button
+              onClick={() => setView(0)}
               style={view === 0 ? styles.viewBtnActive : styles.viewBtn}
             >
               <ListIcon size={16} /> List
             </button>
-            <button 
-              onClick={() => setView(1)} 
+            <button
+              onClick={() => setView(1)}
               style={view === 1 ? styles.viewBtnActive : styles.viewBtn}
             >
               <CalendarIcon size={16} /> Calendar
             </button>
-            <select 
-              value={filterPriority} 
+            <select
+              value={filterPriority}
               onChange={e => setFilterPriority(e.target.value)}
               style={styles.filterSelect}
             >
               <option value="All">All Priorities</option>
               {priorities.map(p => <option key={p} value={p}>{p}</option>)}
             </select>
-            <button 
+            <button
               onClick={openProjectModal}
               style={styles.addBtn}
             >
@@ -1089,87 +1248,27 @@ export default function CourseDashboardEnhanced() {
 
         {/* Calendar View */}
         {view === 1 && (
-          <div style={styles.calendarView}>
-            <div style={styles.calendarHeader}>
-              <button onClick={() => changeMonth(-1)} style={styles.monthNav}>
-                <ChevronLeft size={20} />
-              </button>
-              <div style={styles.currentMonth}>
-                {monthNames[currentMonth]} {currentYear}
-              </div>
-              <button onClick={() => changeMonth(1)} style={styles.monthNav}>
-                <ArrowRight size={20} />
-              </button>
-            </div>
-            <div style={styles.calendarGrid}>
-              {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map(day => (
-                <div key={day} style={styles.calendarDayHeader}>{day}</div>
-              ))}
-              {calendar.map((day, idx) => {
-                const dateStr = day ? new Date(currentYear, currentMonth, day).toISOString().split("T")[0] : null;
-                const dayTasks = dateStr ? tasksByDay[dateStr] || [] : [];
-                const dayEvents = dateStr ? eventsByDay[dateStr] || [] : [];
-                const isToday = day && dateStr === new Date().toISOString().split("T")[0];
-                
-                return (
-                  <div 
-                    key={idx} 
-                    style={{
-                      ...styles.calendarDay,
-                      background: isToday ? '#fffbeb' : (dayTasks.length || dayEvents.length ? '#f0f9ff' : '#fff')
-                    }}
-                  >
-                    {day && <div style={styles.dayNumber}>{day}</div>}
-                    {dayTasks.map(item => (
-                      <div 
-                        key={item.id} 
-                        style={{
-                          ...styles.calendarItem,
-                          background: priorityColors[item.priority]
-                        }}
-                        title={item.name}
-                      >
-                        {item.name}
-                      </div>
-                    ))}
-                    {dayEvents.map(e => (
-                      <div 
-                        key={e.id} 
-                        style={{
-                          ...styles.calendarItem,
-                          background: eventColors[e.type]
-                        }}
-                        title={e.name}
-                      >
-                        {e.name}
-                      </div>
-                    ))}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
+          <Calendar
+            projects={projects}
+            events={events}
+            currentMonth={currentMonth}
+            currentYear={currentYear}
+            changeMonth={changeMonth}
+            styles={styles}
+            priorityColors={priorityColors}
+            eventColors={eventColors}
+          />
         )}
 
         {/* Modal */}
-        {addingTop && (
+        {activeModal && (
           <div style={styles.modalOverlay}>
             <div style={styles.modal}>
-              <div style={styles.modalTabs}>
-                {activeModal === 'project' && ['Task', 'Event'].map(tab => (
-                  <button
-                    key={tab}
-                    onClick={() => setToggleMode(tab.toLowerCase())}
-                    style={toggleMode === tab.toLowerCase() ? styles.modalTabActive : styles.modalTab}
-                  >
-                    {tab}
-                  </button>
-                ))}
-                {(activeModal === 'task' || activeModal === 'subtask') && (
-                  <div style={styles.modalTitle}>
-                    Add {activeModal === 'task' ? 'Task' : 'Subtask'}
-                  </div>
-                )}
+              <div style={styles.modalHeader}>
+                <div style={styles.modalTitle}>{getModalTitle()}</div>
+                <button onClick={closeModal} style={styles.closeBtn}>
+                  ×
+                </button>
               </div>
               {renderModalContent()}
             </div>
