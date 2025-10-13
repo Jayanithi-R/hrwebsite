@@ -525,7 +525,9 @@ export default function CourseDashboardEnhanced() {
     },
     formRowGroup: {
       flex: 1,
-      minWidth: 150
+      minWidth: 150,
+      display: "flex",
+      flexDirection: "column"
     },
     label: {
       fontSize: 14,
