@@ -1,30 +1,14 @@
 import React, { useState } from 'react';
 import { Box, useTheme, useMediaQuery } from '@mui/material';
 import Header from './header';
-import Sidebar from './sidebar';
 import { Outlet } from 'react-router-dom';
 
 export default function Layout() {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
-  const handleSidebarToggle = () => {
-    setSidebarOpen(!sidebarOpen);
-  };
-
-  const handleSidebarClose = () => {
-    setSidebarOpen(false);
-  };
-
   return (
     <Box sx={{ display: 'flex', minHeight: '100vh', backgroundColor: '#f9fafb' }}>
-      {/* Sidebar */}
-      <Sidebar 
-        open={sidebarOpen} 
-        onClose={handleSidebarClose}
-        isMobile={isMobile}
-      />
 
       {/* Main Section */}
       <Box
@@ -38,7 +22,7 @@ export default function Layout() {
         }}
       >
         {/* Header */}
-        <Header onMenuToggle={handleSidebarToggle} />
+        <Header/>
 
         {/* Page Display Area */}
         <Box sx={{ padding: { xs: '16px', sm: '20px', md: '24px' }, flexGrow: 1 }}>

@@ -23,7 +23,7 @@ function Login({ setIsLoggedIn }) {
     if (current && username === current.username && password === current.password) {
       setError("");
       setIsLoggedIn(true);
-      navigate(role === "HR" ? "/attendance" : "/desktop");
+      navigate("/desktop");
     } else {
       setError("Invalid username or password");
     }
