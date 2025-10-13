@@ -36,6 +36,7 @@ export default function CourseDashboardEnhanced() {
   const [newDue, setNewDue] = useState("");
   const [newAssignee, setNewAssignee] = useState("");
   const [newStatus, setNewStatus] = useState("Pending");
+  const [newPriority, setNewPriority] = useState("Low");
 
   const [newEventName, setNewEventName] = useState("");
   const [newEventDate, setNewEventDate] = useState("");
@@ -47,7 +48,9 @@ export default function CourseDashboardEnhanced() {
   const [newSubtaskDates, setNewSubtaskDates] = useState({});
   const [newSubtaskAssignees, setNewSubtaskAssignees] = useState({});
   const [newSubtaskStatuses, setNewSubtaskStatuses] = useState({});
+  const [newSubtaskPriorities, setNewSubtaskPriorities] = useState({});
   const [newSubtaskFiles, setNewSubtaskFiles] = useState({});
+  const [newFile, setNewFile] = useState(null);
 
   const [currentMonth, setCurrentMonth] = useState(new Date().getMonth());
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
@@ -57,14 +60,16 @@ export default function CourseDashboardEnhanced() {
   const priorities = ["High", "Medium", "Low"];
   const priorityColors = { High: "#f87171", Medium: "#facc15", Low: "#4ade80" };
   const eventColors = { Meeting: "#fbbf24", Event: "#34d399" };
-  const uid = () => Math.floor(Math.random() * 1000000);
+  const uid = () => Math.floor(Math.random() * 1000000).toString(); // Ensure unique IDs
   const inputRef = useRef(null);
   const projectInputRef = useRef(null);
+  const subtaskNameRef = useRef(null);
 
   useEffect(() => {
     if (addingTop && inputRef.current) inputRef.current.focus();
     if (creatingProject && projectInputRef.current) projectInputRef.current.focus();
-  }, [addingTop, creatingProject]);
+    if (addingSubtask && subtaskNameRef.current) subtaskNameRef.current.focus();
+  }, [addingTop, creatingProject, addingSubtask]);
 
   // --- Project CRUD ---
   const createProject = (name) => {
@@ -73,8 +78,8 @@ export default function CourseDashboardEnhanced() {
     setProjects((s) => [...s, p]);
     setNewProjectName("");
     setSelectedProject(p.id);
-    setCreatingProject(true); // Keep dialog open
-    setTimeout(() => projectInputRef.current?.focus(), 0);
+    setCreatingProject(true); // Keep dialog open for continuous addition
+    setTimeout(() => projectInputRef.current?.focus(), 0); // Refocus for continuous typing
   };
 
   const updateProject = (projectId, patch) =>
@@ -95,11 +100,11 @@ export default function CourseDashboardEnhanced() {
   const addTask = (parentId = null, projectId = null) => {
     const name =
       parentId
-        ? newSubtaskNames[parentId]
+        ? newSubtaskNames[parentId] || ""
         : projectId
-        ? newSubtaskNames[projectId]
+        ? newSubtaskNames[projectId] || ""
         : newName;
-    if (!name || !name.trim()) return;
+    if (!name.trim()) return;
     const t = {
       id: uid(),
       name: name.trim(),
@@ -117,7 +122,7 @@ export default function CourseDashboardEnhanced() {
           ? newSubtaskDates[projectId]?.due || ""
           : newDue,
       status: parentId ? newSubtaskStatuses[parentId] || "Pending" : newStatus,
-      priority: "Low",
+      priority: parentId ? newSubtaskPriorities[parentId] || "Low" : newPriority,
       expanded: false,
       subtasks: [],
       projectId:
@@ -127,6 +132,7 @@ export default function CourseDashboardEnhanced() {
           : selectedProject === "unassigned"
           ? null
           : selectedProject),
+      file: parentId ? newSubtaskFiles[parentId] : newFile,
     };
     if (parentId === null && projectId === null) {
       setTasks((s) => [t, ...s]);
@@ -135,7 +141,9 @@ export default function CourseDashboardEnhanced() {
       setNewDue("");
       setNewAssignee("");
       setNewStatus("Pending");
-      setAddingTop(false);
+      setNewPriority("Low");
+      setNewFile(null);
+      setAddingTop(false); // Close dialog after adding
     } else if (parentId) {
       setTasks((s) =>
         s.map((x) =>
@@ -146,13 +154,16 @@ export default function CourseDashboardEnhanced() {
       setNewSubtaskDates((s) => ({ ...s, [parentId]: { start: "", due: "" } }));
       setNewSubtaskAssignees((s) => ({ ...s, [parentId]: "" }));
       setNewSubtaskStatuses((s) => ({ ...s, [parentId]: "Pending" }));
+      setNewSubtaskPriorities((s) => ({ ...s, [parentId]: "Low" }));
       setNewSubtaskFiles((s) => ({ ...s, [parentId]: null }));
+      setAddingSubtask(null); // Reset subtask addition
     } else if (projectId) {
       setTasks((s) => [t, ...s]);
       setNewSubtaskNames((s) => ({ ...s, [projectId]: "" }));
       setNewSubtaskDates((s) => ({ ...s, [projectId]: { start: "", due: "" } }));
       setNewSubtaskAssignees((s) => ({ ...s, [projectId]: "" }));
       setNewSubtaskStatuses((s) => ({ ...s, [projectId]: "Pending" }));
+      setNewSubtaskPriorities((s) => ({ ...s, [projectId]: "Low" }));
       setNewSubtaskFiles((s) => ({ ...s, [projectId]: null }));
       setAddingSubtask(null);
     }
@@ -276,8 +287,7 @@ export default function CourseDashboardEnhanced() {
     if (newMonth > 11) {
       newMonth = 0;
       newYear += 1;
-    }
-    if (newMonth < 0) {
+    } else if (newMonth < 0) {
       newMonth = 11;
       newYear -= 1;
     }
@@ -320,6 +330,7 @@ export default function CourseDashboardEnhanced() {
                 value={task.name}
                 onChange={(e) => updateTask(task.id, { name: e.target.value }, parentId)}
                 onBlur={() => setEditing((s) => ({ ...s, [task.id]: false }))}
+                autoFocus
               />
             ) : (
               <div
@@ -332,7 +343,7 @@ export default function CourseDashboardEnhanced() {
           </td>
           <td style={{ padding: "0.625rem", borderBottom: "1px solid #f0f0f2" }}>
             <input
-              style={{ padding: "0.375rem", borderRadius: "0.5rem", border: "1px solid #e6e9ef" }}
+              style={{ padding: "0.375rem", borderRadius: "0.5rem", border: "1px solid #e6e9ef", width: "100%" }}
               value={task.assignee}
               onChange={(e) => updateTask(task.id, { assignee: e.target.value }, parentId)}
             />
@@ -340,7 +351,7 @@ export default function CourseDashboardEnhanced() {
           <td style={{ padding: "0.625rem", borderBottom: "1px solid #f0f0f2" }}>
             <input
               type="date"
-              style={{ padding: "0.375rem", borderRadius: "0.5rem", border: "1px solid #e6e9ef" }}
+              style={{ padding: "0.375rem", borderRadius: "0.5rem", border: "1px solid #e6e9ef", width: "100%" }}
               value={task.start}
               onChange={(e) => updateTask(task.id, { start: e.target.value }, parentId)}
             />
@@ -348,20 +359,31 @@ export default function CourseDashboardEnhanced() {
           <td style={{ padding: "0.625rem", borderBottom: "1px solid #f0f0f2" }}>
             <input
               type="date"
-              style={{ padding: "0.375rem", borderRadius: "0.5rem", border: "1px solid #e6e9ef" }}
+              style={{ padding: "0.375rem", borderRadius: "0.5rem", border: "1px solid #e6e9ef", width: "100%" }}
               value={task.due}
               onChange={(e) => updateTask(task.id, { due: e.target.value }, parentId)}
             />
           </td>
           <td style={{ padding: "0.625rem", borderBottom: "1px solid #f0f0f2" }}>
             <select
-              style={{ padding: "0.375rem", borderRadius: "0.5rem", border: "1px solid #e6e9ef" }}
+              style={{ padding: "0.375rem", borderRadius: "0.5rem", border: "1px solid #e6e9ef", width: "100%" }}
               value={task.status}
               onChange={(e) => updateTask(task.id, { status: e.target.value }, parentId)}
             >
               <option>Pending</option>
               <option>In Progress</option>
               <option>Completed</option>
+            </select>
+          </td>
+          <td style={{ padding: "0.625rem", borderBottom: "1px solid #f0f0f2" }}>
+            <select
+              style={{ padding: "0.375rem", borderRadius: "0.5rem", border: "1px solid #e6e9ef", width: "100%" }}
+              value={task.priority}
+              onChange={(e) => updateTask(task.id, { priority: e.target.value }, parentId)}
+            >
+              <option>High</option>
+              <option>Medium</option>
+              <option>Low</option>
             </select>
           </td>
           <td style={{ padding: "0.625rem", borderBottom: "1px solid #f0f0f2" }}>
@@ -391,34 +413,41 @@ export default function CourseDashboardEnhanced() {
           task.subtasks.map((st) => renderTaskTable(st, task.id, level + 1))}
         {task.expanded && (
           <tr>
-            <td colSpan="7" style={{ padding: "0.625rem" }}>
+            <td colSpan="8" style={{ padding: "0.625rem" }}>
               <div style={{ display: "flex", gap: "0.25rem", flexWrap: "wrap" }}>
+                <label style={{ fontSize: "0.75rem", marginBottom: "0.25rem" }}>Subtask Name</label>
                 <input
-                  style={{ padding: "0.375rem", borderRadius: "0.5rem", border: "1px solid #e6e9ef", flex: 1 }}
+                  ref={subtaskNameRef}
+                  style={{ padding: "0.375rem", borderRadius: "0.5rem", border: "1px solid #e6e9ef", flex: 1, minWidth: "10rem" }}
                   placeholder="Subtask name"
                   value={newSubtaskNames[task.id] || ""}
                   onChange={(e) => setNewSubtaskNames((s) => ({ ...s, [task.id]: e.target.value }))}
+                  onKeyPress={(e) => e.key === "Enter" && addTask(task.id)}
                 />
+                <label style={{ fontSize: "0.75rem", marginBottom: "0.25rem" }}>Assignee</label>
                 <input
-                  style={{ padding: "0.375rem", borderRadius: "0.5rem", border: "1px solid #e6e9ef" }}
-                  placeholder="Assigned by"
+                  style={{ padding: "0.375rem", borderRadius: "0.5rem", border: "1px solid #e6e9ef", width: "100%" }}
+                  placeholder="Assignee"
                   value={newSubtaskAssignees[task.id] || ""}
                   onChange={(e) => setNewSubtaskAssignees((s) => ({ ...s, [task.id]: e.target.value }))}
                 />
+                <label style={{ fontSize: "0.75rem", marginBottom: "0.25rem" }}>Start Date</label>
                 <input
                   type="date"
-                  style={{ padding: "0.375rem", borderRadius: "0.5rem", border: "1px solid #e6e9ef" }}
+                  style={{ padding: "0.375rem", borderRadius: "0.5rem", border: "1px solid #e6e9ef", width: "100%" }}
                   value={newSubtaskDates[task.id]?.start || ""}
                   onChange={(e) => setNewSubtaskDates((s) => ({ ...s, [task.id]: { ...s[task.id], start: e.target.value } }))}
                 />
+                <label style={{ fontSize: "0.75rem", marginBottom: "0.25rem" }}>Due Date</label>
                 <input
                   type="date"
-                  style={{ padding: "0.375rem", borderRadius: "0.5rem", border: "1px solid #e6e9ef" }}
+                  style={{ padding: "0.375rem", borderRadius: "0.5rem", border: "1px solid #e6e9ef", width: "100%" }}
                   value={newSubtaskDates[task.id]?.due || ""}
                   onChange={(e) => setNewSubtaskDates((s) => ({ ...s, [task.id]: { ...s[task.id], due: e.target.value } }))}
                 />
+                <label style={{ fontSize: "0.75rem", marginBottom: "0.25rem" }}>Status</label>
                 <select
-                  style={{ padding: "0.375rem", borderRadius: "0.5rem", border: "1px solid #e6e9ef" }}
+                  style={{ padding: "0.375rem", borderRadius: "0.5rem", border: "1px solid #e6e9ef", width: "100%" }}
                   value={newSubtaskStatuses[task.id] || "Pending"}
                   onChange={(e) => setNewSubtaskStatuses((s) => ({ ...s, [task.id]: e.target.value }))}
                 >
@@ -426,6 +455,17 @@ export default function CourseDashboardEnhanced() {
                   <option>In Progress</option>
                   <option>Completed</option>
                 </select>
+                <label style={{ fontSize: "0.75rem", marginBottom: "0.25rem" }}>Priority</label>
+                <select
+                  style={{ padding: "0.375rem", borderRadius: "0.5rem", border: "1px solid #e6e9ef", width: "100%" }}
+                  value={newSubtaskPriorities[task.id] || "Low"}
+                  onChange={(e) => setNewSubtaskPriorities((s) => ({ ...s, [task.id]: e.target.value }))}
+                >
+                  <option>High</option>
+                  <option>Medium</option>
+                  <option>Low</option>
+                </select>
+                <label style={{ fontSize: "0.75rem", marginBottom: "0.25rem" }}>File Upload</label>
                 <input
                   type="file"
                   onChange={(e) => setNewSubtaskFiles((s) => ({ ...s, [task.id]: e.target.files[0] }))}
@@ -524,7 +564,7 @@ export default function CourseDashboardEnhanced() {
               padding: 0.375rem;
               background: transparent;
               border: none;
-              cursor: pointer;
+              cursor: "pointer";
               z-index: 1001;
             }
             .sidebar {
@@ -575,8 +615,8 @@ export default function CourseDashboardEnhanced() {
               flex-wrap: wrap;
               justify-content: space-between;
               align-items: center;
-              gap: 0.75rem;
-              margin-bottom: 0.75rem;
+              gap: "0.75rem";
+              margin-bottom: "0.75rem";
             }
             .content {
               margin-left: 0;
@@ -587,11 +627,11 @@ export default function CourseDashboardEnhanced() {
       <div
         className="hamburger-btn"
         onClick={() => setSidebarOpen(!sidebarOpen)}
-        style={{ display: "none" }}
+        style={{ display: sidebarOpen ? "none" : "block", cursor: "pointer", zIndex: 1001 }}
       >
         <Menu size={24} />
       </div>
-      <div className={`sidebar ${sidebarOpen ? "open" : ""}`} style={{ display: "none" }}>
+      <div className={`sidebar ${sidebarOpen ? "open" : ""}`} style={{ display: sidebarOpen ? "block" : "none" }}>
         <div
           className="header-controls"
           style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}
@@ -704,6 +744,7 @@ export default function CourseDashboardEnhanced() {
       <div
         className="sidebar-overlay"
         onClick={() => setSidebarOpen(false)}
+        style={{ display: sidebarOpen ? "block" : "none" }}
       ></div>
       <div
         style={{
@@ -907,7 +948,9 @@ export default function CourseDashboardEnhanced() {
                           flexWrap: "wrap",
                         }}
                       >
+                        <label style={{ fontSize: "0.75rem", marginBottom: "0.25rem" }}>Subtask Name</label>
                         <input
+                          ref={subtaskNameRef}
                           style={{ padding: "0.375rem", borderRadius: "0.5rem", border: "1px solid #e6e9ef", flex: 1, minWidth: "10rem" }}
                           placeholder="Subtask name"
                           value={newSubtaskNames[proj.id] || ""}
@@ -917,10 +960,12 @@ export default function CourseDashboardEnhanced() {
                               [proj.id]: e.target.value,
                             }))
                           }
+                          onKeyPress={(e) => e.key === "Enter" && addTask(null, proj.id)}
                         />
+                        <label style={{ fontSize: "0.75rem", marginBottom: "0.25rem" }}>Assignee</label>
                         <input
-                          style={{ padding: "0.375rem", borderRadius: "0.5rem", border: "1px solid #e6e9ef" }}
-                          placeholder="Assigned by"
+                          style={{ padding: "0.375rem", borderRadius: "0.5rem", border: "1px solid #e6e9ef", width: "100%" }}
+                          placeholder="Assignee"
                           value={newSubtaskAssignees[proj.id] || ""}
                           onChange={(e) =>
                             setNewSubtaskAssignees((s) => ({
@@ -929,9 +974,10 @@ export default function CourseDashboardEnhanced() {
                             }))
                           }
                         />
+                        <label style={{ fontSize: "0.75rem", marginBottom: "0.25rem" }}>Start Date</label>
                         <input
                           type="date"
-                          style={{ padding: "0.375rem", borderRadius: "0.5rem", border: "1px solid #e6e9ef" }}
+                          style={{ padding: "0.375rem", borderRadius: "0.5rem", border: "1px solid #e6e9ef", width: "100%" }}
                           value={newSubtaskDates[proj.id]?.start || ""}
                           onChange={(e) =>
                             setNewSubtaskDates((s) => ({
@@ -943,9 +989,10 @@ export default function CourseDashboardEnhanced() {
                             }))
                           }
                         />
+                        <label style={{ fontSize: "0.75rem", marginBottom: "0.25rem" }}>Due Date</label>
                         <input
                           type="date"
-                          style={{ padding: "0.375rem", borderRadius: "0.5rem", border: "1px solid #e6e9ef" }}
+                          style={{ padding: "0.375rem", borderRadius: "0.5rem", border: "1px solid #e6e9ef", width: "100%" }}
                           value={newSubtaskDates[proj.id]?.due || ""}
                           onChange={(e) =>
                             setNewSubtaskDates((s) => ({
@@ -957,8 +1004,9 @@ export default function CourseDashboardEnhanced() {
                             }))
                           }
                         />
+                        <label style={{ fontSize: "0.75rem", marginBottom: "0.25rem" }}>Status</label>
                         <select
-                          style={{ padding: "0.375rem", borderRadius: "0.5rem", border: "1px solid #e6e9ef" }}
+                          style={{ padding: "0.375rem", borderRadius: "0.5rem", border: "1px solid #e6e9ef", width: "100%" }}
                           value={newSubtaskStatuses[proj.id] || "Pending"}
                           onChange={(e) =>
                             setNewSubtaskStatuses((s) => ({
@@ -971,6 +1019,22 @@ export default function CourseDashboardEnhanced() {
                           <option>In Progress</option>
                           <option>Completed</option>
                         </select>
+                        <label style={{ fontSize: "0.75rem", marginBottom: "0.25rem" }}>Priority</label>
+                        <select
+                          style={{ padding: "0.375rem", borderRadius: "0.5rem", border: "1px solid #e6e9ef", width: "100%" }}
+                          value={newSubtaskPriorities[proj.id] || "Low"}
+                          onChange={(e) =>
+                            setNewSubtaskPriorities((s) => ({
+                              ...s,
+                              [proj.id]: e.target.value,
+                            }))
+                          }
+                        >
+                          <option>High</option>
+                          <option>Medium</option>
+                          <option>Low</option>
+                        </select>
+                        <label style={{ fontSize: "0.75rem", marginBottom: "0.25rem" }}>File Upload</label>
                         <input
                           type="file"
                           onChange={(e) =>
@@ -1189,10 +1253,11 @@ export default function CourseDashboardEnhanced() {
               placeholder="Task name"
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
+              onKeyPress={(e) => e.key === "Enter" && addTask()}
             />
           </div>
           <div style={{ marginBottom: "0.375rem" }}>
-            <label style={{ fontSize: "0.75rem", marginBottom: "0.25rem" }}>Assigned By</label>
+            <label style={{ fontSize: "0.75rem", marginBottom: "0.25rem" }}>Assignee</label>
             <input
               style={{
                 padding: "0.375rem",
@@ -1201,7 +1266,7 @@ export default function CourseDashboardEnhanced() {
                 width: "100%",
                 marginBottom: "0.375rem",
               }}
-              placeholder="Assigned by"
+              placeholder="Assignee"
               value={newAssignee}
               onChange={(e) => setNewAssignee(e.target.value)}
             />
@@ -1255,6 +1320,38 @@ export default function CourseDashboardEnhanced() {
             </select>
           </div>
           <div style={{ marginBottom: "0.375rem" }}>
+            <label style={{ fontSize: "0.75rem", marginBottom: "0.25rem" }}>Priority</label>
+            <select
+              style={{
+                padding: "0.375rem",
+                borderRadius: "0.5rem",
+                border: "1px solid #e6e9ef",
+                width: "100%",
+                marginBottom: "0.375rem",
+              }}
+              value={newPriority}
+              onChange={(e) => setNewPriority(e.target.value)}
+            >
+              <option>High</option>
+              <option>Medium</option>
+              <option>Low</option>
+            </select>
+          </div>
+          <div style={{ marginBottom: "0.375rem" }}>
+            <label style={{ fontSize: "0.75rem", marginBottom: "0.25rem" }}>File Upload</label>
+            <input
+              type="file"
+              onChange={(e) => setNewFile(e.target.files[0])}
+              style={{
+                padding: "0.375rem",
+                borderRadius: "0.5rem",
+                border: "1px solid #e6e9ef",
+                width: "100%",
+                marginBottom: "0.375rem",
+              }}
+            />
+          </div>
+          <div style={{ marginBottom: "0.375rem" }}>
             <label style={{ fontSize: "0.75rem", marginBottom: "0.25rem" }}>Assign to Project</label>
             <select
               value={selectedProject}
@@ -1283,6 +1380,7 @@ export default function CourseDashboardEnhanced() {
               border: "none",
               borderRadius: "0.25rem",
               cursor: "pointer",
+              width: "100%",
             }}
             onClick={() => addTask()}
           >
@@ -1302,6 +1400,7 @@ export default function CourseDashboardEnhanced() {
               placeholder="Event name"
               value={newEventName}
               onChange={(e) => setNewEventName(e.target.value)}
+              onKeyPress={(e) => e.key === "Enter" && addEvent()}
             />
           </div>
           <div style={{ marginBottom: "0.375rem" }}>
@@ -1365,6 +1464,7 @@ export default function CourseDashboardEnhanced() {
               border: "none",
               borderRadius: "0.25rem",
               cursor: "pointer",
+              width: "100%",
             }}
             onClick={addEvent}
           >
@@ -1382,31 +1482,35 @@ export default function CourseDashboardEnhanced() {
           }}
           title={editingProjectId ? "Edit Project" : "Create Project"}
         >
-          <input
-            ref={projectInputRef}
-            style={{
-              padding: "0.375rem",
-              borderRadius: "0.5rem",
-              border: "1px solid #e6e9ef",
-              width: "100%",
-              marginBottom: "0.75rem",
-            }}
-            placeholder="Project name"
-            value={newProjectName}
-            onChange={(e) => setNewProjectName(e.target.value)}
-            onKeyPress={(e) => {
-              if (e.key === "Enter") {
-                if (editingProjectId) {
-                  updateProject(editingProjectId, { name: newProjectName });
-                  setEditingProjectId(null);
-                  setCreatingProject(false);
+          <div style={{ marginBottom: "0.375rem" }}>
+            <label style={{ fontSize: "0.75rem", marginBottom: "0.25rem" }}>Project Name</label>
+            <input
+              ref={projectInputRef}
+              style={{
+                padding: "0.375rem",
+                borderRadius: "0.5rem",
+                border: "1px solid #e6e9ef",
+                width: "100%",
+                marginBottom: "0.75rem",
+              }}
+              placeholder="Project name"
+              value={newProjectName}
+              onChange={(e) => setNewProjectName(e.target.value)}
+              onKeyPress={(e) => {
+                if (e.key === "Enter") {
+                  if (editingProjectId) {
+                    updateProject(editingProjectId, { name: newProjectName });
+                    setEditingProjectId(null);
+                  } else {
+                    createProject(newProjectName);
+                  }
+                  // Keep dialog open and clear input for continuous addition
                   setNewProjectName("");
-                } else {
-                  createProject(newProjectName);
+                  setTimeout(() => projectInputRef.current?.focus(), 0);
                 }
-              }
-            }}
-          />
+              }}
+            />
+          </div>
           <div style={{ display: "flex", gap: "0.5rem" }}>
             <button
               style={{
@@ -1422,11 +1526,11 @@ export default function CourseDashboardEnhanced() {
                 if (editingProjectId) {
                   updateProject(editingProjectId, { name: newProjectName });
                   setEditingProjectId(null);
-                  setCreatingProject(false);
-                  setNewProjectName("");
                 } else {
                   createProject(newProjectName);
                 }
+                setNewProjectName(""); // Clear input
+                setTimeout(() => projectInputRef.current?.focus(), 0); // Refocus for continuous addition
               }}
             >
               {editingProjectId ? "Save" : "Create"}
