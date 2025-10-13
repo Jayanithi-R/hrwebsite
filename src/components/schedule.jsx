@@ -1484,32 +1484,37 @@ export default function CourseDashboardEnhanced() {
         >
           <div style={{ marginBottom: "0.375rem" }}>
             <label style={{ fontSize: "0.75rem", marginBottom: "0.25rem" }}>Project Name</label>
-            <input
-              ref={projectInputRef}
-              style={{
-                padding: "0.375rem",
-                borderRadius: "0.5rem",
-                border: "1px solid #e6e9ef",
-                width: "100%",
-                marginBottom: "0.75rem",
-              }}
-              placeholder="Project name"
-              value={newProjectName}
-              onChange={(e) => setNewProjectName(e.target.value)}
-              onKeyPress={(e) => {
-                if (e.key === "Enter") {
-                  if (editingProjectId) {
-                    updateProject(editingProjectId, { name: newProjectName });
-                    setEditingProjectId(null);
-                  } else {
-                    createProject(newProjectName);
-                  }
-                  // Keep dialog open and clear input for continuous addition
-                  setNewProjectName("");
-                  setTimeout(() => projectInputRef.current?.focus(), 0);
-                }
-              }}
-            />
+           <input
+  ref={projectInputRef}
+  style={{
+    padding: "0.375rem",
+    borderRadius: "0.5rem",
+    border: "1px solid #e6e9ef",
+    width: "100%",
+    marginBottom: "0.75rem",
+  }}
+  placeholder="Project name"
+  value={newProjectName}
+  onChange={(e) => setNewProjectName(e.target.value)}
+  onKeyDown={(e) => {
+    if (e.key === "Enter" && newProjectName.trim() !== "") {
+      e.preventDefault();
+
+      if (editingProjectId) {
+        updateProject(editingProjectId, { name: newProjectName });
+        setEditingProjectId(null);
+      } else {
+        createProject(newProjectName);
+      }
+
+      // Clear input and refocus for continuous entry
+      setNewProjectName("");
+      requestAnimationFrame(() => projectInputRef.current?.focus());
+    }
+  }}
+  autoFocus
+/>
+
           </div>
           <div style={{ display: "flex", gap: "0.5rem" }}>
             <button
