@@ -244,15 +244,427 @@ export default function CourseDashboardEnhanced() {
     eventsByDay[e.date].push(e);
   });
 
+  // --- Inline Style Objects ---
+  const styles = {
+    appContainer: {
+      minHeight: '100vh',
+      fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
+      background: '#f8fafc',
+      padding: 16
+    },
+    mainContent: {
+      margin: '0 auto',
+      background: '#fff',
+      borderRadius: 12,
+      padding: 20,
+      boxShadow: '0 4px 6px rgba(0,0,0,0.05)'
+    },
+    header: {
+      display: 'flex',
+      flexWrap: 'wrap',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      gap: 12,
+      marginBottom: 20
+    },
+    headerTitle: {
+      fontWeight: 600,
+      fontSize: 20,
+      color: '#111827'
+    },
+    headerControls: {
+      display: 'flex',
+      gap: 8,
+      flexWrap: 'wrap',
+      alignItems: 'center'
+    },
+    viewBtn: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: 6,
+      padding: '8px 16px',
+      cursor: 'pointer',
+      background: 'transparent',
+      color: '#374151',
+      border: '1px solid #d1d5db',
+      borderRadius: 6,
+      fontSize: 14,
+      transition: 'all 0.2s'
+    },
+    viewBtnActive: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: 6,
+      padding: '8px 16px',
+      cursor: 'pointer',
+      background: '#4f46e5',
+      color: '#fff',
+      border: '1px solid #4f46e5',
+      borderRadius: 6,
+      fontSize: 14,
+      transition: 'all 0.2s'
+    },
+    filterSelect: {
+      padding: '8px 12px',
+      borderRadius: 6,
+      border: '1px solid #d1d5db',
+      background: '#fff',
+      fontSize: 14
+    },
+    addBtn: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: 6,
+      padding: '8px 16px',
+      background: '#4f46e5',
+      color: '#fff',
+      border: 'none',
+      borderRadius: 6,
+      cursor: 'pointer',
+      fontWeight: 500,
+      fontSize: 14,
+      transition: 'background 0.2s'
+    },
+    itemBase: {
+      border: '1px solid #e5e7eb',
+      borderRadius: 8,
+      marginBottom: 12,
+      background: '#fff',
+      transition: 'all 0.2s'
+    },
+    itemHover: {
+      border: '1px solid #e5e7eb',
+      borderRadius: 8,
+      marginBottom: 12,
+      background: '#fff',
+      transition: 'all 0.2s',
+      boxShadow: '0 4px 12px rgba(0,0,0,0.08)'
+    },
+    itemHeader: {
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      padding: 16,
+      gap: 12
+    },
+    mainInfo: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: 12,
+      flex: 1
+    },
+    expandBtn: {
+      background: 'transparent',
+      border: 'none',
+      borderRadius: 4,
+      padding: 4,
+      cursor: 'pointer',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      transition: 'background 0.2s',
+      color: '#6b7280'
+    },
+    nameBase: {
+      fontWeight: 600,
+      cursor: 'pointer',
+      padding: '4px 8px',
+      borderRadius: 4,
+      transition: 'background 0.2s'
+    },
+    metaBase: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: 16,
+      color: '#6b7280'
+    },
+    metaItem: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: 4
+    },
+    priorityBadge: {
+      padding: '2px 8px',
+      borderRadius: 6,
+      fontSize: 12,
+      fontWeight: 500,
+      color: '#fff'
+    },
+    actions: {
+      display: 'flex',
+      gap: 8,
+      alignItems: 'center'
+    },
+    addTaskBtn: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: 4,
+      padding: '6px 12px',
+      border: 'none',
+      borderRadius: 6,
+      background: '#4f46e5',
+      color: '#fff',
+      cursor: 'pointer',
+      fontSize: 12,
+      transition: 'background 0.2s'
+    },
+    deleteBtn: {
+      background: '#ef4444',
+      border: 'none',
+      borderRadius: 6,
+      padding: 6,
+      cursor: 'pointer',
+      color: '#fff',
+      transition: 'background 0.2s',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center'
+    },
+    description: {
+      padding: '0 16px 6px 16px',
+      color: '#6b7280',
+      fontSize: 14,
+      lineHeight: 1.5
+    },
+    container: {
+      padding: '0 16px 16px 16px'
+    },
+    emptyState: {
+      color: '#6b7280',
+      fontSize: 14,
+      fontStyle: 'italic',
+      padding: '8px 0'
+    },
+    emptyStateLarge: {
+      textAlign: 'center',
+      padding: 40,
+      color: '#6b7280',
+      fontSize: 16
+    },
+    editableInput: {
+      fontWeight: 600,
+      border: '1px solid #d1d5db',
+      borderRadius: 6,
+      padding: '6px 10px',
+      outline: 'none',
+      width: 200,
+      boxShadow: '0 1px 2px rgba(0,0,0,0.04)'
+    },
+    modalOverlay: {
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      width: '100%',
+      height: '100%',
+      background: 'rgba(0,0,0,0.4)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      zIndex: 1000
+    },
+    modal: {
+      background: '#fff',
+      borderRadius: 12,
+      padding: 24,
+      width: '90%',
+      maxWidth: 600,
+      maxHeight: '90vh',
+      overflowY: 'auto',
+      boxShadow: '0 20px 25px rgba(0,0,0,0.15)'
+    },
+    modalTabs: {
+      display: 'flex',
+      gap: 8,
+      marginBottom: 20,
+      borderBottom: '1px solid #e5e7eb',
+      paddingBottom: 8
+    },
+    modalTab: {
+      flex: 1,
+      padding: '10px 16px',
+      border: 'none',
+      borderBottom: '3px solid transparent',
+      background: 'transparent',
+      fontWeight: 400,
+      cursor: 'pointer',
+      color: '#6b7280',
+      fontSize: 16,
+      transition: 'all 0.2s'
+    },
+    modalTabActive: {
+      flex: 1,
+      padding: '10px 16px',
+      border: 'none',
+      borderBottom: '3px solid #4f46e5',
+      background: 'transparent',
+      fontWeight: 600,
+      cursor: 'pointer',
+      color: '#4f46e5',
+      fontSize: 16,
+      transition: 'all 0.2s'
+    },
+    modalTitle: {
+      fontWeight: 600,
+      fontSize: 18,
+      color: '#111827'
+    },
+    modalForm: {
+      display: 'flex',
+      flexDirection: 'column',
+      gap: 16
+    },
+    formGroup: {
+      display: 'flex',
+      flexDirection: 'column',
+      gap: 6
+    },
+    formRow: {
+      display: 'flex',
+      gap: 16,
+      flexWrap: 'wrap'
+    },
+    formRowGroup: {
+      flex: 1,
+      minWidth: 150
+    },
+    label: {
+      fontSize: 14,
+      fontWeight: 500,
+      color: '#374151'
+    },
+    input: {
+      padding: '10px 12px',
+      borderRadius: 8,
+      border: '1px solid #d1d5db',
+      fontSize: 16,
+      outline: 'none',
+      transition: 'border-color 0.2s',
+      fontFamily: 'inherit'
+    },
+    textarea: {
+      padding: '10px 12px',
+      borderRadius: 8,
+      border: '1px solid #d1d5db',
+      fontSize: 16,
+      outline: 'none',
+      transition: 'border-color 0.2s',
+      fontFamily: 'inherit',
+      minHeight: 80,
+      resize: 'vertical'
+    },
+    select: {
+      padding: '10px 12px',
+      borderRadius: 8,
+      border: '1px solid #d1d5db',
+      fontSize: 16,
+      outline: 'none',
+      transition: 'border-color 0.2s',
+      fontFamily: 'inherit',
+      appearance: 'none',
+      background: '#fff'
+    },
+    formActions: {
+      display: 'flex',
+      gap: 12,
+      marginTop: 8
+    },
+    primaryBtn: {
+      padding: '10px 20px',
+      background: '#4f46e5',
+      color: '#fff',
+      border: 'none',
+      borderRadius: 8,
+      cursor: 'pointer',
+      fontWeight: 500,
+      fontSize: 16,
+      flex: 1,
+      transition: 'background 0.2s'
+    },
+    secondaryBtn: {
+      padding: '10px 20px',
+      background: '#f3f4f6',
+      color: '#374151',
+      border: 'none',
+      borderRadius: 8,
+      cursor: 'pointer',
+      fontWeight: 500,
+      fontSize: 16,
+      flex: 1,
+      transition: 'background 0.2s'
+    },
+    calendarView: {
+      overflowX: 'auto'
+    },
+    calendarHeader: {
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center',
+      gap: 16,
+      fontWeight: 600,
+      marginBottom: 16,
+      fontSize: 18
+    },
+    monthNav: {
+      border: 'none',
+      background: 'transparent',
+      cursor: 'pointer',
+      display: 'flex',
+      alignItems: 'center',
+      padding: 8,
+      borderRadius: 6,
+      transition: 'background 0.2s'
+    },
+    currentMonth: {
+      fontWeight: 600
+    },
+    calendarGrid: {
+      display: 'grid',
+      gridTemplateColumns: 'repeat(7, minmax(100px, 1fr))',
+      gap: 4
+    },
+    calendarDayHeader: {
+      fontWeight: 700,
+      textAlign: 'center',
+      padding: '12px 8px',
+      background: '#f8fafc',
+      borderRadius: 4,
+      fontSize: 14
+    },
+    calendarDay: {
+      minHeight: 100,
+      border: '1px solid #e5e7eb',
+      borderRadius: 6,
+      padding: 8,
+      background: '#fff',
+      position: 'relative'
+    },
+    dayNumber: {
+      fontWeight: 600,
+      marginBottom: 4,
+      color: '#111827'
+    },
+    calendarItem: {
+      fontSize: 11,
+      marginTop: 2,
+      padding: '2px 6px',
+      borderRadius: 4,
+      color: '#fff',
+      whiteSpace: 'nowrap',
+      overflow: 'hidden',
+      textOverflow: 'ellipsis',
+      cursor: 'default'
+    }
+  };
+
   // --- Render Components ---
   const renderProject = (project) => (
-    <div key={project.id} className="project-item">
+    <div key={project.id} style={styles.itemBase}>
       {/* Project Header */}
-      <div className="project-header">
-        <div className="project-main-info">
+      <div style={styles.itemHeader}>
+        <div style={styles.mainInfo}>
           <button
             onClick={() => toggleExpand(project.id, 'project')}
-            className="expand-btn"
+            style={styles.expandBtn}
           >
             {project.expanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
           </button>
@@ -273,45 +685,44 @@ export default function CourseDashboardEnhanced() {
               onKeyDown={(e) => {
                 if (e.key === "Enter" || e.key === "Escape") e.target.blur();
               }}
-              className="editable-input"
+              style={styles.editableInput}
             />
           ) : (
             <div
-              className="project-name"
+              style={{...styles.nameBase, fontSize: 16}}
               onDoubleClick={() => setEditing((prev) => ({ ...prev, [project.id]: true }))}
             >
               {project.name || "Untitled Project"}
             </div>
           )}
 
-          <div className="project-meta">
-            <div className="meta-item">
+          <div style={{...styles.metaBase, fontSize: 14}}>
+            <div style={styles.metaItem}>
               <User size={14} />
               {project.assignee || "Unassigned"}
             </div>
-            <div className="meta-item">
+            <div style={styles.metaItem}>
               <CalendarIcon size={14} />
               {project.due || "No Due Date"}
             </div>
             <div 
-              className="priority-badge"
-              style={{ background: priorityColors[project.priority] }}
+              style={{...styles.priorityBadge, background: priorityColors[project.priority]}}
             >
               {project.priority}
             </div>
           </div>
         </div>
 
-        <div className="project-actions">
+        <div style={styles.actions}>
           <button
             onClick={() => openTaskModal(project.id)}
-            className="add-task-btn"
+            style={styles.addTaskBtn}
           >
             <Plus size={14} /> Add Task
           </button>
           <button
             onClick={() => deleteProject(project.id)}
-            className="delete-btn"
+            style={styles.deleteBtn}
           >
             <Trash2 size={14} />
           </button>
@@ -320,18 +731,18 @@ export default function CourseDashboardEnhanced() {
 
       {/* Project Description */}
       {project.description && (
-        <div className="project-description">
+        <div style={styles.description}>
           {project.description}
         </div>
       )}
 
       {/* Tasks List */}
       {project.expanded && (
-        <div className="tasks-container">
+        <div style={{...styles.container, paddingLeft: 12}}>
           {project.tasks.length > 0 ? (
             project.tasks.map((task) => renderTask(task, project.id))
           ) : (
-            <div className="empty-state">
+            <div style={styles.emptyState}>
               No tasks yet. Add one!
             </div>
           )}
@@ -341,13 +752,13 @@ export default function CourseDashboardEnhanced() {
   );
 
   const renderTask = (task, projectId) => (
-    <div key={task.id} className="task-item">
+    <div key={task.id} style={styles.itemBase}>
       {/* Task Header */}
-      <div className="task-header">
-        <div className="task-main-info">
+      <div style={styles.itemHeader}>
+        <div style={styles.mainInfo}>
           <button
             onClick={() => toggleExpand(task.id, 'task')}
-            className="expand-btn"
+            style={styles.expandBtn}
           >
             {task.expanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
           </button>
@@ -371,46 +782,44 @@ export default function CourseDashboardEnhanced() {
               onKeyDown={(e) => {
                 if (e.key === "Enter" || e.key === "Escape") e.target.blur();
               }}
-              className="editable-input"
-              style={{ fontSize: '14px' }}
+              style={{...styles.editableInput, fontSize: '14px'}}
             />
           ) : (
             <div
-              className="task-name"
+              style={{...styles.nameBase, fontSize: '14px'}}
               onDoubleClick={() => setEditing((prev) => ({ ...prev, [task.id]: true }))}
             >
               {task.name || "Untitled Task"}
             </div>
           )}
 
-          <div className="task-meta">
-            <div className="meta-item">
+          <div style={{...styles.metaBase, fontSize: 12}}>
+            <div style={styles.metaItem}>
               <User size={12} />
               {task.assignee || "Unassigned"}
             </div>
-            <div className="meta-item">
+            <div style={styles.metaItem}>
               <CalendarIcon size={12} />
               {task.due || "No Due Date"}
             </div>
             <div 
-              className="priority-badge"
-              style={{ background: priorityColors[task.priority] }}
+              style={{...styles.priorityBadge, background: priorityColors[task.priority]}}
             >
               {task.priority}
             </div>
           </div>
         </div>
 
-        <div className="task-actions">
+        <div style={styles.actions}>
           <button
             onClick={() => openSubtaskModal(task.id)}
-            className="add-subtask-btn"
+            style={{...styles.addTaskBtn, padding: '4px 8px', fontSize: 11}}
           >
             <Plus size={12} /> Add Subtask
           </button>
           <button
             onClick={() => deleteTask(task.id, 'task')}
-            className="delete-btn"
+            style={styles.deleteBtn}
           >
             <Trash2 size={12} />
           </button>
@@ -419,18 +828,18 @@ export default function CourseDashboardEnhanced() {
 
       {/* Task Description */}
       {task.description && (
-        <div className="task-description">
+        <div style={{...styles.description, fontSize: 13, paddingLeft: 52}}>
           {task.description}
         </div>
       )}
 
       {/* Subtasks List */}
       {task.expanded && (
-        <div className="subtasks-container">
+        <div style={{...styles.container, paddingLeft: 18}}>
           {task.subtasks.length > 0 ? (
             task.subtasks.map((subtask) => renderSubtask(subtask, projectId))
           ) : (
-            <div className="empty-state">
+            <div style={styles.emptyState}>
               No subtasks yet. Add one!
             </div>
           )}
@@ -440,9 +849,9 @@ export default function CourseDashboardEnhanced() {
   );
 
   const renderSubtask = (subtask, projectId) => (
-    <div key={subtask.id} className="subtask-item">
-      <div className="subtask-header">
-        <div className="subtask-main-info">
+    <div key={subtask.id} style={styles.itemBase}>
+      <div style={styles.itemHeader}>
+        <div style={styles.mainInfo}>
           {editing[subtask.id] ? (
             <input
               type="text"
@@ -465,40 +874,38 @@ export default function CourseDashboardEnhanced() {
               onKeyDown={(e) => {
                 if (e.key === "Enter" || e.key === "Escape") e.target.blur();
               }}
-              className="editable-input"
-              style={{ fontSize: '13px' }}
+              style={{...styles.editableInput, fontSize: '13px'}}
             />
           ) : (
             <div
-              className="subtask-name"
+              style={{...styles.nameBase, fontSize: '13px'}}
               onDoubleClick={() => setEditing((prev) => ({ ...prev, [subtask.id]: true }))}
             >
               {subtask.name || "Untitled Subtask"}
             </div>
           )}
 
-          <div className="subtask-meta">
-            <div className="meta-item">
+          <div style={{...styles.metaBase, fontSize: 11}}>
+            <div style={styles.metaItem}>
               <User size={11} />
               {subtask.assignee || "Unassigned"}
             </div>
-            <div className="meta-item">
+            <div style={styles.metaItem}>
               <CalendarIcon size={11} />
               {subtask.due || "No Due Date"}
             </div>
             <div 
-              className="priority-badge"
-              style={{ background: priorityColors[subtask.priority] }}
+              style={{...styles.priorityBadge, background: priorityColors[subtask.priority]}}
             >
               {subtask.priority}
             </div>
           </div>
         </div>
 
-        <div className="subtask-actions">
+        <div style={styles.actions}>
           <button
             onClick={() => deleteTask(subtask.id, 'subtask')}
-            className="delete-btn"
+            style={styles.deleteBtn}
           >
             <Trash2 size={11} />
           </button>
@@ -507,7 +914,7 @@ export default function CourseDashboardEnhanced() {
 
       {/* Subtask Description */}
       {subtask.description && (
-        <div className="subtask-description">
+        <div style={{...styles.description, fontSize: 12, paddingLeft: 68}}>
           {subtask.description}
         </div>
       )}
@@ -523,30 +930,32 @@ export default function CourseDashboardEnhanced() {
 
     if (isEvent) {
       return (
-        <div className="modal-form">
-          <div className="form-group">
-            <label>Event Name</label>
+        <div style={styles.modalForm}>
+          <div style={styles.formGroup}>
+            <label style={styles.label}>Event Name</label>
             <input
               value={newTaskName}
               onChange={e => setNewTaskName(e.target.value)}
               placeholder="Enter event name"
+              style={styles.input}
             />
           </div>
-          <div className="form-row">
-            <div className="form-group">
-              <label>Date</label>
+          <div style={styles.formRow}>
+            <div style={styles.formRowGroup}>
+              <label style={styles.label}>Date</label>
               <input
                 type="date"
                 value={newTaskDue}
                 onChange={e => setNewTaskDue(e.target.value)}
+                style={styles.input}
               />
             </div>
           </div>
-          <div className="form-actions">
-            <button onClick={addEvent} className="primary-btn">
+          <div style={styles.formActions}>
+            <button onClick={addEvent} style={styles.primaryBtn}>
               Create Event
             </button>
-            <button onClick={closeModal} className="secondary-btn">
+            <button onClick={closeModal} style={styles.secondaryBtn}>
               Cancel
             </button>
           </div>
@@ -555,50 +964,55 @@ export default function CourseDashboardEnhanced() {
     }
 
     return (
-      <div className="modal-form">
-        <div className="form-group">
-          <label>{isProject ? 'Project' : isTask ? 'Task' : 'Subtask'} Title</label>
+      <div style={styles.modalForm}>
+        <div style={styles.formGroup}>
+          <label style={styles.label}>{isProject ? 'Project' : isTask ? 'Task' : 'Subtask'} Title</label>
           <input
             ref={isProject ? inputRef : null}
             value={isProject ? newProjectName : newTaskName}
             onChange={e => isProject ? setNewProjectName(e.target.value) : setNewTaskName(e.target.value)}
             placeholder={`Enter ${isProject ? 'project' : isTask ? 'task' : 'subtask'} title`}
+            style={styles.input}
           />
         </div>
 
-        <div className="form-group">
-          <label>Description</label>
+        <div style={styles.formGroup}>
+          <label style={styles.label}>Description</label>
           <textarea
             value={isProject ? newProjectDescription : newTaskDescription}
             onChange={e => isProject ? setNewProjectDescription(e.target.value) : setNewTaskDescription(e.target.value)}
             placeholder="Enter description"
+            style={styles.textarea}
           />
         </div>
 
-        <div className="form-row">
-          <div className="form-group">
-            <label>Assignee</label>
+        <div style={styles.formRow}>
+          <div style={styles.formRowGroup}>
+            <label style={styles.label}>Assignee</label>
             <input
               value={isProject ? newProjectAssignee : newTaskAssignee}
               onChange={e => isProject ? setNewProjectAssignee(e.target.value) : setNewTaskAssignee(e.target.value)}
               placeholder="Assignee name"
+              style={styles.input}
             />
           </div>
 
-          <div className="form-group">
-            <label>Due Date</label>
+          <div style={styles.formRowGroup}>
+            <label style={styles.label}>Due Date</label>
             <input
               type="date"
               value={isProject ? newProjectDue : newTaskDue}
               onChange={e => isProject ? setNewProjectDue(e.target.value) : setNewTaskDue(e.target.value)}
+              style={styles.input}
             />
           </div>
 
-          <div className="form-group">
-            <label>Priority</label>
+          <div style={styles.formRowGroup}>
+            <label style={styles.label}>Priority</label>
             <select
               value={isProject ? newProjectPriority : newTaskPriority}
               onChange={e => isProject ? setNewProjectPriority(e.target.value) : setNewTaskPriority(e.target.value)}
+              style={styles.select}
             >
               {priorities.map(p => (
                 <option key={p} value={p}>{p}</option>
@@ -607,14 +1021,14 @@ export default function CourseDashboardEnhanced() {
           </div>
         </div>
 
-        <div className="form-actions">
+        <div style={styles.formActions}>
           <button 
             onClick={isProject ? addProject : addTask} 
-            className="primary-btn"
+            style={styles.primaryBtn}
           >
             Create {isProject ? 'Project' : isTask ? 'Task' : 'Subtask'}
           </button>
-          <button onClick={closeModal} className="secondary-btn">
+          <button onClick={closeModal} style={styles.secondaryBtn}>
             Cancel
           </button>
         </div>
@@ -623,35 +1037,35 @@ export default function CourseDashboardEnhanced() {
   };
 
   return (
-    <div className="app-container">
-      <div className="main-content">
+    <div style={styles.appContainer}>
+      <div style={styles.mainContent}>
         {/* Header */}
-        <div className="header">
-          <div className="header-title">Task & Event Management</div>
-          <div className="header-controls">
+        <div style={styles.header}>
+          <div style={styles.headerTitle}>Task & Event Management</div>
+          <div style={styles.headerControls}>
             <button 
               onClick={() => setView(0)} 
-              className={`view-btn ${view === 0 ? 'active' : ''}`}
+              style={view === 0 ? styles.viewBtnActive : styles.viewBtn}
             >
               <ListIcon size={16} /> List
             </button>
             <button 
               onClick={() => setView(1)} 
-              className={`view-btn ${view === 1 ? 'active' : ''}`}
+              style={view === 1 ? styles.viewBtnActive : styles.viewBtn}
             >
               <CalendarIcon size={16} /> Calendar
             </button>
             <select 
               value={filterPriority} 
               onChange={e => setFilterPriority(e.target.value)}
-              className="filter-select"
+              style={styles.filterSelect}
             >
               <option value="All">All Priorities</option>
               {priorities.map(p => <option key={p} value={p}>{p}</option>)}
             </select>
             <button 
               onClick={openProjectModal}
-              className="add-btn"
+              style={styles.addBtn}
             >
               <Plus size={16} /> Add Project/Event
             </button>
@@ -660,11 +1074,11 @@ export default function CourseDashboardEnhanced() {
 
         {/* List View */}
         {view === 0 && (
-          <div className="projects-list">
+          <div>
             {projects.length > 0 ? (
               projects.map(p => renderProject(p))
             ) : (
-              <div className="empty-state-large">
+              <div style={styles.emptyStateLarge}>
                 No projects yet. Click "Add Project/Event" to create your first project.
               </div>
             )}
@@ -673,21 +1087,21 @@ export default function CourseDashboardEnhanced() {
 
         {/* Calendar View */}
         {view === 1 && (
-          <div className="calendar-view">
-            <div className="calendar-header">
-              <button onClick={() => changeMonth(-1)} className="month-nav">
+          <div style={styles.calendarView}>
+            <div style={styles.calendarHeader}>
+              <button onClick={() => changeMonth(-1)} style={styles.monthNav}>
                 <ChevronLeft size={20} />
               </button>
-              <div className="current-month">
+              <div style={styles.currentMonth}>
                 {monthNames[currentMonth]} {currentYear}
               </div>
-              <button onClick={() => changeMonth(1)} className="month-nav">
+              <button onClick={() => changeMonth(1)} style={styles.monthNav}>
                 <ArrowRight size={20} />
               </button>
             </div>
-            <div className="calendar-grid">
+            <div style={styles.calendarGrid}>
               {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map(day => (
-                <div key={day} className="calendar-day-header">{day}</div>
+                <div key={day} style={styles.calendarDayHeader}>{day}</div>
               ))}
               {calendar.map((day, idx) => {
                 const dateStr = day ? new Date(currentYear, currentMonth, day).toISOString().split("T")[0] : null;
@@ -698,14 +1112,19 @@ export default function CourseDashboardEnhanced() {
                 return (
                   <div 
                     key={idx} 
-                    className={`calendar-day ${isToday ? 'today' : ''} ${dayTasks.length || dayEvents.length ? 'has-items' : ''}`}
+                    style={{
+                      ...styles.calendarDay,
+                      background: isToday ? '#fffbeb' : (dayTasks.length || dayEvents.length ? '#f0f9ff' : '#fff')
+                    }}
                   >
-                    {day && <div className="day-number">{day}</div>}
+                    {day && <div style={styles.dayNumber}>{day}</div>}
                     {dayTasks.map(item => (
                       <div 
                         key={item.id} 
-                        className="calendar-item task"
-                        style={{ background: priorityColors[item.priority] }}
+                        style={{
+                          ...styles.calendarItem,
+                          background: priorityColors[item.priority]
+                        }}
                         title={item.name}
                       >
                         {item.name}
@@ -714,8 +1133,10 @@ export default function CourseDashboardEnhanced() {
                     {dayEvents.map(e => (
                       <div 
                         key={e.id} 
-                        className="calendar-item event"
-                        style={{ background: eventColors[e.type] }}
+                        style={{
+                          ...styles.calendarItem,
+                          background: eventColors[e.type]
+                        }}
                         title={e.name}
                       >
                         {e.name}
@@ -730,20 +1151,20 @@ export default function CourseDashboardEnhanced() {
 
         {/* Modal */}
         {addingTop && (
-          <div className="modal-overlay">
-            <div className="modal">
-              <div className="modal-tabs">
+          <div style={styles.modalOverlay}>
+            <div style={styles.modal}>
+              <div style={styles.modalTabs}>
                 {activeModal === 'project' && ['Task', 'Event'].map(tab => (
                   <button
                     key={tab}
                     onClick={() => setToggleMode(tab.toLowerCase())}
-                    className={`modal-tab ${toggleMode === tab.toLowerCase() ? 'active' : ''}`}
+                    style={toggleMode === tab.toLowerCase() ? styles.modalTabActive : styles.modalTab}
                   >
                     {tab}
                   </button>
                 ))}
                 {(activeModal === 'task' || activeModal === 'subtask') && (
-                  <div className="modal-title">
+                  <div style={styles.modalTitle}>
                     Add {activeModal === 'task' ? 'Task' : 'Subtask'}
                   </div>
                 )}
@@ -753,512 +1174,6 @@ export default function CourseDashboardEnhanced() {
           </div>
         )}
       </div>
-
-      <style jsx>{`
-        .app-container {
-          min-height: 100vh;
-          font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-          background: #f8fafc;
-          padding: 16px;
-        }
-
-        .main-content {
-          margin: 0 auto;
-          background: #fff;
-          border-radius: 12px;
-          padding: 20px;
-          box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-        }
-
-        /* Header Styles */
-        .header {
-          display: flex;
-          flex-wrap: wrap;
-          justify-content: space-between;
-          align-items: center;
-          gap: 12px;
-          margin-bottom: 20px;
-        }
-
-        .header-title {
-          font-weight: 600;
-          font-size: 20px;
-          color: #111827;
-        }
-
-        .header-controls {
-          display: flex;
-          gap: 8px;
-          flex-wrap: wrap;
-          align-items: center;
-        }
-
-        .view-btn {
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          padding: 8px 16px;
-          cursor: pointer;
-          background: transparent;
-          color: #374151;
-          border: 1px solid #d1d5db;
-          border-radius: 6px;
-          font-size: 14px;
-          transition: all 0.2s;
-        }
-
-        .view-btn.active {
-          background: #4f46e5;
-          color: #fff;
-          border-color: #4f46e5;
-        }
-
-        .filter-select {
-          padding: 8px 12px;
-          border-radius: 6px;
-          border: 1px solid #d1d5db;
-          background: #fff;
-          font-size: 14px;
-        }
-
-        .add-btn {
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          padding: 8px 16px;
-          background: #4f46e5;
-          color: #fff;
-          border: none;
-          border-radius: 6px;
-          cursor: pointer;
-          font-weight: 500;
-          font-size: 14px;
-          transition: background 0.2s;
-        }
-
-        .add-btn:hover {
-          background: #4338ca;
-        }
-
-        /* Project/Task/Subtask Items */
-        .project-item, .task-item, .subtask-item {
-          border: 1px solid #e5e7eb;
-          border-radius: 8px;
-          margin-bottom: 12px;
-          background: #fff;
-          transition: all 0.2s;
-        }
-
-        .project-item:hover, .task-item:hover, .subtask-item:hover {
-          box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-        }
-
-        .project-header, .task-header, .subtask-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          padding: 16px;
-          gap: 12px;
-        }
-
-        .project-main-info, .task-main-info, .subtask-main-info {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          flex: 1;
-        }
-
-        .expand-btn {
-          background: transparent;
-          border: none;
-          border-radius: 4px;
-          padding: 4px;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          transition: background 0.2s;
-          color: #6b7280;
-        }
-
-        .expand-btn:hover {
-          background: #f3f4f6;
-        }
-
-        .project-name, .task-name, .subtask-name {
-          font-weight: 600;
-          cursor: pointer;
-          padding: 4px 8px;
-          border-radius: 4px;
-          transition: background 0.2s;
-          font-size: 16px;
-        }
-
-        .task-name { font-size: 14px; }
-        .subtask-name { font-size: 13px; }
-
-        .project-name:hover, .task-name:hover, .subtask-name:hover {
-          background: #f9fafb;
-        }
-
-        .project-meta, .task-meta, .subtask-meta {
-          display: flex;
-          align-items: center;
-          gap: 16px;
-          color: #6b7280;
-          font-size: 14px;
-        }
-
-        .task-meta { font-size: 12px; }
-        .subtask-meta { font-size: 11px; }
-
-        .meta-item {
-          display: flex;
-          align-items: center;
-          gap: 4px;
-        }
-
-        .priority-badge {
-          padding: 2px 8px;
-          border-radius: 6px;
-          font-size: 12px;
-          font-weight: 500;
-          color: #fff;
-        }
-
-        .project-actions, .task-actions, .subtask-actions {
-          display: flex;
-          gap: 8px;
-          align-items: center;
-        }
-
-        .add-task-btn, .add-subtask-btn {
-          display: flex;
-          align-items: center;
-          gap: 4px;
-          padding: 6px 12px;
-          border: none;
-          border-radius: 6px;
-          background: #4f46e5;
-          color: #fff;
-          cursor: pointer;
-          font-size: 12px;
-          transition: background 0.2s;
-        }
-
-        .add-subtask-btn {
-          padding: 4px 8px;
-          font-size: 11px;
-        }
-
-        .add-task-btn:hover, .add-subtask-btn:hover {
-          background: #4338ca;
-        }
-
-        .delete-btn {
-          background: #ef4444;
-          border: none;
-          border-radius: 6px;
-          padding: 6px;
-          cursor: pointer;
-          color: #fff;
-          transition: background 0.2s;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        }
-
-        .delete-btn:hover {
-          background: #dc2626;
-        }
-
-        /* Descriptions */
-        .project-description, .task-description, .subtask-description {
-          padding: 0 16px 6px 16px;
-          color: #6b7280;
-          font-size: 14px;
-          line-height: 1.5;
-        }
-
-        .task-description { font-size: 13px; padding-left: 52px; }
-        .subtask-description { font-size: 12px; padding-left: 68px; }
-
-        /* Containers */
-        .tasks-container, .subtasks-container {
-          padding: 0 16px 16px 16px;
-        }
-
-        .tasks-container { padding-left: 12px; }
-        .subtasks-container { padding-left: 18px; }
-
-        /* Empty States */
-        .empty-state {
-          color: #6b7280;
-          font-size: 14px;
-          font-style: italic;
-          padding: 8px 0;
-        }
-
-        .empty-state-large {
-          text-align: center;
-          padding: 40px;
-          color: #6b7280;
-          font-size: 16px;
-        }
-
-        /* Editable Input */
-        .editable-input {
-          font-weight: 600;
-          border: 1px solid #d1d5db;
-          border-radius: 6px;
-          padding: 6px 10px;
-          outline: none;
-          width: 200px;
-          box-shadow: 0 1px 2px rgba(0,0,0,0.04);
-        }
-
-        .editable-input:focus {
-          border-color: #2563eb;
-        }
-
-        /* Modal Styles */
-        .modal-overlay {
-          position: fixed;
-          top: 0;
-          left: 0;
-          width: 100%;
-          height: 100%;
-          background: rgba(0,0,0,0.4);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          z-index: 1000;
-        }
-
-        .modal {
-          background: #fff;
-          border-radius: 12px;
-          padding: 24px;
-          width: 90%;
-          max-width: 600px;
-          max-height: 90vh;
-          overflow-y: auto;
-          box-shadow: 0 20px 25px rgba(0,0,0,0.15);
-        }
-
-        .modal-tabs {
-          display: flex;
-          gap: 8px;
-          margin-bottom: 20px;
-          border-bottom: 1px solid #e5e7eb;
-          padding-bottom: 8px;
-        }
-
-        .modal-tab {
-          flex: 1;
-          padding: 10px 16px;
-          border: none;
-          border-bottom: 3px solid transparent;
-          background: transparent;
-          font-weight: 400;
-          cursor: pointer;
-          color: #6b7280;
-          font-size: 16px;
-          transition: all 0.2s;
-        }
-
-        .modal-tab.active {
-          font-weight: 600;
-          color: #4f46e5;
-          border-bottom-color: #4f46e5;
-        }
-
-        .modal-title {
-          font-weight: 600;
-          font-size: 18px;
-          color: #111827;
-        }
-
-        /* Form Styles */
-        .modal-form {
-          display: flex;
-          flex-direction: column;
-          gap: 16px;
-        }
-
-        .form-group {
-          display: flex;
-          flex-direction: column;
-          gap: 6px;
-        }
-
-        .form-row {
-          display: flex;
-          gap: 16px;
-          flex-wrap: wrap;
-        }
-
-        .form-row .form-group {
-          flex: 1;
-          min-width: 150px;
-        }
-
-        label {
-          font-size: 14px;
-          font-weight: 500;
-          color: #374151;
-        }
-
-        input, textarea, select {
-          padding: 10px 12px;
-          border-radius: 8px;
-          border: 1px solid #d1d5db;
-          font-size: 16px;
-          outline: none;
-          transition: border-color 0.2s;
-          font-family: inherit;
-        }
-
-        input:focus, textarea:focus, select:focus {
-          border-color: #4f46e5;
-        }
-
-        textarea {
-          min-height: 80px;
-          resize: vertical;
-        }
-
-        select {
-          appearance: none;
-          background: #fff url('data:image/svg+xml;charset=US-ASCII,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 4 5"><path fill="%234f46e5" d="M2 0L0 2h4L2 0zM2 5L0 3h4l-2 2z"/></svg>') no-repeat right 12px center;
-          background-size: 10px;
-          cursor: pointer;
-        }
-
-        .form-actions {
-          display: flex;
-          gap: 12px;
-          margin-top: 8px;
-        }
-
-        .primary-btn {
-          padding: 10px 20px;
-          background: #4f46e5;
-          color: #fff;
-          border: none;
-          border-radius: 8px;
-          cursor: pointer;
-          font-weight: 500;
-          font-size: 16px;
-          flex: 1;
-          transition: background 0.2s;
-        }
-
-        .primary-btn:hover {
-          background: #4338ca;
-        }
-
-        .secondary-btn {
-          padding: 10px 20px;
-          background: #f3f4f6;
-          color: #374151;
-          border: none;
-          border-radius: 8px;
-          cursor: pointer;
-          font-weight: 500;
-          font-size: 16px;
-          flex: 1;
-          transition: background 0.2s;
-        }
-
-        .secondary-btn:hover {
-          background: #e5e7eb;
-        }
-
-        /* Calendar Styles */
-        .calendar-view {
-          overflow-x: auto;
-        }
-
-        .calendar-header {
-          display: flex;
-          justify-content: center;
-          align-items: center;
-          gap: 16px;
-          font-weight: 600;
-          margin-bottom: 16px;
-          font-size: 18px;
-        }
-
-        .month-nav {
-          border: none;
-          background: transparent;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          padding: 8px;
-          border-radius: 6px;
-          transition: background 0.2s;
-        }
-
-        .month-nav:hover {
-          background: #f3f4f6;
-        }
-
-        .current-month {
-          font-weight: 600;
-        }
-
-        .calendar-grid {
-          display: grid;
-          grid-template-columns: repeat(7, minmax(100px, 1fr));
-          gap: 4px;
-        }
-
-        .calendar-day-header {
-          font-weight: 700;
-          text-align: center;
-          padding: 12px 8px;
-          background: #f8fafc;
-          border-radius: 4px;
-          font-size: 14px;
-        }
-
-        .calendar-day {
-          min-height: 100px;
-          border: 1px solid #e5e7eb;
-          border-radius: 6px;
-          padding: 8px;
-          background: #fff;
-          position: relative;
-        }
-
-        .calendar-day.today {
-          background: #fffbeb;
-        }
-
-        .calendar-day.has-items {
-          background: #f0f9ff;
-        }
-
-        .day-number {
-          font-weight: 600;
-          margin-bottom: 4px;
-          color: #111827;
-        }
-
-        .calendar-item {
-          font-size: 11px;
-          margin-top: 2px;
-          padding: 2px 6px;
-          border-radius: 4px;
-          color: #fff;
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
-          cursor: default;
-        }
-      `}</style>
     </div>
   );
 }

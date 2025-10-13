@@ -1,9 +1,21 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import ReactDOM from "react-dom/client";
 
 function AttendanceDashboard() {
   const [activeTab, setActiveTab] = useState("daily");
-  
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Check if mobile on mount and resize
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   const [attendance, setAttendance] = useState([
     { id: 1, employee: "John Doe", employeeId: 1, email: "john@example.com", github: "johndoe", projects: 3, companyProjects: 2, daily: [] },
@@ -60,7 +72,6 @@ function AttendanceDashboard() {
     const m = Math.floor(minutes % 60);
     return `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}`;
   };
-  
 
   const getEmployeeStats = (emp) => {
     const now = new Date();
@@ -92,18 +103,21 @@ function AttendanceDashboard() {
     };
   };
 
+  // Responsive styles using clamp
   const cellStyle = {
     border: "1px solid #e0e0e0",
-    padding: "0.75rem 1rem",
+    padding: isMobile ? "0.5rem 0.25rem" : "clamp(0.5rem, 1vw, 0.75rem) clamp(0.5rem, 1.5vw, 1rem)",
     textAlign: "left",
-    verticalAlign: "middle"
+    verticalAlign: "middle",
+    fontSize: isMobile ? "0.8rem" : "clamp(0.8rem, 1vw, 0.95rem)",
+    wordBreak: "break-word"
   };
 
   const headerStyle = {
     ...cellStyle,
     background: "#f3f4f6",
     fontWeight: 600,
-    fontSize: "0.95rem"
+    fontSize: isMobile ? "0.85rem" : "clamp(0.85rem, 1.1vw, 0.95rem)"
   };
 
   const rowStyle = (idx) => ({
@@ -113,8 +127,8 @@ function AttendanceDashboard() {
   });
 
   const buttonStyle = {
-    padding: "0.3rem 0.6rem",
-    fontSize: "0.8rem",
+    padding: isMobile ? "0.2rem 0.4rem" : "clamp(0.2rem, 0.5vw, 0.3rem) clamp(0.4rem, 1vw, 0.6rem)",
+    fontSize: isMobile ? "0.75rem" : "clamp(0.75rem, 0.9vw, 0.8rem)",
     borderRadius: "0.25rem",
     border: "1px solid #4f46e5",
     background: "#4f46e5",
@@ -122,37 +136,88 @@ function AttendanceDashboard() {
     cursor: "pointer"
   };
 
+  // Mobile tab style
+  const tabContainerStyle = {
+    display: "flex",
+    flexDirection: isMobile ? "column" : "row",
+    gap: isMobile ? "0.5rem" : "0",
+    marginBottom: "clamp(1rem, 3vw, 2rem)",
+    flexWrap: isMobile ? "nowrap" : "wrap"
+  };
+
+  const tabStyle = (isActive) => ({
+    display: "inline-block",
+    padding: isMobile ? "0.75rem 0.5rem" : "clamp(0.5rem, 1.5vw, 0.75rem) clamp(0.75rem, 2vw, 1rem)",
+    borderRadius: "0.5rem",
+    cursor: "pointer",
+    background: isActive ? "#4f46e5" : "#e5e7eb",
+    color: isActive ? "#fff" : "#000",
+    transition: "0.2s",
+    textAlign: "center",
+    fontSize: isMobile ? "0.85rem" : "clamp(0.85rem, 1.1vw, 1rem)",
+    flex: isMobile ? "1" : "none",
+    marginRight: isMobile ? "0" : "0.5rem"
+  });
+
+  const containerStyle = {
+    padding: isMobile ? "1rem 0.5rem" : "clamp(1rem, 3vw, 2rem)",
+    background: "#f9fafb",
+    minHeight: "100vh",
+    fontFamily: "Arial, sans-serif",
+    fontSize: isMobile ? "0.85rem" : "clamp(0.85rem, 1vw, 0.9rem)",
+    overflowX: "auto"
+  };
+
+  const tableStyle = {
+    width: "100%",
+    borderCollapse: "collapse",
+    marginBottom: "clamp(1rem, 3vw, 2rem)",
+    borderRadius: "0.5rem",
+    overflow: "hidden",
+    boxShadow: "0 2px 6px rgba(0,0,0,0.05)",
+    minWidth: isMobile ? "600px" : "auto",
+    fontSize: "inherit"
+  };
+
+  // Mobile-friendly tab labels
+  const getTabLabel = (tab) => {
+    if (!isMobile) {
+      return tab === "daily" ? "Daily Attendance" : 
+             tab === "attendance" ? "Attendance %" : 
+             tab === "leave" ? "Leave Requests" : "All Employees";
+    }
+    
+    // Short labels for mobile
+    return tab === "daily" ? "Daily" : 
+           tab === "attendance" ? "Stats" : 
+           tab === "leave" ? "Leave" : "Employees";
+  };
+
   return (
-    <div style={{ padding: "2rem", background: "#f9fafb", minHeight: "100vh", fontFamily: "Arial, sans-serif", fontSize: "0.9rem" }}>
+    <div style={containerStyle}>
       {/* Tabs */}
-      <div style={{ marginBottom: "2rem" }}>
+      <div style={tabContainerStyle}>
         {["daily", "attendance", "leave", "all"].map(tab => (
           <span
             key={tab}
             onClick={() => setActiveTab(tab)}
-            style={{
-              display: "inline-block",
-              padding: "0.5rem 1rem",
-              marginRight: "0.5rem",
-              borderRadius: "0.5rem",
-              cursor: "pointer",
-              background: activeTab === tab ? "#4f46e5" : "#e5e7eb",
-              color: activeTab === tab ? "#fff" : "#000",
-              transition: "0.2s"
-            }}
+            style={tabStyle(activeTab === tab)}
           >
-            {tab === "daily" ? "Daily Attendance" : tab === "attendance" ? "Attendance %" : tab === "leave" ? "Leave Requests" : "All Employees"}
+            {getTabLabel(tab)}
           </span>
         ))}
       </div>
 
-      {/* Table render function to reduce repetition */}
+      {/* Table render function */}
       {["daily", "attendance", "leave", "all"].map(tabType => {
         if (activeTab !== tabType) return null;
 
         let headers = [], rows = [];
         if (tabType === "daily") {
-          headers = ["Employee", "Check In", "Lunch Break", "Back to Work", "Check Out"];
+          headers = isMobile 
+            ? ["Employee", "Check In", "Break", "Back", "Check Out"]
+            : ["Employee", "Check In", "Lunch Break", "Back to Work", "Check Out"];
+          
           rows = attendance.map((emp, idx) => {
             const today = new Date().toISOString().split("T")[0];
             const todayRecord = emp.daily.find(d => d.date === today) || {};
@@ -164,11 +229,13 @@ function AttendanceDashboard() {
                 <td style={cellStyle}>{todayRecord.breakEnd || "-"}</td>
                 <td style={cellStyle}>{todayRecord.checkOut || "-"}</td>
               </tr>
-
             )
           });
         } else if (tabType === "attendance") {
-          headers = ["Employee", "Avg Check-In", "Avg Check-Out", "Monthly %", "Yearly %",];
+          headers = isMobile
+            ? ["Employee", "Avg In", "Avg Out", "Month %", "Year %"]
+            : ["Employee", "Avg Check-In", "Avg Check-Out", "Monthly %", "Yearly %"];
+          
           rows = attendance.map((emp, idx) => {
             const stats = getEmployeeStats(emp);
             return (
@@ -178,12 +245,14 @@ function AttendanceDashboard() {
                 <td style={cellStyle}>{stats.avgCheckOut}</td>
                 <td style={cellStyle}>{stats.monthlyPercent}</td>
                 <td style={cellStyle}>{stats.yearlyPercent}</td>
-
               </tr>
             )
           });
         } else if (tabType === "leave") {
-          headers = ["Employee", "Leave Type", "From", "To", "Status"];
+          headers = isMobile
+            ? ["Employee", "Type", "From", "To", "Status"]
+            : ["Employee", "Leave Type", "From", "To", "Status"];
+          
           rows = leaveRequests.map((req, idx) => {
             const emp = attendance.find(e => e.id === req.employeeId);
             return (
@@ -202,11 +271,12 @@ function AttendanceDashboard() {
                       );
                     }}
                     style={{
-                      padding: "0.25rem 0.5rem",
+                      padding: isMobile ? "0.2rem 0.3rem" : "0.25rem 0.5rem",
                       borderRadius: "0.25rem",
                       border: "1px solid #ccc",
                       cursor: "pointer",
-                      fontSize: "0.85rem"
+                      fontSize: isMobile ? "0.8rem" : "0.85rem",
+                      width: isMobile ? "100%" : "auto"
                     }}
                   >
                     <option>Pending</option>
@@ -214,12 +284,14 @@ function AttendanceDashboard() {
                     <option>Rejected</option>
                   </select>
                 </td>
-
               </tr>
             )
           });
         } else if (tabType === "all") {
-          headers = ["ID", "Email", "GitHub", "Projects Worked", "Company Projects"];
+          headers = isMobile
+            ? ["ID", "Email", "GitHub", "Projects", "Co. Projects"]
+            : ["ID", "Email", "GitHub", "Projects Worked", "Company Projects"];
+          
           rows = attendance.map((emp, idx) => (
             <tr key={emp.id} style={rowStyle(idx)}>
               <td style={cellStyle}>{emp.employeeId}</td>
@@ -232,24 +304,16 @@ function AttendanceDashboard() {
         }
 
         return (
-          <table
-            key={tabType}
-            style={{
-              width: "100%",
-              borderCollapse: "collapse",
-              marginBottom: "2rem",
-              borderRadius: "0.5rem",
-              overflow: "hidden",
-              boxShadow: "0 2px 6px rgba(0,0,0,0.05)"
-            }}
-          >
-            <thead>
-              <tr>
-                {headers.map((h, i) => <th key={i} style={headerStyle}>{h}</th>)}
-              </tr>
-            </thead>
-            <tbody>{rows}</tbody>
-          </table>
+          <div key={tabType} style={{ overflowX: "auto" }}>
+            <table style={tableStyle}>
+              <thead>
+                <tr>
+                  {headers.map((h, i) => <th key={i} style={headerStyle}>{h}</th>)}
+                </tr>
+              </thead>
+              <tbody>{rows}</tbody>
+            </table>
+          </div>
         )
       })}
     </div>
