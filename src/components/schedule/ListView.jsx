@@ -206,9 +206,9 @@ export default function CourseDashboardEnhanced() {
       url: URL.createObjectURL(file),
       uploadedAt: new Date().toISOString()
     }));
-    
+
     setUploadedFiles(prev => [...prev, ...newFiles]);
-    
+
     // Update form data with uploaded files
     if (activeModal) {
       const currentType = isEvent ? 'event' : itemType;
@@ -225,7 +225,7 @@ export default function CourseDashboardEnhanced() {
   // --- Remove File ---
   const removeFile = (fileId) => {
     setUploadedFiles(prev => prev.filter(file => file.id !== fileId));
-    
+
     if (activeModal) {
       const currentType = isEvent ? 'event' : itemType;
       setFormData(prev => ({
@@ -244,20 +244,20 @@ export default function CourseDashboardEnhanced() {
       ...prev,
       [projectId]: !prev[projectId]
     }));
-    
+
     if (projectEditMode[projectId] && editingValues[projectId]) {
       const values = editingValues[projectId];
-      setProjects(prev => 
-        prev.map(project => 
-          project.id === projectId 
-            ? { 
-                ...project, 
-                name: values.name || project.name,
-                assignee: values.assignee || project.assignee,
-                priority: values.priority || project.priority,
-                due: values.due || project.due,
-                updatedAt: new Date().toISOString() 
-              }
+      setProjects(prev =>
+        prev.map(project =>
+          project.id === projectId
+            ? {
+              ...project,
+              name: values.name || project.name,
+              assignee: values.assignee || project.assignee,
+              priority: values.priority || project.priority,
+              due: values.due || project.due,
+              updatedAt: new Date().toISOString()
+            }
             : project
         )
       );
@@ -282,8 +282,8 @@ export default function CourseDashboardEnhanced() {
 
   // --- Get current value for editing ---
   const getEditingValue = (projectId, field, defaultValue = "") => {
-    return editingValues[projectId]?.[field] !== undefined 
-      ? editingValues[projectId][field] 
+    return editingValues[projectId]?.[field] !== undefined
+      ? editingValues[projectId][field]
       : defaultValue;
   };
 
@@ -385,7 +385,7 @@ export default function CourseDashboardEnhanced() {
   const addItem = () => {
     const currentType = isEvent ? 'event' : itemType;
     const currentForm = formData[currentType];
-    
+
     if (!currentForm?.name?.trim()) {
       alert(`Please enter a name for the ${isEvent ? 'event' : itemType}`);
       return;
@@ -640,7 +640,7 @@ export default function CourseDashboardEnhanced() {
           <div style={{ fontSize: 12 }}>or drag and drop</div>
         </div>
       </label>
-      
+
       {uploadedFiles.length > 0 && (
         <div style={{ marginTop: 16, textAlign: 'left' }}>
           <div style={{ fontSize: 14, fontWeight: 500, marginBottom: 8 }}>Uploaded Files:</div>
@@ -691,19 +691,19 @@ export default function CourseDashboardEnhanced() {
     });
 
     const handleSave = () => {
-      setProjects(prev => 
+      setProjects(prev =>
         prev.map(project => ({
           ...project,
-          tasks: (project.tasks || []).map(t => 
-            t.id === task.id 
-              ? { 
-                  ...t, 
-                  name: editValues.name,
-                  assignee: editValues.assignee,
-                  due: editValues.due,
-                  priority: editValues.priority,
-                  updatedAt: new Date().toISOString()
-                }
+          tasks: (project.tasks || []).map(t =>
+            t.id === task.id
+              ? {
+                ...t,
+                name: editValues.name,
+                assignee: editValues.assignee,
+                due: editValues.due,
+                priority: editValues.priority,
+                updatedAt: new Date().toISOString()
+              }
               : t
           )
         }))
@@ -722,10 +722,10 @@ export default function CourseDashboardEnhanced() {
     };
 
     return (
-      <div style={{ 
-        marginBottom: 8, 
-        padding: 12, 
-        border: '1px solid #e5e7eb', 
+      <div style={{
+        marginBottom: 8,
+        padding: 12,
+        border: '1px solid #e5e7eb',
         borderRadius: 6,
         background: '#fafafa',
         marginLeft: level * 20
@@ -750,7 +750,7 @@ export default function CourseDashboardEnhanced() {
             ) : (
               <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 8 }}>{task.name}</div>
             )}
-            
+
             {/* Assignee, Due, Priority in same line */}
             <div style={{ display: 'flex', gap: 16, alignItems: 'center', flexWrap: 'wrap' }}>
               {/* Assignee */}
@@ -931,7 +931,7 @@ export default function CourseDashboardEnhanced() {
     const isEditing = projectEditMode[project.id];
     const [showAssigneeDropdown, setShowAssigneeDropdown] = useState(false);
     const [showPriorityDropdown, setShowPriorityDropdown] = useState(false);
-    
+
     const currentName = getEditingValue(project.id, 'name', project.name);
     const currentAssignee = getEditingValue(project.id, 'assignee', project.assignee);
     const currentPriority = getEditingValue(project.id, 'priority', project.priority);
@@ -942,17 +942,17 @@ export default function CourseDashboardEnhanced() {
     };
 
     const handleSave = () => {
-      setProjects(prev => 
-        prev.map(p => 
-          p.id === project.id 
-            ? { 
-                ...p, 
-                name: currentName || p.name,
-                assignee: currentAssignee || p.assignee,
-                priority: currentPriority || p.priority,
-                due: currentDue || p.due,
-                updatedAt: new Date().toISOString() 
-              }
+      setProjects(prev =>
+        prev.map(p =>
+          p.id === project.id
+            ? {
+              ...p,
+              name: currentName || p.name,
+              assignee: currentAssignee || p.assignee,
+              priority: currentPriority || p.priority,
+              due: currentDue || p.due,
+              updatedAt: new Date().toISOString()
+            }
             : p
         )
       );
@@ -987,7 +987,7 @@ export default function CourseDashboardEnhanced() {
           >
             {project.expanded ? "▼" : "▶"}
           </button>
-          
+
           {isEditing ? (
             <input
               type="text"
@@ -1370,21 +1370,43 @@ export default function CourseDashboardEnhanced() {
         </div>
 
         {/* Name Field */}
-        <FormField
-          label={`${isEvent ? 'Event' : itemType.charAt(0).toUpperCase() + itemType.slice(1)} Name`}
-          value={currentForm.name || ""}
-          onChange={e => updateFormData(currentType, 'name', e.target.value)}
-          placeholder={`Enter ${isEvent ? 'event' : itemType} name`}
-        />
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          <label style={{ fontSize: 14, fontWeight: 500, color: "#374151" }}>
+            {`${isEvent ? "Event" : itemType.charAt(0).toUpperCase() + itemType.slice(1)} Name`}
+          </label>
+          <input
+            type="text"
+            value={currentForm.name || ""}
+            onChange={(e) => updateFormData(currentType, "name", e.target.value)}
+            placeholder={`Enter ${isEvent ? "event" : itemType} name`}
+            style={{
+              padding: "8px 10px",
+              border: "1px solid #ccc",
+              borderRadius: 6,
+              fontSize: 14,
+              outline: "none",
+            }}
+          />
+        </div>
 
         {/* Description Field */}
-        <FormField
-          label="Description"
-          type="textarea"
-          value={currentForm.description || ""}
-          onChange={e => updateFormData(currentType, 'description', e.target.value)}
-          placeholder="Enter description"
-        />
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          <label style={{ fontSize: 14, fontWeight: 500, color: "#374151" }}>Description</label>
+          <input
+            type="text"
+            value={currentForm.description || ""}
+            onChange={(e) => updateFormData(currentType, "description", e.target.value)}
+            placeholder="Enter description"
+            style={{
+              padding: "8px 10px",
+              border: "1px solid #ccc",
+              borderRadius: 6,
+              fontSize: 14,
+              outline: "none",
+            }}
+          />
+        </div>
+
 
         {/* Form Row - Assignee, Due Date, Priority */}
         <FormRow>
@@ -1417,16 +1439,16 @@ export default function CourseDashboardEnhanced() {
         </FormRow>
 
         {/* Toggles Section */}
-        <div style={{ 
-          border: '1px solid #e5e7eb', 
-          borderRadius: 8, 
+        <div style={{
+          border: '1px solid #e5e7eb',
+          borderRadius: 8,
           padding: 16,
           background: '#f8fafc'
         }}>
           <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 12, color: '#374151' }}>
             Settings
           </div>
-          
+
           <ToggleSwitch
             label="Set Reminder"
             checked={currentForm.reminder || false}
@@ -1445,8 +1467,8 @@ export default function CourseDashboardEnhanced() {
 
         {/* Action Buttons */}
         <div style={{ display: 'flex', gap: 12, marginTop: 8 }}>
-          <button 
-            onClick={addItem} 
+          <button
+            onClick={addItem}
             style={{
               padding: '12px 24px',
               background: '#4f46e5',
@@ -1462,8 +1484,8 @@ export default function CourseDashboardEnhanced() {
           >
             Create {isEvent ? 'Event' : itemType.charAt(0).toUpperCase() + itemType.slice(1)}
           </button>
-          <button 
-            onClick={closeModal} 
+          <button
+            onClick={closeModal}
             style={{
               padding: '12px 24px',
               background: '#f3f4f6',
@@ -1669,8 +1691,8 @@ export default function CourseDashboardEnhanced() {
                 height: "32px"
               }}
             >
-            <CheckCircle size={20} />
-            <p style={{ fontSize: "14px", paddingLeft: "5px" }}>Closed</p>
+              <CheckCircle size={20} />
+              <p style={{ fontSize: "14px", paddingLeft: "5px" }}>Closed</p>
             </button>
           </div>
           <div style={{ position: "relative" }}>
@@ -1687,8 +1709,8 @@ export default function CourseDashboardEnhanced() {
                 height: "32px"
               }}
             >
-            <Users size={20}  />
-            <p style={{ fontSize: "14px", paddingLeft: "5px" }}>Assignee</p>
+              <Users size={20} />
+              <p style={{ fontSize: "14px", paddingLeft: "5px" }}>Assignee</p>
             </button>
           </div>
 
@@ -1827,7 +1849,7 @@ export default function CourseDashboardEnhanced() {
                 }}
               >
                 <ProjectHeader project={p} />
-                
+
                 {p.expanded && p.type !== 'event' && (
                   <div style={{ padding: 15 }}>
                     <div
