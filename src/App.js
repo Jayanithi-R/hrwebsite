@@ -7,7 +7,7 @@ import { FavoritesProvider } from './components/header_sidebar/favorites';
 import Login from './components/login,forgetpass/loginpage';
 import ProtectedRoute from './components/login,forgetpass/ProtectedRoute';
 import Layout from './components/header_sidebar/layout';
-
+import ScheduleMng from './components/schedule/schedulemanagement';
 // Pages
 import Dashboard from './components/desktop/desktop';
 import Schedule from './components/schedule/schedule';
@@ -35,7 +35,8 @@ function App() {
         >
           {/* Child routes */}
           <Route index element={<Dashboard />} />
-          <Route path="schedule" element={<Schedule />} />
+          <Route path="schedule" element={<ScheduleMng />} />
+          {/* <Route path="schedule" element={<Schedule />} /> */}
           <Route path="attendance" element={<Attendance />} />
           <Route path="*" element={<Navigate to="/" />} />
         </Route>
