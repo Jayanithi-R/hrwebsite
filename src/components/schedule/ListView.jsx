@@ -39,6 +39,7 @@ export default function CourseDashboardEnhanced() {
   const [projectEditMode, setProjectEditMode] = useState({});
   const [editingValues, setEditingValues] = useState({});
   const [uploadedFiles, setUploadedFiles] = useState([]);
+const [taskEditMode, setTaskEditMode] = useState({});
 
   // --- Consolidated Form State ---
   const [formData, setFormData] = useState({
@@ -680,252 +681,452 @@ export default function CourseDashboardEnhanced() {
     </div>
   );
 
-  // --- Enhanced Task/Subtask Display Component ---
-  const TaskItem = ({ task, level = 0 }) => {
-    const [isEditing, setIsEditing] = useState(false);
-    const [editValues, setEditValues] = useState({
-      name: task.name,
-      assignee: task.assignee,
-      due: task.due,
-      priority: task.priority
+// --- Common Header ---
+const TaskHeader = () => (
+  <div
+    style={{
+      display: "flex",
+      justifyContent: "space-between",
+      padding: "8px 12px",
+      fontWeight: 600,
+      fontSize: 13,
+      background: "#f3f4f6",
+      borderBottom: "2px solid #e5e7eb",
+      borderRadius: 6,
+      marginBottom: 4,
+    }}
+  >
+    <div style={{ flex: 1 }}>Name</div>
+    <div style={{ display: "flex", gap: 16, minWidth: 220 }}>
+      <div>Assignee</div>
+      <div>Due</div>
+      <div>Priority</div>
+    </div>
+    <div style={{ minWidth: 100 }}>Actions</div>
+  </div>
+);
+const TaskListItem = ({ tasks }) => (
+  <div>
+    <TaskHeader /> {/* Displayed once at the top */}
+    {tasks.map(task => (
+      <TaskItem key={task.id} task={task} />
+    ))}
+  </div>
+);
+
+// --- Reusable action button style ---
+const actionButtonStyle = {
+  padding: "2px 6px",
+  border: "none",
+  borderRadius: 4,
+  background: "#4f46e5",
+  color: "white",
+  fontSize: 12,
+  cursor: "pointer",
+};
+
+// --- TaskItem aligned with header ---
+const TaskItem = ({
+  task,
+  level = 0,
+  dummyAssignees = [],
+  priorities = [],
+  priorityColors = {},
+  deleteItem,
+  openModal,
+  handleUpdateTask,
+}) => {
+  const [isEditing, setIsEditing] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(true);
+  const [showAssigneeDropdown, setShowAssigneeDropdown] = useState(false);
+  const [showPriorityDropdown, setShowPriorityDropdown] = useState(false);
+  
+  const [editValues, setEditValues] = useState({
+    name: task.name,
+    assignee: task.assignee || "",
+    due: task.due || "",
+    priority: task.priority || priorities[0] || "",
+  });
+
+  const handleSave = () => {
+    handleUpdateTask({ 
+      ...task, 
+      ...editValues, 
+      updatedAt: new Date().toISOString() 
     });
-
-    const handleSave = () => {
-      setProjects(prev =>
-        prev.map(project => ({
-          ...project,
-          tasks: (project.tasks || []).map(t =>
-            t.id === task.id
-              ? {
-                ...t,
-                name: editValues.name,
-                assignee: editValues.assignee,
-                due: editValues.due,
-                priority: editValues.priority,
-                updatedAt: new Date().toISOString()
-              }
-              : t
-          )
-        }))
-      );
-      setIsEditing(false);
-    };
-
-    const handleCancel = () => {
-      setEditValues({
-        name: task.name,
-        assignee: task.assignee,
-        due: task.due,
-        priority: task.priority
-      });
-      setIsEditing(false);
-    };
-
-    return (
-      <div style={{
-        marginBottom: 8,
-        padding: 12,
-        border: '1px solid #e5e7eb',
-        borderRadius: 6,
-        background: '#fafafa',
-        marginLeft: level * 20
-      }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
-          <div style={{ flex: 1 }}>
-            {isEditing ? (
-              <input
-                type="text"
-                value={editValues.name}
-                onChange={(e) => setEditValues(prev => ({ ...prev, name: e.target.value }))}
-                style={{
-                  width: '100%',
-                  padding: '6px 10px',
-                  border: '1px solid #d1d5db',
-                  borderRadius: 4,
-                  fontSize: 14,
-                  marginBottom: 8
-                }}
-                autoFocus
-              />
-            ) : (
-              <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 8 }}>{task.name}</div>
-            )}
-
-            {/* Assignee, Due, Priority in same line */}
-            <div style={{ display: 'flex', gap: 16, alignItems: 'center', flexWrap: 'wrap' }}>
-              {/* Assignee */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: '#666' }}>
-                <User size={12} />
-                {isEditing ? (
-                  <select
-                    value={editValues.assignee}
-                    onChange={(e) => setEditValues(prev => ({ ...prev, assignee: e.target.value }))}
-                    style={{
-                      padding: '4px 8px',
-                      border: '1px solid #d1d5db',
-                      borderRadius: 4,
-                      fontSize: 12
-                    }}
-                  >
-                    <option value="">Unassigned</option>
-                    {dummyAssignees.map(assignee => (
-                      <option key={assignee} value={assignee}>{assignee}</option>
-                    ))}
-                  </select>
-                ) : (
-                  <span><strong>Assignee:</strong> {task.assignee || "Unassigned"}</span>
-                )}
-              </div>
-
-              {/* Due Date */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: '#666' }}>
-                <CalendarIcon size={12} />
-                {isEditing ? (
-                  <input
-                    type="date"
-                    value={editValues.due}
-                    onChange={(e) => setEditValues(prev => ({ ...prev, due: e.target.value }))}
-                    style={{
-                      padding: '4px 8px',
-                      border: '1px solid #d1d5db',
-                      borderRadius: 4,
-                      fontSize: 12
-                    }}
-                  />
-                ) : (
-                  <span><strong>Due:</strong> {task.due || "No due date"}</span>
-                )}
-              </div>
-
-              {/* Priority */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: '#666' }}>
-                <Flag size={12} color={priorityColors[isEditing ? editValues.priority : task.priority]} />
-                {isEditing ? (
-                  <select
-                    value={editValues.priority}
-                    onChange={(e) => setEditValues(prev => ({ ...prev, priority: e.target.value }))}
-                    style={{
-                      padding: '4px 8px',
-                      border: '1px solid #d1d5db',
-                      borderRadius: 4,
-                      fontSize: 12
-                    }}
-                  >
-                    {priorities.map(priority => (
-                      <option key={priority} value={priority}>{priority}</option>
-                    ))}
-                  </select>
-                ) : (
-                  <span><strong>Priority:</strong> {task.priority}</span>
-                )}
-              </div>
-            </div>
-
-            {task.description && (
-              <div style={{ fontSize: 13, color: "#666", marginTop: 8, padding: 8, background: '#f8fafc', borderRadius: 4 }}>
-                {task.description}
-              </div>
-            )}
-          </div>
-
-          <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
-            {isEditing ? (
-              <>
-                <button
-                  onClick={handleSave}
-                  style={{
-                    padding: '4px 8px',
-                    border: 'none',
-                    borderRadius: 4,
-                    background: '#4f46e5',
-                    color: 'white',
-                    cursor: 'pointer',
-                    fontSize: 12
-                  }}
-                >
-                  Save
-                </button>
-                <button
-                  onClick={handleCancel}
-                  style={{
-                    padding: '4px 8px',
-                    border: 'none',
-                    borderRadius: 4,
-                    background: '#6b7280',
-                    color: 'white',
-                    cursor: 'pointer',
-                    fontSize: 12
-                  }}
-                >
-                  Cancel
-                </button>
-              </>
-            ) : (
-              <>
-                <button
-                  onClick={() => setIsEditing(true)}
-                  style={{
-                    padding: '4px 8px',
-                    border: 'none',
-                    borderRadius: 4,
-                    background: '#3b82f6',
-                    color: 'white',
-                    cursor: 'pointer',
-                    fontSize: 12
-                  }}
-                >
-                  Edit
-                </button>
-                <button
-                  onClick={() => deleteItem(task.id, 'task')}
-                  style={{
-                    padding: '4px 8px',
-                    border: 'none',
-                    borderRadius: 4,
-                    background: '#ef4444',
-                    color: 'white',
-                    cursor: 'pointer',
-                    fontSize: 12
-                  }}
-                >
-                  Delete
-                </button>
-              </>
-            )}
-          </div>
-        </div>
-
-        {/* Subtasks */}
-        {task.subtasks && task.subtasks.length > 0 && (
-          <div style={{ marginTop: 12, paddingLeft: 20 }}>
-            {task.subtasks.map(subtask => (
-              <TaskItem key={subtask.id} task={subtask} level={level + 1} />
-            ))}
-          </div>
-        )}
-
-        {/* Add Subtask Button */}
-        {!isEditing && (
-          <button
-            onClick={() => openModal("subtask", task.id)}
-            style={{
-              padding: "4px 8px",
-              border: "none",
-              borderRadius: 4,
-              backgroundColor: "#4f46e5",
-              color: "#fff",
-              cursor: "pointer",
-              fontSize: 12,
-              marginTop: 8
-            }}
-          >
-            + Add Subtask
-          </button>
-        )}
-      </div>
-    );
+    setIsEditing(false);
   };
 
+  const handleCancel = () => {
+    setEditValues({
+      name: task.name,
+      assignee: task.assignee || "",
+      due: task.due || "",
+      priority: task.priority || priorities[0] || "",
+    });
+    setIsEditing(false);
+  };
+
+  const handleInputChange = (field, value) => {
+    setEditValues((prev) => ({ ...prev, [field]: value }));
+  };
+
+  return (
+    <>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          padding: "8px 12px",
+          marginLeft: level * 20,
+          borderBottom: "1px solid #e5e7eb",
+          background: "#fafafa",
+        }}
+      >
+        {/* Task Name + Expand/Collapse */}
+        <div style={{ display: "flex", alignItems: "center", flex: 1, gap: 8 }}>
+          {task.subtasks?.length > 0 && !isEditing && (
+            <button
+              onClick={() => setIsExpanded((prev) => !prev)}
+              style={{ 
+                cursor: "pointer", 
+                border: "none", 
+                background: "transparent", 
+                fontSize: 12 
+              }}
+            >
+              {isExpanded ? "▼" : "▶"}
+            </button>
+          )}
+          
+          {isEditing ? (
+            <input
+              type="text"
+              value={editValues.name}
+              onChange={(e) => handleInputChange("name", e.target.value)}
+              style={{ 
+                width: "100%", 
+                padding: "4px 8px", 
+                border: "1px solid #d1d5db", 
+                borderRadius: 4, 
+                fontSize: 13 
+              }}
+              autoFocus
+            />
+          ) : (
+            <div style={{ fontWeight: 600, fontSize: 13 }}>{task.name}</div>
+          )}
+        </div>
+
+        {/* =========================================== */}
+        {/* COMMON ACTION PANEL FOR TASK AND SUBTASK */}
+        {/* Edit/Save, Assignee, Priority, Calendar, Delete */}
+        {/* =========================================== */}
+        
+        <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+          {/* Edit / Save Button */}
+          <button
+            title={isEditing ? "Save Changes" : "Edit Task"}
+            onClick={isEditing ? handleSave : () => setIsEditing(true)}
+            style={{
+              cursor: "pointer",
+              border: "none",
+              borderRadius: 4,
+              width: 30,
+              height: 30,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              transition: "background 0.2s",
+              background: isEditing ? "#4f46e5" : "transparent",
+              color: isEditing ? "white" : "inherit",
+            }}
+          >
+            {isEditing ? <Save size={16} /> : <Edit3 size={16} />}
+          </button>
+
+          {/* Cancel Button (only show when editing) */}
+          {isEditing && (
+            <button
+              title="Cancel"
+              onClick={handleCancel}
+              style={{
+                cursor: "pointer",
+                border: "none",
+                borderRadius: 4,
+                width: 30,
+                height: 30,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                transition: "background 0.2s",
+                background: "#6b7280",
+                color: "white",
+              }}
+            >
+              <X size={16} />
+            </button>
+          )}
+
+          {/* Assignee Button */}
+          <div style={{ position: "relative" }}>
+            <button
+              title="Assignee"
+              style={{
+                cursor: "pointer",
+                border: "none",
+                borderRadius: "50%",
+                width: 32,
+                height: 32,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                transition: "background 0.2s",
+                backgroundColor: "#007bff",
+                color: "#fff",
+                fontWeight: "bold",
+                fontSize: 14,
+                overflow: "hidden",
+              }}
+              onClick={() => isEditing && setShowAssigneeDropdown(!showAssigneeDropdown)}
+            >
+              {editValues.assignee ? (
+                <span>
+                  {editValues.assignee
+                    .split(" ")
+                    .map((n) => n[0])
+                    .join("")
+                    .toUpperCase()
+                    .slice(0, 2)}
+                </span>
+              ) : (
+                <User size={18} />
+              )}
+            </button>
+
+            {isEditing && showAssigneeDropdown && (
+              <div
+                style={{
+                  position: "absolute",
+                  top: "100%",
+                  right: 0,
+                  background: "#fff",
+                  border: "1px solid #ccc",
+                  borderRadius: "4px",
+                  boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+                  zIndex: 100,
+                  minWidth: "150px",
+                  marginTop: "4px",
+                }}
+              >
+                {dummyAssignees.map((assignee) => (
+                  <div
+                    key={assignee}
+                    style={{
+                      padding: "8px 12px",
+                      cursor: "pointer",
+                      borderBottom: "1px solid #eee",
+                      background: editValues.assignee === assignee ? "#f3f4f6" : "transparent",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 8,
+                    }}
+                    onClick={() => {
+                      handleInputChange("assignee", assignee);
+                      setShowAssigneeDropdown(false);
+                    }}
+                    onMouseEnter={(e) => (e.currentTarget.style.background = "#f2f2f2")}
+                    onMouseLeave={(e) =>
+                      (e.currentTarget.style.background = editValues.assignee === assignee ? "#f3f4f6" : "#fff")
+                    }
+                  >
+                    <span>{assignee}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Priority Button */}
+          <div style={{ position: "relative" }}>
+            <button
+              title="Priority"
+              style={{
+                cursor: "pointer",
+                border: "none",
+                borderRadius: 4,
+                width: 30,
+                height: 30,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                transition: "background 0.2s",
+                background: "#fff",
+              }}
+              onClick={() => isEditing && setShowPriorityDropdown(!showPriorityDropdown)}
+            >
+              <Flag color={priorityColors[editValues.priority]} />
+            </button>
+
+            {isEditing && showPriorityDropdown && (
+              <div
+                style={{
+                  position: "absolute",
+                  top: "100%",
+                  right: 0,
+                  background: "#fff",
+                  border: "1px solid #ccc",
+                  borderRadius: "4px",
+                  boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+                  zIndex: 100,
+                  minWidth: "120px",
+                  marginTop: "4px",
+                }}
+              >
+                {priorities.map((priority) => (
+                  <div
+                    key={priority}
+                    style={{
+                      padding: "8px 12px",
+                      cursor: "pointer",
+                      borderBottom: "1px solid #eee",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 8,
+                      background: editValues.priority === priority ? "#f3f4f6" : "transparent",
+                    }}
+                    onClick={() => {
+                      handleInputChange("priority", priority);
+                      setShowPriorityDropdown(false);
+                    }}
+                    onMouseEnter={(e) => (e.currentTarget.style.background = "#f2f2f2")}
+                    onMouseLeave={(e) =>
+                      (e.currentTarget.style.background = editValues.priority === priority ? "#f3f4f6" : "#fff")
+                    }
+                  >
+                    <div
+                      style={{
+                        width: 8,
+                        height: 8,
+                        borderRadius: "50%",
+                        background: priorityColors[priority],
+                      }}
+                    />
+                    {priority}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Calendar Button */}
+          <div style={{ position: "relative", display: "flex", alignItems: "center", gap: 8 }}>
+            <button
+              title="Due Date"
+              style={{
+                cursor: "pointer",
+                border: "none",
+                borderRadius: 4,
+                width: 30,
+                height: 30,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                transition: "background 0.2s",
+                background: "#fff",
+              }}
+              onClick={() => isEditing && document.getElementById(`calendar-input-${task.id}`)?.showPicker()}
+            >
+              <CalendarIcon />
+            </button>
+
+            <div style={{ fontSize: 14, color: "#333" }}>
+              {editValues.due}
+            </div>
+
+            {isEditing && (
+              <input
+                id={`calendar-input-${task.id}`}
+                type="date"
+                value={editValues.due}
+                onChange={(e) => handleInputChange("due", e.target.value)}
+                style={{
+                  position: "absolute",
+                  top: 0,
+                  left: 0,
+                  opacity: 0,
+                  width: 30,
+                  height: 30,
+                  cursor: "pointer",
+                }}
+              />
+            )}
+          </div>
+
+          {/* Delete Task */}
+          <button
+            title="Delete Task"
+            onClick={() => deleteItem(task.id, "task")}
+            style={{
+              cursor: "pointer",
+              border: "none",
+              borderRadius: 4,
+              width: 30,
+              height: 30,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              transition: "background 0.2s",
+              background: "#ef4444",
+              color: "white",
+            }}
+          >
+            <Trash2 size={16} />
+          </button>
+        </div>
+        {/* =========================================== */}
+        {/* END COMMON ACTION PANEL */}
+        {/* =========================================== */}
+      </div>
+
+      {/* Subtasks */}
+      {isExpanded &&
+        task.subtasks?.map((subtask) => (
+          <TaskItem
+            key={subtask.id}
+            task={subtask}
+            level={level + 1}
+            dummyAssignees={dummyAssignees}
+            priorities={priorities}
+            priorityColors={priorityColors}
+            deleteItem={deleteItem}
+            openModal={openModal}
+            handleUpdateTask={handleUpdateTask}
+          />
+        ))}
+
+      {/* Add Subtask */}
+      {!isEditing && level === 0 && (
+        <button
+          onClick={() => openModal("subtask", task.id)}
+          style={{
+            padding: "4px 8px",
+            margin: "4px 12px",
+            borderRadius: 4,
+            border: "none",
+            background: "#4f46e5",
+            color: "#fff",
+            fontSize: 12,
+            cursor: "pointer",
+          }}
+        >
+          + Add Subtask
+        </button>
+      )}
+    </>
+  );
+};
   // --- Enhanced Project Header Component ---
   const ProjectHeader = ({ project }) => {
     const isEditing = projectEditMode[project.id];
@@ -1148,7 +1349,7 @@ export default function CourseDashboardEnhanced() {
               onClick={() => isEditing && setShowPriorityDropdown(!showPriorityDropdown)}
             >
               <Flag color={priorityColors[currentPriority]} />
-              
+
             </button>
             {isEditing && showPriorityDropdown && (
               <div
@@ -1229,7 +1430,7 @@ export default function CourseDashboardEnhanced() {
 
             {/* Display Selected Date */}
             <div style={{ fontSize: 14, color: "#333" }}>
-              {currentDue }
+              {currentDue}
             </div>
 
             {/* Hidden Date Input */}
