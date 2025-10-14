@@ -1050,43 +1050,42 @@ export default function CourseDashboardEnhanced() {
           >
             {isEditing ? <Save size={16} /> : <Edit3 size={16} />}
           </button>
-
+          {/* Project Info Display */}
           {/* Symbol Button */}
-          <button
-            title="Symbol"
-            style={{
-              cursor: "pointer",
-              border: "none",
-              borderRadius: 4,
-              width: 30,
-              height: 30,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              transition: "background 0.2s",
-            }}
-          >
-            <Leaf />
-          </button>
-
-          {/* Assignee Button */}
           <div style={{ position: "relative" }}>
             <button
               title="Assignee"
               style={{
                 cursor: "pointer",
                 border: "none",
-                borderRadius: 4,
-                width: 30,
-                height: 30,
+                borderRadius: "50%",
+                width: 32,
+                height: 32,
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
                 transition: "background 0.2s",
+                backgroundColor: "#007bff",
+                color: "#fff",
+                fontWeight: "bold",
+                fontSize: 14,
+                position: "relative",
+                overflow: "hidden"
               }}
               onClick={() => isEditing && setShowAssigneeDropdown(!showAssigneeDropdown)}
             >
-              <User />
+              {currentAssignee ? (
+                <span>
+                  {currentAssignee
+                    .split(" ")
+                    .map((n) => n[0])
+                    .join("")
+                    .toUpperCase()
+                    .slice(0, 2)}
+                </span>
+              ) : (
+                <User size={18} />
+              )}
             </button>
             {isEditing && showAssigneeDropdown && (
               <div
@@ -1111,6 +1110,9 @@ export default function CourseDashboardEnhanced() {
                       cursor: "pointer",
                       borderBottom: "1px solid #eee",
                       background: currentAssignee === assignee ? "#f3f4f6" : "transparent",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 8
                     }}
                     onClick={() => {
                       handleInputChange('assignee', assignee);
@@ -1119,12 +1121,13 @@ export default function CourseDashboardEnhanced() {
                     onMouseEnter={(e) => (e.currentTarget.style.background = "#f2f2f2")}
                     onMouseLeave={(e) => (e.currentTarget.style.background = currentAssignee === assignee ? "#f3f4f6" : "#fff")}
                   >
-                    {assignee}
+                    <span>{assignee}</span>
                   </div>
                 ))}
               </div>
             )}
           </div>
+
 
           {/* Priority Button */}
           <div style={{ position: "relative" }}>
@@ -1140,10 +1143,12 @@ export default function CourseDashboardEnhanced() {
                 alignItems: "center",
                 justifyContent: "center",
                 transition: "background 0.2s",
+                background: "#fff",
               }}
               onClick={() => isEditing && setShowPriorityDropdown(!showPriorityDropdown)}
             >
               <Flag color={priorityColors[currentPriority]} />
+              
             </button>
             {isEditing && showPriorityDropdown && (
               <div
@@ -1158,6 +1163,7 @@ export default function CourseDashboardEnhanced() {
                   zIndex: 100,
                   minWidth: "120px",
                   marginTop: "4px",
+                  background: "#fff",
                 }}
               >
                 {priorities.map((priority) => (
@@ -1195,7 +1201,8 @@ export default function CourseDashboardEnhanced() {
           </div>
 
           {/* Calendar Button */}
-          <div style={{ position: "relative" }}>
+          <div style={{ position: "relative", display: "flex", alignItems: "center", gap: 8 }}>
+            {/* Calendar Button */}
             <button
               title="Due Date"
               style={{
@@ -1208,32 +1215,45 @@ export default function CourseDashboardEnhanced() {
                 alignItems: "center",
                 justifyContent: "center",
                 transition: "background 0.2s",
+                background: "#fff",
               }}
-              onClick={() => isEditing && document.getElementById(`calendar-input-${project.id}`)?.showPicker()}
+              onClick={() =>
+                isEditing &&
+                document
+                  .getElementById(`calendar-input-${project.id}`)
+                  ?.showPicker()
+              }
             >
               <CalendarIcon />
             </button>
+
+            {/* Display Selected Date */}
+            <div style={{ fontSize: 14, color: "#333" }}>
+              {currentDue }
+            </div>
+
+            {/* Hidden Date Input */}
             {isEditing && (
               <input
                 id={`calendar-input-${project.id}`}
                 type="date"
                 value={currentDue}
-                onChange={(e) => handleInputChange('due', e.target.value)}
+                onChange={(e) => handleInputChange("due", e.target.value)}
                 style={{
                   position: "absolute",
-                  top: "100%",
-                  right: 0,
+                  top: 0,
+                  left: 0,
                   opacity: 0,
                   width: 30,
                   height: 30,
-                  cursor: "pointer"
+                  cursor: "pointer",
                 }}
               />
             )}
           </div>
 
           {/* View Details Button */}
-          <button
+          {/* <button
             title="View Details"
             onClick={() => openDetailView('project', project)}
             style={{
@@ -1251,7 +1271,7 @@ export default function CourseDashboardEnhanced() {
             }}
           >
             <Eye size={16} />
-          </button>
+          </button> */}
 
           {/* Delete Project Button */}
           <button
@@ -1530,38 +1550,79 @@ export default function CourseDashboardEnhanced() {
     const optionsList = ["Settings", "Preferences", "Help", "About"];
     const priorities = ["Low", "Medium", "High"];
 
+    const styles = {
+      toolbar: {
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        background: "#ffffffff",
+        padding: "8px 12px",
+        borderBottom: "1px solid #ddd",
+      },
+      leftSection: {
+        display: "flex",
+        alignItems: "center",
+        gap: "8px",
+      },
+      rightSection: {
+        display: "flex",
+        alignItems: "center",
+        gap: "8px",
+      },
+      btn: {
+        background: "#fff",
+        border: "1px solid #ccc",
+        borderRadius: "14px",
+        padding: "6px 10px",
+        cursor: "pointer",
+        display: "flex",
+        alignItems: "center",
+        gap: "4px",
+        height: "32px",
+      },
+      profileIcon: {
+        width: "28px",
+        height: "28px",
+        borderRadius: "50%",
+        background: "#007bff",
+        color: "#fff",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        fontWeight: "bold",
+        fontSize: "14px",
+        cursor: "pointer",
+      },
+      searchBox: {
+        display: "flex",
+        alignItems: "center",
+        // border: "1px solid #ccc",
+        border: "none",
+        borderRadius: "14px",
+        background: "#fff",
+        padding: "4px 8px",
+        height: "32px",
+      },
+      input: {
+        border: "none",
+        outline: "none",
+        fontSize: "14px",
+        width: "120px",
+        background: "transparent",
+      },
+    };
+
     return (
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          background: "#f8f8f8",
-          padding: "8px 12px",
-          borderBottom: "1px solid #ddd",
-        }}
-      >
-        {/* Left Section */}
-        <div style={{ display: "flex", gap: "8px", position: "relative" }}>
-          {/* Options Dropdown */}
+      <div style={styles.toolbar}>
+        {/* LEFT SECTION */}
+        <div style={styles.leftSection}>
+          {/* Group Dropdown */}
           <div style={{ position: "relative" }}>
             <button
-              style={{
-                background: "#fff",
-                border: "1px solid #ccc",
-                borderRadius: "4px",
-                padding: "6px 10px",
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                gap: "4px",
-              }}
+              style={styles.btn}
               onClick={() => setShowOptionsDropdown(!showOptionsDropdown)}
             >
-              Group{" "}
-              <span style={{ fontSize: "10px" }}>
-                {showOptionsDropdown ? "▲" : "▼"}
-              </span>
+              Group <span style={{ fontSize: "10px" }}>{showOptionsDropdown ? "▲" : "▼"}</span>
             </button>
 
             {showOptionsDropdown && (
@@ -1572,7 +1633,7 @@ export default function CourseDashboardEnhanced() {
                   left: 0,
                   background: "#fff",
                   border: "1px solid #ccc",
-                  borderRadius: "4px",
+                  borderRadius: "6px",
                   boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
                   zIndex: 100,
                   minWidth: "120px",
@@ -1599,46 +1660,24 @@ export default function CourseDashboardEnhanced() {
             )}
           </div>
 
-          {/* Normal Buttons */}
+          {/* Subtasks + Columns */}
           {["Subtasks", "Columns"].map((btn) => (
-            <button
-              key={btn}
-              style={{
-                background: "#fff",
-                border: "1px solid #ccc",
-                borderRadius: "4px",
-                padding: "6px 10px",
-                cursor: "pointer",
-              }}
-            >
+            <button key={btn} style={styles.btn}>
               {btn}
             </button>
           ))}
         </div>
 
-        {/* Right Section */}
-        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+        {/* RIGHT SECTION */}
+        <div style={styles.rightSection}>
           {/* Filter Dropdown */}
           <div style={{ position: "relative" }}>
             <button
-              style={{
-                background: "#fff",
-                border: "1px solid #ccc",
-                borderRadius: "14px",
-                padding: "6px 10px",
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                gap: "4px",
-                height: "32px"
-              }}
+              style={styles.btn}
               onClick={() => setShowFilterDropdown(!showFilterDropdown)}
             >
-              <Filter size={20} />
-              Filter{" "}
-              <span style={{ fontSize: "10px" }}>
-                {showFilterDropdown ? "▲" : "▼"}
-              </span>
+              <Filter size={18} />
+              <p style={{ fontSize: "14px" }}>Filter</p>
             </button>
 
             {showFilterDropdown && (
@@ -1649,7 +1688,7 @@ export default function CourseDashboardEnhanced() {
                   left: 0,
                   background: "#fff",
                   border: "1px solid #ccc",
-                  borderRadius: "4px",
+                  borderRadius: "6px",
                   boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
                   zIndex: 100,
                   minWidth: "140px",
@@ -1664,6 +1703,7 @@ export default function CourseDashboardEnhanced() {
                       padding: "6px 10px",
                       cursor: "pointer",
                       background: filterPriority === p ? "#f0f0f0" : "transparent",
+                      borderRadius: "4px",
                     }}
                     onClick={() => {
                       setFilterPriority(p);
@@ -1677,116 +1717,37 @@ export default function CourseDashboardEnhanced() {
             )}
           </div>
 
-          <div style={{ position: "relative" }}>
-            <button
-              style={{
-                background: "#fff",
-                border: "1px solid #ccc",
-                borderRadius: "14px",
-                padding: "6px 10px",
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                gap: "4px",
-                height: "32px"
-              }}
-            >
-              <CheckCircle size={20} />
-              <p style={{ fontSize: "14px", paddingLeft: "5px" }}>Closed</p>
-            </button>
-          </div>
-          <div style={{ position: "relative" }}>
-            <button
-              style={{
-                background: "#fff",
-                border: "1px solid #ccc",
-                borderRadius: "14px",
-                padding: "6px 10px",
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                gap: "4px",
-                height: "32px"
-              }}
-            >
-              <Users size={20} />
-              <p style={{ fontSize: "14px", paddingLeft: "5px" }}>Assignee</p>
-            </button>
+          {/* Closed Button */}
+          <button style={styles.btn}>
+            <CheckCircle size={18} />
+            <p style={{ fontSize: "14px" }}>Closed</p>
+          </button>
+
+          {/* Assignee Button */}
+          <button style={styles.btn}>
+            <Users size={18} />
+            <p style={{ fontSize: "14px" }}>Assignee</p>
+          </button>
+
+          {/* Profile Icon */}
+          <div style={styles.profileIcon}>B</div>
+
+          {/* Search Box */}
+          <div style={styles.searchBox}>
+            <Search size={20} />
+            {/* <input
+            type="text"
+            placeholder="Search..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            style={styles.input}
+          /> */}
           </div>
 
-          {/* Profile */}
-          <div
-            style={{
-              width: "28px",
-              height: "28px",
-              borderRadius: "50%",
-              background: "#007bff",
-              color: "#fff",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontWeight: "bold",
-              fontSize: "14px",
-              cursor: "pointer",
-            }}
-          >
-            B
-          </div>
-
-          {/* Search */}
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              border: "1px solid #ccc",
-              borderRadius: "4px",
-              background: "#fff",
-              padding: "4px 8px",
-            }}
-          >
-            <Search size={16} style={{ marginRight: "4px", color: "#888" }} />
-            <input
-              type="text"
-              placeholder="Search..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              style={{
-                border: "none",
-                outline: "none",
-                fontSize: "14px",
-                width: "120px",
-                background: "transparent",
-              }}
-            />
-          </div>
-        </div>
-      </div>
-    );
-  };
-
-  return (
-    <div style={{
-      minHeight: '100vh',
-      fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
-      background: '#f8fafc'
-    }}>
-      {/* Light Toolbar */}
-      <LightToolbar />
-
-      <div style={{
-        margin: '0 auto',
-        background: '#fff',
-        padding: 20
-      }}>
-        {/* Header */}
-        <div style={{
-          display: 'flex',
-          flexWrap: 'wrap',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          gap: 12,
-          marginBottom: 20
-        }}>
+          {/* Settings Icon */}
+          <button style={styles.searchBox}>
+            <Settings size={20} />
+          </button>
           <div style={{
             display: 'flex',
             gap: 8,
@@ -1833,6 +1794,24 @@ export default function CourseDashboardEnhanced() {
             </button>
           </div>
         </div>
+      </div>
+    );
+  };
+
+  return (
+    <div style={{
+      minHeight: '100vh',
+      fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
+      background: '#f8fafc'
+    }}>
+      {/* Light Toolbar */}
+      <LightToolbar />
+
+      <div style={{
+        margin: '0 auto',
+        background: '#fff',
+        padding: 20
+      }}>
 
         {/* List View */}
         <div>
@@ -1881,8 +1860,8 @@ export default function CourseDashboardEnhanced() {
                           padding: "6px 12px",
                           border: "none",
                           borderRadius: 4,
-                          backgroundColor: "#4f46e5",
-                          color: "#fff",
+                          backgroundColor: "#ffffffff",
+                          color: "#000000ff",
                           cursor: "pointer",
                           fontSize: 14,
                           transition: "background 0.2s",
@@ -1896,7 +1875,7 @@ export default function CourseDashboardEnhanced() {
                     </div>
 
                     {/* Project Info Display */}
-                    <div style={{ display: 'flex', gap: 16, marginBottom: 12, flexWrap: 'wrap' }}>
+                    {/* <div style={{ display: 'flex', gap: 16, marginBottom: 12, flexWrap: 'wrap' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: '#666' }}>
                         <User size={12} />
                         <strong>Assignee:</strong> {p.assignee || "Unassigned"}
@@ -1907,7 +1886,7 @@ export default function CourseDashboardEnhanced() {
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: '#666' }}>
                         <CalendarIcon size={12} />
-                        <strong>Due:</strong> {p.due || "No due date"}
+                        <strong>Due Date:</strong> {p.due || "No due date"}
                       </div>
                       {p.reminder && (
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: '#666' }}>
@@ -1915,7 +1894,7 @@ export default function CourseDashboardEnhanced() {
                           <strong>Reminder:</strong> On
                         </div>
                       )}
-                    </div>
+                    </div> */}
 
                     {p.description && (
                       <div style={{ fontSize: 13, color: "#666", marginBottom: 8, padding: 8, background: '#f8fafc', borderRadius: 4 }}>
