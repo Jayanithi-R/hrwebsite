@@ -17,29 +17,26 @@ import {
 const uid = () => Date.now().toString(36) + Math.random().toString(36).substr(2);
 
 const priorityColors = {
-  High: "#ef4444",
-  Medium: "#f59e0b", 
-  Low: "#10b981"
+  High: "#dc2626",
+  Medium: "#d97706",
+  Low: "#059669"
 };
 
-const priorities = ["High", "Medium", "Low"];
-
 const eventColors = {
-  Meeting: "#8b5cf6",
-  Event: "#06b6d4"
+  Meeting: "#6366f1",
+  Event: "#0891b2"
 };
 
 export default function CourseDashboardEnhanced() {
   // State declarations
   const [projects, setProjects] = useState([]);
-  // ... rest of your existing code (ONGA ORIGINAL CODE)
   const [creatingProject, setCreatingProject] = useState(false);
   const [editingProjectId, setEditingProjectId] = useState(null);
   const [newProjectName, setNewProjectName] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [tasks, setTasks] = useState([]);
   const [events, setEvents] = useState([]);
-  const [view, setView] = useState(0);
+  const [view, setView] = useState(0); // 0: List, 1: Calendar, 2: Details
   const [addingTop, setAddingTop] = useState(false);
   const [addingEvent, setAddingEvent] = useState(false);
   const [addingSubtask, setAddingSubtask] = useState(null);
@@ -60,8 +57,8 @@ export default function CourseDashboardEnhanced() {
   const [newSubtaskAssignee, setNewSubtaskAssignee] = useState("");
   const [newSubtaskStatus, setNewSubtaskStatus] = useState("Pending");
   const [newSubtaskPriority, setNewSubtaskPriority] = useState("Low");
-  const [newSubtaskFile, setNewSubtaskFile] = useState(null);
-  const [newFile, setNewFile] = useState(null);
+  const [newSubtaskFile, setNewSubtaskFile] = useState([]);
+  const [newFile, setNewFile] = useState([]);
   const [currentMonth, setCurrentMonth] = useState(new Date().getMonth());
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
   const [selectedProject, setSelectedProject] = useState("all");
@@ -79,18 +76,26 @@ export default function CourseDashboardEnhanced() {
   ]);
   const [assigneeSearch, setAssigneeSearch] = useState("");
   const [showAssigneeDropdown, setShowAssigneeDropdown] = useState(false);
+  const [selectedTaskDetails, setSelectedTaskDetails] = useState(null);
   const assigneeRef = useRef(null);
   const inputRef = useRef(null);
   const projectInputRef = useRef(null);
   const subtaskNameRef = useRef(null);
+  const eventNameRef = useRef(null);
+  // Add these with your existing useState imports
+const [newDescription, setNewDescription] = useState("");
+const [newTags, setNewTags] = useState([]);
+const [newTagInput, setNewTagInput] = useState("");
+const [selectedTemplate, setSelectedTemplate] = useState("");
+const [showTemplates, setShowTemplates] = useState(false);
 
   useEffect(() => {
     if (addingTop && inputRef.current) inputRef.current.focus();
     if (creatingProject && projectInputRef.current) projectInputRef.current.focus();
     if (addingSubtask && subtaskNameRef.current) subtaskNameRef.current.focus();
-  }, [addingTop, creatingProject, addingSubtask]);
+    if (addingEvent && eventNameRef.current) eventNameRef.current.focus();
+  }, [addingTop, creatingProject, addingSubtask, addingEvent]);
 
-  // Handle assignee dropdown click outside
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (assigneeRef.current && !assigneeRef.current.contains(event.target)) {
@@ -103,7 +108,6 @@ export default function CourseDashboardEnhanced() {
     };
   }, []);
 
-  // Filter assignees based on search
   const filteredAssignees = assignees.filter((assignee) =>
     assignee.toLowerCase().includes(assigneeSearch.toLowerCase())
   );
@@ -120,7 +124,6 @@ export default function CourseDashboardEnhanced() {
     setShowAssigneeDropdown(false);
   };
 
-  // Project CRUD
   const createProject = (name) => {
     if (!name || !name.trim()) return;
     const p = { id: uid(), name: name.trim(), expanded: true };
@@ -145,7 +148,6 @@ export default function CourseDashboardEnhanced() {
     if (selectedProject === projectId) setSelectedProject("all");
   };
 
-  // Task CRUD
   const addTask = (parentId = null, projectId = null) => {
     const name = parentId || projectId ? newSubtaskName : newName;
     if (!name.trim()) return;
@@ -170,43 +172,43 @@ export default function CourseDashboardEnhanced() {
     };
     if (parentId === null && projectId === null) {
       setTasks((s) => [t, ...s]);
-      setNewName("");
+      setNewName(name.trim()); // Retain task name for continuous filling
       setNewStart("");
       setNewDue("");
       setNewAssignee("");
       setNewStatus("Pending");
       setNewPriority("Low");
-      setNewFile(null);
-      setAddingTop(false);
+      setNewFile([...newFile]); // Retain existing files
+      setAddingTop(true); // Keep dialog open
     } else if (parentId) {
       setTasks((s) =>
         s.map((x) =>
           x.id === parentId ? { ...x, subtasks: [t, ...x.subtasks] } : x
         )
       );
-      setNewSubtaskName("");
+      setNewSubtaskName(name.trim()); // Retain subtask name
       setNewSubtaskStart("");
       setNewSubtaskDue("");
       setNewSubtaskAssignee("");
       setNewSubtaskStatus("Pending");
       setNewSubtaskPriority("Low");
-      setNewSubtaskFile(null);
-      setAddingSubtask(null);
+      setNewSubtaskFile([...newSubtaskFile]); // Retain existing files
+      setAddingSubtask(parentId); // Keep subtask dialog open
     } else if (projectId) {
       setTasks((s) => [t, ...s]);
-      setNewSubtaskName("");
+      setNewSubtaskName(name.trim()); // Retain subtask name
       setNewSubtaskStart("");
       setNewSubtaskDue("");
       setNewSubtaskAssignee("");
       setNewSubtaskStatus("Pending");
       setNewSubtaskPriority("Low");
-      setNewSubtaskFile(null);
-      setAddingSubtask(null);
+      setNewSubtaskFile([...newSubtaskFile]); // Retain existing files
+      setAddingSubtask(projectId); // Keep subtask dialog open
     }
   };
 
   const addEvent = () => {
-    if (!newEventName.trim() || !newEventDate) return;
+    if (!newEventName.trim() || !newEventDate || isNaN(Date.parse(newEventDate))) return;
     setEvents((s) => [
       ...s,
       {
@@ -222,9 +224,9 @@ export default function CourseDashboardEnhanced() {
             : selectedProject,
       },
     ]);
-    setNewEventName("");
+    setNewEventName(""); // Clear event name after adding
     setNewEventDate("");
-    setAddingEvent(false);
+    setAddingEvent(true); // Keep dialog open
   };
 
   const updateTask = (taskId, patch, parentId = null) => {
@@ -336,15 +338,15 @@ export default function CourseDashboardEnhanced() {
       key={task.id}
       style={{
         width: "100%",
-        border: "1px solid #f0f0f2",
+        border: "1px solid #e5e7eb",
         borderRadius: "0.5rem",
         marginBottom: "0.5rem",
-        background: priorityColors[task.priority] + "20",
+        background: "transparent",
       }}
     >
       <tbody>
         <tr>
-          <td style={{ padding: "0.625rem", borderBottom: "1px solid #f0f0f2" }}>
+          <td style={{ padding: "0.625rem", borderBottom: "1px solid #e5e7eb", display: "flex", alignItems: "center" }}>
             {task.subtasks.length > 0 && (
               <button
                 onClick={() => toggleExpand(task.id)}
@@ -353,36 +355,23 @@ export default function CourseDashboardEnhanced() {
                 {task.expanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
               </button>
             )}
-            {editing[task.id] ? (
-              <input
-                style={{
-                  padding: "0.375rem",
-                  borderRadius: "0.5rem",
-                  border: "1px solid #e6e9ef",
-                  width: "100%",
-                }}
-                value={task.name}
-                onChange={(e) => updateTask(task.id, { name: e.target.value }, parentId)}
-                onBlur={() => setEditing((s) => ({ ...s, [task.id]: false }))}
-                autoFocus
-              />
-            ) : (
-              <div
-                onDoubleClick={() => setEditing((s) => ({ ...s, [task.id]: true }))}
-                style={{ fontWeight: 600 }}
-              >
-                {task.name}
-              </div>
-            )}
+            <div
+              onClick={() => { setSelectedTaskDetails(task); setView(2); }}
+              style={{ fontWeight: 600, color: "#1f2937", cursor: "pointer" }}
+            >
+              {task.name}
+            </div>
           </td>
-          <td style={{ padding: "0.625rem", borderBottom: "1px solid #f0f0f2" }}>
+          <td style={{ padding: "0.625rem", borderBottom: "1px solid #e5e7eb" }}>
             <div ref={assigneeRef} style={{ position: "relative" }}>
               <input
                 style={{ 
                   padding: "0.375rem", 
                   borderRadius: "0.5rem", 
-                  border: "1px solid #e6e9ef", 
-                  width: "100%" 
+                  border: "1px solid #d1d5db", 
+                  width: "100%",
+                  background: "#fff",
+                  color: "#374151",
                 }}
                 value={task.assignee}
                 onChange={(e) => {
@@ -401,12 +390,12 @@ export default function CourseDashboardEnhanced() {
                     left: 0,
                     right: 0,
                     background: "#fff",
-                    border: "1px solid #e6e9ef",
+                    border: "1px solid #d1d5db",
                     borderRadius: "0.5rem",
                     maxHeight: "150px",
                     overflowY: "auto",
                     zIndex: 1000,
-                    boxShadow: "0 2px 10px rgba(0,0,0,0.1)",
+                    boxShadow: "0 2px 10px rgba(0,0,0,0.3)",
                   }}
                 >
                   {filteredAssignees.map((assignee) => (
@@ -415,10 +404,11 @@ export default function CourseDashboardEnhanced() {
                       style={{
                         padding: "0.5rem",
                         cursor: "pointer",
-                        borderBottom: "1px solid #f0f0f2",
+                        borderBottom: "1px solid #e5e7eb",
+                        color: "#374151",
                       }}
                       onClick={() => updateTask(task.id, { assignee }, parentId)}
-                      onMouseEnter={(e) => e.target.style.backgroundColor = "#f0f4ff"}
+                      onMouseEnter={(e) => e.target.style.backgroundColor = "#f3f4f6"}
                       onMouseLeave={(e) => e.target.style.backgroundColor = "#fff"}
                     >
                       {assignee}
@@ -428,25 +418,25 @@ export default function CourseDashboardEnhanced() {
               )}
             </div>
           </td>
-          <td style={{ padding: "0.625rem", borderBottom: "1px solid #f0f0f2" }}>
+          <td style={{ padding: "0.625rem", borderBottom: "1px solid #e5e7eb" }}>
             <input
               type="date"
-              style={{ padding: "0.375rem", borderRadius: "0.5rem", border: "1px solid #e6e9ef", width: "100%" }}
+              style={{ padding: "0.375rem", borderRadius: "0.5rem", border: "1px solid #d1d5db", width: "100%", background: "#fff", color: "#374151" }}
               value={task.start}
               onChange={(e) => updateTask(task.id, { start: e.target.value }, parentId)}
             />
           </td>
-          <td style={{ padding: "0.625rem", borderBottom: "1px solid #f0f0f2" }}>
+          <td style={{ padding: "0.625rem", borderBottom: "1px solid #e5e7eb" }}>
             <input
               type="date"
-              style={{ padding: "0.375rem", borderRadius: "0.5rem", border: "1px solid #e6e9ef", width: "100%" }}
+              style={{ padding: "0.375rem", borderRadius: "0.5rem", border: "1px solid #d1d5db", width: "100%", background: "#fff", color: "#374151" }}
               value={task.due}
               onChange={(e) => updateTask(task.id, { due: e.target.value }, parentId)}
             />
           </td>
-          <td style={{ padding: "0.625rem", borderBottom: "1px solid #f0f0f2" }}>
+          <td style={{ padding: "0.625rem", borderBottom: "1px solid #e5e7eb" }}>
             <select
-              style={{ padding: "0.375rem", borderRadius: "0.5rem", border: "1px solid #e6e9ef", width: "100%" }}
+              style={{ padding: "0.375rem", borderRadius: "0.5rem", border: "1px solid #d1d5db", width: "100%", background: "#fff", color: "#374151" }}
               value={task.status}
               onChange={(e) => updateTask(task.id, { status: e.target.value }, parentId)}
             >
@@ -455,9 +445,9 @@ export default function CourseDashboardEnhanced() {
               <option>Completed</option>
             </select>
           </td>
-          <td style={{ padding: "0.625rem", borderBottom: "1px solid #f0f0f2" }}>
+          <td style={{ padding: "0.625rem", borderBottom: "1px solid #e5e7eb" }}>
             <select
-              style={{ padding: "0.375rem", borderRadius: "0.5rem", border: "1px solid #e6e9ef", width: "100%" }}
+              style={{ padding: "0.375rem", borderRadius: "0.5rem", border: "1px solid #d1d5db", width: "100%", background: "#fff", color: "#374151" }}
               value={task.priority}
               onChange={(e) => updateTask(task.id, { priority: e.target.value }, parentId)}
             >
@@ -466,18 +456,28 @@ export default function CourseDashboardEnhanced() {
               <option>Low</option>
             </select>
           </td>
-          <td style={{ padding: "0.625rem", borderBottom: "1px solid #f0f0f2" }}>
+          <td style={{ padding: "0.625rem", borderBottom: "1px solid #e5e7eb" }}>
             <input
               type="file"
-              onChange={(e) => updateTask(task.id, { file: e.target.files[0] }, parentId)}
+              multiple
+              onChange={(e) => {
+                const files = Array.from(e.target.files);
+                updateTask(task.id, { file: [...(task.file || []), ...files] }, parentId);
+              }}
             />
-            {task.file && <span style={{ fontSize: "0.75rem" }}>{task.file.name}</span>}
+            {task.file && task.file.length > 0 && (
+              <ul style={{ fontSize: "0.75rem", color: "#374151", marginTop: "0.25rem" }}>
+                {task.file.map((file, index) => (
+                  <li key={index}>{file.name}</li>
+                ))}
+              </ul>
+            )}
           </td>
-          <td style={{ padding: "0.625rem", borderBottom: "1px solid #f0f0f2" }}>
+          <td style={{ padding: "0.625rem", borderBottom: "1px solid #e5e7eb" }}>
             <div style={{ marginLeft: "auto", display: "flex", gap: "0.25rem" }}>
               <button
                 onClick={() => setEditing((s) => ({ ...s, [task.id]: !s[task.id] }))}
-                style={{ padding: "0.375rem", border: "none", background: "#e5e7eb", borderRadius: "0.25rem", cursor: "pointer" }}
+                style={{ padding: "0.375rem", border: "none", background: "#e5e7eb", borderRadius: "0.25rem", cursor: "pointer", color: "#374151" }}
               >
                 <Edit2 size={14} />
               </button>
@@ -487,7 +487,7 @@ export default function CourseDashboardEnhanced() {
               >
                 <Trash2 size={14} />
               </button>
-              {level === 0 && ( // Only allow subtasks for top-level tasks
+              {level === 0 && (
                 <button
                   onClick={() => setAddingSubtask(task.id)}
                   style={{ padding: "0.375rem", border: "none", background: "#22c55e", color: "#fff", borderRadius: "0.25rem", cursor: "pointer" }}
@@ -513,7 +513,7 @@ export default function CourseDashboardEnhanced() {
           left: 0,
           width: "100%",
           height: "100%",
-          background: "#00000066",
+          background: "rgba(0, 0, 0, 0.5)",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
@@ -529,7 +529,8 @@ export default function CourseDashboardEnhanced() {
             width: "90%",
             maxHeight: "80vh",
             overflowY: "auto",
-            boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
+            boxShadow: "0 4px 6px rgba(0, 0, 0, 0.3)",
+            color: "#374151",
           }}
         >
           <div
@@ -553,6 +554,7 @@ export default function CourseDashboardEnhanced() {
               borderRadius: "0.25rem",
               cursor: "pointer",
               width: "100%",
+              color: "#374151",
             }}
           >
             Close
@@ -569,6 +571,8 @@ export default function CourseDashboardEnhanced() {
         fontFamily: "Inter, Roboto, Arial, sans-serif",
         padding: "0.75rem",
         position: "relative",
+        background: "#f9fafb",
+        color: "#1f2937",
       }}
     >
       <style>
@@ -582,6 +586,7 @@ export default function CourseDashboardEnhanced() {
               border: none;
               cursor: "pointer";
               z-index: 1001;
+              color: #1f2937;
             }
             .sidebar {
               position: fixed;
@@ -589,12 +594,13 @@ export default function CourseDashboardEnhanced() {
               left: 0;
               width: 250px;
               height: 100%;
-              background: #fff;
+              background: #f3f4f6;
               padding: 0.75rem;
               transform: translateX(-100%);
               transition: transform 0.3s ease-in-out;
               z-index: 1000;
-              box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+              box-shadow: 2px 0 5px rgba(0, 0, 0, 0.3);
+              color: #1f2937;
             }
             .sidebar.open { transform: translateX(0); }
             .sidebar-overlay { display: none; }
@@ -605,7 +611,7 @@ export default function CourseDashboardEnhanced() {
               left: 0;
               width: 100%;
               height: 100%;
-              background: rgba(0, 0, 0, 0.5);
+              background: rgba(0, 0, 0, 0.7);
               z-index: 999;
             }
             .content { margin-left: 0; }
@@ -621,6 +627,7 @@ export default function CourseDashboardEnhanced() {
               align-items: center;
               gap: "0.75rem";
               margin-bottom: "0.75rem";
+              color: #1f2937;
             }
             .content { margin-left: 0; }
           }
@@ -643,8 +650,9 @@ export default function CourseDashboardEnhanced() {
             style={{
               padding: "0.375rem 0.75rem",
               cursor: "pointer",
-              background: view === 0 ? "#e0e7ff" : "transparent",
+              background: view === 0 ? "#4A90E2" : "transparent", // Updated color
               borderRadius: "0.25rem",
+              color: "#1f2937",
             }}
           >
             <ListIcon size={16} /> List
@@ -654,11 +662,24 @@ export default function CourseDashboardEnhanced() {
             style={{
               padding: "0.375rem 0.75rem",
               cursor: "pointer",
-              background: view === 1 ? "#e0e7ff" : "transparent",
+              background: view === 1 ? "#4A90E2" : "transparent", // Updated color
               borderRadius: "0.25rem",
+              color: "#1f2937",
             }}
           >
             <CalendarIcon size={16} /> Calendar
+          </div>
+          <div
+            onClick={() => { setView(2); setSidebarOpen(false); }}
+            style={{
+              padding: "0.375rem 0.75rem",
+              cursor: "pointer",
+              background: view === 2 ? "#4A90E2" : "transparent", // Updated color
+              borderRadius: "0.25rem",
+              color: "#1f2937",
+            }}
+          >
+            <ListIcon size={16} /> Details
           </div>
           <select
             value={selectedProject}
@@ -666,9 +687,11 @@ export default function CourseDashboardEnhanced() {
             style={{
               padding: "0.375rem",
               borderRadius: "0.25rem",
-              border: "1px solid #e6e9ef",
+              border: "1px solid #d1d5db",
               fontSize: "0.875rem",
               width: "100%",
+              background: "#fff",
+              color: "#374151",
             }}
           >
             <option value="all">All Projects</option>
@@ -683,13 +706,15 @@ export default function CourseDashboardEnhanced() {
             style={{
               padding: "0.375rem",
               borderRadius: "0.25rem",
-              border: "1px solid #e6e9ef",
+              border: "1px solid #d1d5db",
               fontSize: "0.875rem",
               width: "100%",
+              background: "#fff",
+              color: "#374151",
             }}
           >
             <option>All</option>
-            {priorities.map((p) => (
+            {["High", "Medium", "Low"].map((p) => (
               <option key={p}>{p}</option>
             ))}
           </select>
@@ -698,7 +723,7 @@ export default function CourseDashboardEnhanced() {
             style={{
               padding: "0.375rem 0.75rem",
               cursor: "pointer",
-              background: "#06b6d4",
+              background: "#4A90E2", // Updated color
               color: "#fff",
               border: "none",
               borderRadius: "0.25rem",
@@ -712,7 +737,7 @@ export default function CourseDashboardEnhanced() {
             style={{
               padding: "0.375rem 0.75rem",
               cursor: "pointer",
-              background: "#4f46e5",
+              background: "#4A90E2", // Updated color
               color: "#fff",
               border: "none",
               borderRadius: "0.25rem",
@@ -736,6 +761,7 @@ export default function CourseDashboardEnhanced() {
           padding: "0.75rem",
           maxWidth: "100%",
           width: "100%",
+          color: "#1f2937",
         }}
       >
         <div
@@ -750,7 +776,7 @@ export default function CourseDashboardEnhanced() {
           }}
         >
           <div style={{ fontWeight: 600, fontSize: "1.125rem" }}>
-            Task & Event Management
+            Task & Event Management (screenshot)
           </div>
           <div
             style={{
@@ -765,8 +791,9 @@ export default function CourseDashboardEnhanced() {
               style={{
                 padding: "0.375rem 0.75rem",
                 cursor: "pointer",
-                background: view === 0 ? "#e0e7ff" : "transparent",
+                background: view === 0 ? "#4A90E2" : "transparent", // Updated color
                 borderRadius: "0.25rem",
+                color: "#1f2937",
               }}
             >
               <ListIcon size={16} /> List
@@ -776,11 +803,24 @@ export default function CourseDashboardEnhanced() {
               style={{
                 padding: "0.375rem 0.75rem",
                 cursor: "pointer",
-                background: view === 1 ? "#e0e7ff" : "transparent",
+                background: view === 1 ? "#4A90E2" : "transparent", // Updated color
                 borderRadius: "0.25rem",
+                color: "#1f2937",
               }}
             >
               <CalendarIcon size={16} /> Calendar
+            </div>
+            <div
+              onClick={() => setView(2)}
+              style={{
+                padding: "0.375rem 0.75rem",
+                cursor: "pointer",
+                background: view === 2 ? "#4A90E2" : "transparent", // Updated color
+                borderRadius: "0.25rem",
+                color: "#1f2937",
+              }}
+            >
+              <ListIcon size={16} /> Details
             </div>
             <select
               value={selectedProject}
@@ -788,8 +828,10 @@ export default function CourseDashboardEnhanced() {
               style={{
                 padding: "0.375rem",
                 borderRadius: "0.25rem",
-                border: "1px solid #e6e9ef",
+                border: "1px solid #d1d5db",
                 fontSize: "0.875rem",
+                background: "#fff",
+                color: "#374151",
               }}
             >
               <option value="all">All Projects</option>
@@ -804,12 +846,14 @@ export default function CourseDashboardEnhanced() {
               style={{
                 padding: "0.375rem",
                 borderRadius: "0.25rem",
-                border: "1px solid #e6e9ef",
+                border: "1px solid #d1d5db",
                 fontSize: "0.875rem",
+                background: "#fff",
+                color: "#374151",
               }}
             >
               <option>All</option>
-              {priorities.map((p) => (
+              {["High", "Medium", "Low"].map((p) => (
                 <option key={p}>{p}</option>
               ))}
             </select>
@@ -818,7 +862,7 @@ export default function CourseDashboardEnhanced() {
               style={{
                 padding: "0.375rem 0.75rem",
                 cursor: "pointer",
-                background: "#06b6d4",
+                background: "#4A90E2", // Updated color
                 color: "#fff",
                 border: "none",
                 borderRadius: "0.25rem",
@@ -831,7 +875,7 @@ export default function CourseDashboardEnhanced() {
               style={{
                 padding: "0.375rem 0.75rem",
                 cursor: "pointer",
-                background: "#4f46e5",
+                background: "#4A90E2", // Updated color
                 color: "#fff",
                 border: "none",
                 borderRadius: "0.25rem",
@@ -842,7 +886,6 @@ export default function CourseDashboardEnhanced() {
           </div>
         </div>
 
-        {/* List View */}
         {view === 0 && (
           <div style={{ overflowX: "auto" }}>
             {projects.map((proj) => (
@@ -852,9 +895,10 @@ export default function CourseDashboardEnhanced() {
                     display: "flex",
                     alignItems: "center",
                     gap: "0.5rem",
-                    background: "#f8fafc",
+                    background: "#f3f4f6",
                     padding: "0.5rem",
                     borderRadius: "0.375rem",
+                    color: "#1f2937",
                   }}
                 >
                   <button
@@ -890,6 +934,7 @@ export default function CourseDashboardEnhanced() {
                         background: "#e5e7eb",
                         borderRadius: "0.25rem",
                         cursor: "pointer",
+                        color: "#374151",
                       }}
                     >
                       <Edit2 size={14} />
@@ -916,7 +961,7 @@ export default function CourseDashboardEnhanced() {
               </div>
             ))}
             <div style={{ marginTop: "0.75rem" }}>
-              <div style={{ fontWeight: 700, marginBottom: "0.375rem" }}>
+              <div style={{ fontWeight: 700, marginBottom: "0.375rem", color: "#1f2937" }}>
                 Unassigned / No Project
               </div>
               {tasksFilteredByPriority(tasks)
@@ -926,7 +971,6 @@ export default function CourseDashboardEnhanced() {
           </div>
         )}
 
-        {/* Calendar View */}
         {view === 1 && (
           <div style={{ overflowX: "auto" }}>
             <div
@@ -938,6 +982,7 @@ export default function CourseDashboardEnhanced() {
                 marginBottom: "0.375rem",
                 fontSize: "1rem",
                 gap: "0.75rem",
+                color: "#1f2937",
               }}
             >
               <button
@@ -969,6 +1014,9 @@ export default function CourseDashboardEnhanced() {
                     textAlign: "center",
                     padding: "0.25rem",
                     fontSize: "0.875rem",
+                    color: "#1f2937",
+                    background: "#e5e7eb",
+                    borderRadius: "0.25rem",
                   }}
                 >
                   {day}
@@ -985,10 +1033,14 @@ export default function CourseDashboardEnhanced() {
                     key={idx}
                     style={{
                       minHeight: "3.75rem",
-                      border: "1px solid #e9e9ec",
+                      border: "1px solid #e5e7eb",
                       borderRadius: "0.25rem",
                       padding: "0.125rem",
-                      background: isToday ? "#fffbeb" : dayTasks.length || dayEvents.length ? "#f0f4ff" : "#fff",
+                      background: isToday ? "#4A90E2" : dayTasks.length || dayEvents.length ? "#f3f4f6" : "#fff", // Updated color
+                      color: "#1f2937",
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: "0.125rem",
                     }}
                   >
                     {day && (
@@ -999,33 +1051,20 @@ export default function CourseDashboardEnhanced() {
                         key={t.id + "-task"}
                         style={{
                           fontSize: "0.75rem",
-                          marginTop: "0.125rem",
                           padding: "0.125rem 0.25rem",
                           borderRadius: "0.25rem",
-                          background: priorityColors[t.priority],
+                          background: "transparent",
                           color: "#fff",
-                          whiteSpace: "nowrap",
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
+                          whiteSpace: "normal",
+                          wordBreak: "break-word",
                           cursor: "pointer",
                         }}
-                        onDoubleClick={() => setEditing((s) => ({ ...s, [t.id]: true }))}
+                        onClick={() => { setSelectedTaskDetails(t); setView(2); }}
                       >
-                        {editing[t.id] ? (
-                          <input
-                            value={t.name}
-                            onChange={(e) => updateTask(t.id, { name: e.target.value }, t.parentId)}
-                            onBlur={() => setEditing((s) => ({ ...s, [t.id]: false }))}
-                            style={{
-                              width: "100%",
-                              fontSize: "0.75rem",
-                              border: "none",
-                              borderRadius: "0.125rem",
-                            }}
-                          />
-                        ) : (
-                          t.name
-                        )}
+                        {t.name}
+                        <div style={{ fontSize: "0.625rem", color: "#374151" }}>
+                          {t.assignee && `Assignee: ${t.assignee}`} {t.due && `Due: ${t.due}`}
+                        </div>
                       </div>
                     ))}
                     {dayEvents.map((e) => (
@@ -1033,15 +1072,12 @@ export default function CourseDashboardEnhanced() {
                         key={e.id + "-event"}
                         style={{
                           fontSize: "0.75rem",
-                          marginTop: "0.125rem",
                           padding: "0.125rem 0.25rem",
                           borderRadius: "0.25rem",
-                          background: eventColors[e.type],
+                          background: "transparent",
                           color: "#fff",
-                          whiteSpace: "nowrap",
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                          cursor: "default",
+                          whiteSpace: "normal",
+                          wordBreak: "break-word",
                         }}
                       >
                         {e.name} ({e.type})
@@ -1055,293 +1091,590 @@ export default function CourseDashboardEnhanced() {
           </div>
         )}
 
-        {/* Task Dialog */}
-        <Dialog
-          visible={addingTop}
-          onClose={() => {
-            setAddingTop(false);
-            setNewFile(null);
-            setNewAssignee("");
-            setAssigneeSearch("");
-            setShowAssigneeDropdown(false);
-          }}
-          title="Add New Task"
-        >
-          <div style={{ marginBottom: "0.375rem" }}>
-            <label style={{ fontSize: "0.75rem", marginBottom: "0.25rem" }}>Task Name</label>
-            <input
-              ref={inputRef}
-              style={{
-                padding: "0.375rem",
-                borderRadius: "0.5rem",
-                border: "1px solid #e6e9ef",
-                width: "100%",
-                marginBottom: "0.375rem",
-              }}
-              placeholder="Task name"
-              value={newName}
-              onChange={(e) => setNewName(e.target.value)}
-              onKeyPress={(e) => {
-                if (e.key === "Enter") addTask();
-                if (e.repeat) e.preventDefault();
-              }}
-              maxLength={50}
-            />
-          </div>
-          <div style={{ marginBottom: "0.375rem" }}>
-            <label style={{ fontSize: "0.75rem", marginBottom: "0.25rem" }}>Assignee</label>
-            <div ref={assigneeRef} style={{ position: "relative" }}>
-              <input
-                style={{
-                  padding: "0.375rem",
-                  borderRadius: "0.5rem",
-                  border: "1px solid #e6e9ef",
-                  width: "100%",
-                  marginBottom: "0.375rem",
-                }}
-                placeholder="Assignee"
-                value={assigneeSearch}
-                onChange={(e) => {
-                  setAssigneeSearch(e.target.value);
-                  setNewAssignee(e.target.value);
-                  setShowAssigneeDropdown(true);
-                }}
-                onFocus={() => setShowAssigneeDropdown(true)}
-              />
-              {showAssigneeDropdown && filteredAssignees.length > 0 && (
-                <div
-                  style={{
-                    position: "absolute",
-                    top: "100%",
-                    left: 0,
-                    right: 0,
-                    background: "#fff",
-                    border: "1px solid #e6e9ef",
-                    borderRadius: "0.5rem",
-                    maxHeight: "150px",
-                    overflowY: "auto",
-                    zIndex: 1000,
-                    boxShadow: "0 2px 10px rgba(0,0,0,0.1)",
-                  }}
-                >
-                  {filteredAssignees.map((assignee) => (
-                    <div
-                      key={assignee}
-                      style={{
-                        padding: "0.5rem",
-                        cursor: "pointer",
-                        borderBottom: "1px solid #f0f0f2",
-                      }}
-                      onClick={() => handleAssigneeSelect(assignee)}
-                      onMouseEnter={(e) => e.target.style.backgroundColor = "#f0f4ff"}
-                      onMouseLeave={(e) => e.target.style.backgroundColor = "#fff"}
-                    >
-                      {assignee}
-                    </div>
+        {view === 2 && selectedTaskDetails && (
+          <div style={{ padding: "1rem", background: "#fff", borderRadius: "0.5rem" }}>
+            <h2 style={{ fontSize: "1.5rem", fontWeight: 600, marginBottom: "1rem", color: "#1f2937" }}>
+              Task Details
+            </h2>
+            <div style={{ marginBottom: "0.5rem" }}>
+              <strong>Name:</strong> {selectedTaskDetails.name}
+            </div>
+            <div style={{ marginBottom: "0.5rem" }}>
+              <strong>Assignee:</strong> {selectedTaskDetails.assignee || "Not assigned"}
+            </div>
+            <div style={{ marginBottom: "0.5rem" }}>
+              <strong>Start Date:</strong> {selectedTaskDetails.start || "Not set"}
+            </div>
+            <div style={{ marginBottom: "0.5rem" }}>
+              <strong>Due Date:</strong> {selectedTaskDetails.due || "Not set"}
+            </div>
+            <div style={{ marginBottom: "0.5rem" }}>
+              <strong>Status:</strong> {selectedTaskDetails.status}
+            </div>
+            <div style={{ marginBottom: "0.5rem" }}>
+              <strong>Priority:</strong> {selectedTaskDetails.priority}
+            </div>
+            <div style={{ marginBottom: "0.5rem" }}>
+              <strong>Files:</strong>
+              {selectedTaskDetails.file && selectedTaskDetails.file.length > 0 ? (
+                <ul style={{ fontSize: "0.75rem", color: "#374151", marginTop: "0.25rem" }}>
+                  {selectedTaskDetails.file.map((file, index) => (
+                    <li key={index}>{file.name}</li>
                   ))}
-                </div>
+                </ul>
+              ) : (
+                " No files uploaded"
               )}
             </div>
-          </div>
-          <div style={{ marginBottom: "0.375rem" }}>
-            <label style={{ fontSize: "0.75rem", marginBottom: "0.25rem" }}>Start Date</label>
-            <input
-              type="date"
+            <button
+              onClick={() => setView(0)}
               style={{
-                padding: "0.375rem",
-                borderRadius: "0.5rem",
-                border: "1px solid #e6e9ef",
-                width: "100%",
-                marginBottom: "0.375rem",
-              }}
-              value={newStart}
-              onChange={(e) => setNewStart(e.target.value)}
-            />
-          </div>
-          <div style={{ marginBottom: "0.375rem" }}>
-            <label style={{ fontSize: "0.75rem", marginBottom: "0.25rem" }}>Due Date</label>
-            <input
-              type="date"
-              style={{
-                padding: "0.375rem",
-                borderRadius: "0.5rem",
-                border: "1px solid #e6e9ef",
-                width: "100%",
-                marginBottom: "0.375rem",
-              }}
-              value={newDue}
-              onChange={(e) => setNewDue(e.target.value)}
-            />
-          </div>
-          <div style={{ marginBottom: "0.375rem" }}>
-            <label style={{ fontSize: "0.75rem", marginBottom: "0.25rem" }}>Status</label>
-            <select
-              style={{
-                padding: "0.375rem",
-                borderRadius: "0.5rem",
-                border: "1px solid #e6e9ef",
-                width: "100%",
-                marginBottom: "0.375rem",
-              }}
-              value={newStatus}
-              onChange={(e) => setNewStatus(e.target.value)}
-            >
-              <option>Pending</option>
-              <option>In Progress</option>
-              <option>Completed</option>
-            </select>
-          </div>
-          <div style={{ marginBottom: "0.375rem" }}>
-            <label style={{ fontSize: "0.75rem", marginBottom: "0.25rem" }}>Priority</label>
-            <select
-              style={{
-                padding: "0.375rem",
-                borderRadius: "0.5rem",
-                border: "1px solid #e6e9ef",
-                width: "100%",
-                marginBottom: "0.375rem",
-              }}
-              value={newPriority}
-              onChange={(e) => setNewPriority(e.target.value)}
-            >
-              <option>High</option>
-              <option>Medium</option>
-              <option>Low</option>
-            </select>
-          </div>
-          <div style={{ marginBottom: "0.375rem" }}>
-            <label style={{ fontSize: "0.75rem", marginBottom: "0.25rem" }}>File Upload</label>
-            <input
-              type="file"
-              onChange={(e) => setNewFile(e.target.files[0])}
-              style={{
-                padding: "0.375rem",
-                width: "100%",
-                marginBottom: "0.375rem",
-              }}
-            />
-            {newFile && <span style={{ fontSize: "0.75rem" }}>{newFile.name}</span>}
-          </div>
-          <div style={{ marginBottom: "0.375rem" }}>
-            <label style={{ fontSize: "0.75rem", marginBottom: "0.25rem" }}>Assign to Project</label>
-            <select
-              value={selectedProject}
-              onChange={(e) => setSelectedProject(e.target.value)}
-              style={{
-                padding: "0.375rem",
-                borderRadius: "0.5rem",
-                border: "1px solid #e6e9ef",
-                width: "100%",
-              }}
-            >
-              <option value="all">All Projects (unassigned)</option>
-              <option value="unassigned">Unassigned</option>
-              {projects.map((p) => (
-                <option key={p.id} value={p.id}>{p.name}</option>
-              ))}
-            </select>
-          </div>
-          <button
-            style={{
-              padding: "0.375rem 0.75rem",
-              background: "#4f46e5",
-              color: "#fff",
-              border: "none",
-              borderRadius: "0.25rem",
-              cursor: "pointer",
-              width: "100%",
-            }}
-            onClick={() => addTask()}
-          >
-            Add Task
-          </button>
-          <hr style={{ margin: "0.75rem 0" }} />
-          <div style={{ marginBottom: "0.375rem" }}>
-            <label style={{ fontSize: "0.75rem", marginBottom: "0.25rem" }}>Event Name</label>
-            <textarea
-              style={{
-                padding: "0.375rem",
-                borderRadius: "0.5rem",
-                border: "1px solid #e6e9ef",
-                width: "100%",
-                marginBottom: "0.375rem",
-                minHeight: "4rem",
-                resize: "vertical",
-              }}
-              placeholder="Event name"
-              value={newEventName}
-              onChange={(e) => setNewEventName(e.target.value)}
-              onKeyPress={(e) => e.key === "Enter" && addEvent()}
-            />
-          </div>
-          <div style={{ marginBottom: "0.375rem" }}>
-            <label style={{ fontSize: "0.75rem", marginBottom: "0.25rem" }}>Event Date</label>
-            <input
-              type="date"
-              style={{
-                padding: "0.375rem",
-                borderRadius: "0.5rem",
-                border: "1px solid #e6e9ef",
-                width: "100%",
-                marginBottom: "0.375rem",
-              }}
-              value={newEventDate}
-              onChange={(e) => setNewEventDate(e.target.value)}
-            />
-          </div>
-          <div style={{ marginBottom: "0.375rem" }}>
-            <label style={{ fontSize: "0.75rem", marginBottom: "0.25rem" }}>Event Type</label>
-            <select
-              value={newEventType}
-              onChange={(e) => setNewEventType(e.target.value)}
-              style={{
-                padding: "0.375rem",
+                padding: "0.375rem 0.75rem",
+                background: "#4A90E2", // Updated color
+                color: "#fff",
+                border: "none",
                 borderRadius: "0.25rem",
-                border: "1px solid #e6e9ef",
-                width: "100%",
-                marginBottom: "0.375rem",
+                cursor: "pointer",
               }}
             >
-              <option>Meeting</option>
-              <option>Event</option>
-            </select>
+              Back to List
+            </button>
           </div>
-          <div style={{ marginBottom: "0.375rem" }}>
-            <label style={{ fontSize: "0.75rem", marginBottom: "0.25rem" }}>Assign to Project</label>
-            <select
-              value={selectedProject}
-              onChange={(e) => setSelectedProject(e.target.value)}
-              style={{
-                padding: "0.375rem",
-                borderRadius: "0.5rem",
-                border: "1px solid #e6e9ef",
-                width: "100%",
-              }}
-            >
-              <option value="all">All Projects (unassigned)</option>
-              <option value="unassigned">Unassigned</option>
-              {projects.map((p) => (
-                <option key={p.id} value={p.id}>{p.name}</option>
-              ))}
-            </select>
-          </div>
-          <button
-            style={{
-              padding: "0.375rem 0.75rem",
-              background: "#22c55e",
-              color: "#fff",
-              border: "none",
-              borderRadius: "0.25rem",
-              cursor: "pointer",
-              width: "100%",
-            }}
-            onClick={addEvent}
-          >
-            Add Event
-          </button>
-        </Dialog>
+        )}
 
-        {/* Subtask Dialog */}
+       <Dialog
+  visible={addingTop}
+  onClose={() => {
+    setAddingTop(false);
+    setNewName("");
+    setNewFile([]);
+    setNewAssignee("");
+    setAssigneeSearch("");
+    setShowAssigneeDropdown(false);
+    setNewStart("");
+    setNewDue("");
+    setNewStatus("Pending");
+    setNewPriority("Medium");
+    setNewDescription("");
+    setNewTags([]);
+    setNewTagInput("");
+    setSelectedTemplate("");
+    setShowTemplates(false);
+    setNewEventName("");
+    setNewEventDate("");
+    setNewEventType("Meeting");
+    setSelectedProject("all");
+  }}
+  title="Add New Task"
+  style={{ width: "500px", maxWidth: "90vw" }}
+>
+  {/* Task Name Section */}
+  <div style={{ marginBottom: "1rem" }}>
+    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem" }}>
+      <label style={{ fontSize: "0.875rem", fontWeight: "500", color: "#374151" }}>Task Name</label>
+      <span style={{ fontSize: "0.75rem", color: "#6B7280" }}>{newName.length}/500</span>
+    </div>
+    <input
+      ref={inputRef}
+      style={{
+        padding: "0.75rem",
+        borderRadius: "0.5rem",
+        border: "1px solid #D1D5DB",
+        width: "100%",
+        background: "#FFF",
+        color: "#111827",
+        fontSize: "0.875rem",
+        boxShadow: "0 1px 2px rgba(0, 0, 0, 0.05)"
+      }}
+      placeholder="Task name or type '/' for commands"
+      value={newName}
+      onChange={(e) => setNewName(e.target.value)}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" && newName.trim()) {
+          e.preventDefault();
+          addTask();
+          setNewName("");
+          setTimeout(() => inputRef.current?.focus(), 0);
+        }
+      }}
+      maxLength={500}
+    />
+  </div>
+
+  {/* Description Section */}
+  <div style={{ marginBottom: "1rem" }}>
+    <label style={{ fontSize: "0.875rem", fontWeight: "500", marginBottom: "0.5rem", color: "#374151", display: "block" }}>
+      Description
+    </label>
+    <div style={{ position: "relative" }}>
+      <textarea
+        style={{
+          padding: "0.75rem",
+          borderRadius: "0.5rem",
+          border: "1px solid #D1D5DB",
+          width: "100%",
+          minHeight: "80px",
+          resize: "vertical",
+          background: "#FFF",
+          color: "#111827",
+          fontSize: "0.875rem",
+          boxShadow: "0 1px 2px rgba(0, 0, 0, 0.05)"
+        }}
+        placeholder="Add description"
+        value={newDescription}
+        onChange={(e) => setNewDescription(e.target.value)}
+      />
+      <div style={{ position: "absolute", bottom: "0.5rem", right: "0.5rem", display: "flex", gap: "0.5rem" }}>
+        <button
+          style={{
+            padding: "0.25rem 0.5rem",
+            background: "transparent",
+            border: "1px solid #D1D5DB",
+            borderRadius: "0.375rem",
+            fontSize: "0.75rem",
+            color: "#374151",
+            cursor: "pointer"
+          }}
+          onClick={() => {/* Write functionality */}}
+        >
+          Write
+        </button>
+        <button
+          style={{
+            padding: "0.25rem 0.5rem",
+            background: "transparent",
+            border: "1px solid #3B82F6",
+            borderRadius: "0.375rem",
+            fontSize: "0.75rem",
+            color: "#3B82F6",
+            cursor: "pointer"
+          }}
+          onClick={() => {/* Write with AI functionality */}}
+        >
+          Write with AI
+        </button>
+      </div>
+    </div>
+  </div>
+
+  {/* TO DO Section */}
+  <div style={{ marginBottom: "1rem", padding: "1rem", background: "#F9FAFB", borderRadius: "0.5rem" }}>
+    <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.75rem" }}>
+      <div style={{ width: "16px", height: "16px", border: "2px solid #D1D5DB", borderRadius: "0.25rem" }}></div>
+      <span style={{ fontSize: "0.875rem", fontWeight: "500", color: "#374151" }}>TO DO</span>
+    </div>
+    
+    {/* Assignee */}
+    <div style={{ marginBottom: "0.75rem" }}>
+      <label style={{ fontSize: "0.75rem", color: "#6B7280", marginBottom: "0.25rem", display: "block" }}>Assignee</label>
+      <div ref={assigneeRef} style={{ position: "relative" }}>
+        <input
+          style={{
+            padding: "0.5rem",
+            borderRadius: "0.375rem",
+            border: "1px solid #D1D5DB",
+            width: "100%",
+            background: "#FFF",
+            color: "#374151",
+            fontSize: "0.875rem"
+          }}
+          placeholder="Unassigned"
+          value={assigneeSearch}
+          onChange={(e) => {
+            setAssigneeSearch(e.target.value);
+            setNewAssignee(e.target.value);
+            setShowAssigneeDropdown(true);
+          }}
+          onFocus={() => setShowAssigneeDropdown(true)}
+        />
+        {showAssigneeDropdown && filteredAssignees.length > 0 && (
+          <div style={{
+            position: "absolute",
+            top: "100%",
+            left: 0,
+            right: 0,
+            background: "#FFF",
+            border: "1px solid #D1D5DB",
+            borderRadius: "0.375rem",
+            maxHeight: "120px",
+            overflowY: "auto",
+            zIndex: 1000,
+            boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)"
+          }}>
+            {filteredAssignees.map((assignee) => (
+              <div
+                key={assignee}
+                style={{
+                  padding: "0.5rem",
+                  cursor: "pointer",
+                  borderBottom: "1px solid #F3F4F6",
+                  fontSize: "0.875rem",
+                  color: "#374151"
+                }}
+                onClick={() => handleAssigneeSelect(assignee)}
+                onMouseEnter={(e) => e.target.style.background = "#F9FAFB"}
+                onMouseLeave={(e) => e.target.style.background = "#FFF"}
+              >
+                {assignee}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+
+    {/* Due Date */}
+    <div style={{ marginBottom: "0.75rem" }}>
+      <label style={{ fontSize: "0.75rem", color: "#6B7280", marginBottom: "0.25rem", display: "block" }}>Due date</label>
+      <input
+        type="date"
+        style={{
+          padding: "0.5rem",
+          borderRadius: "0.375rem",
+          border: "1px solid #D1D5DB",
+          width: "100%",
+          background: "#FFF",
+          color: "#374151",
+          fontSize: "0.875rem"
+        }}
+        value={newDue}
+        onChange={(e) => setNewDue(e.target.value)}
+      />
+    </div>
+
+    {/* Priority */}
+    <div style={{ marginBottom: "0.75rem" }}>
+      <label style={{ fontSize: "0.75rem", color: "#6B7280", marginBottom: "0.25rem", display: "block" }}>Priority</label>
+      <select
+        style={{
+          padding: "0.5rem",
+          borderRadius: "0.375rem",
+          border: "1px solid #D1D5DB",
+          width: "100%",
+          background: "#FFF",
+          color: "#374151",
+          fontSize: "0.875rem"
+        }}
+        value={newPriority}
+        onChange={(e) => setNewPriority(e.target.value)}
+      >
+        <option value="Low">Low</option>
+        <option value="Medium">Medium</option>
+        <option value="High">High</option>
+      </select>
+    </div>
+
+    {/* Tags */}
+    <div>
+      <label style={{ fontSize: "0.75rem", color: "#6B7280", marginBottom: "0.25rem", display: "block" }}>Tags</label>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: "0.25rem", marginBottom: "0.25rem" }}>
+        {newTags.map((tag, index) => (
+          <div key={index} style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "0.25rem",
+            padding: "0.25rem 0.5rem",
+            background: "#E5E7EB",
+            borderRadius: "0.375rem",
+            fontSize: "0.75rem",
+            color: "#374151"
+          }}>
+            {tag}
+            <button
+              onClick={() => setNewTags(newTags.filter((_, i) => i !== index))}
+              style={{ background: "none", border: "none", cursor: "pointer", color: "#6B7280" }}
+            >
+              ×
+            </button>
+          </div>
+        ))}
+      </div>
+      <input
+        style={{
+          padding: "0.5rem",
+          borderRadius: "0.375rem",
+          border: "1px solid #D1D5DB",
+          width: "100%",
+          background: "#FFF",
+          color: "#374151",
+          fontSize: "0.875rem"
+        }}
+        placeholder="Add tags..."
+        value={newTagInput}
+        onChange={(e) => setNewTagInput(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" && newTagInput.trim()) {
+            setNewTags([...newTags, newTagInput.trim()]);
+            setNewTagInput("");
+          }
+        }}
+      />
+    </div>
+  </div>
+
+  {/* Custom Fields */}
+  <div style={{ marginBottom: "1rem" }}>
+    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.75rem" }}>
+      <label style={{ fontSize: "0.875rem", fontWeight: "500", color: "#374151" }}>Custom Fields</label>
+      <button
+        style={{
+          padding: "0.375rem 0.75rem",
+          background: "transparent",
+          border: "1px solid #D1D5DB",
+          borderRadius: "0.375rem",
+          fontSize: "0.75rem",
+          color: "#374151",
+          cursor: "pointer"
+        }}
+        onClick={() => {/* Create new field functionality */}}
+      >
+        + Create new field
+      </button>
+    </div>
+    <div style={{ padding: "0.75rem", background: "#F9FAFB", borderRadius: "0.375rem", border: "1px dashed #D1D5DB" }}>
+      <span style={{ fontSize: "0.75rem", color: "#6B7280" }}>No custom fields added</span>
+    </div>
+  </div>
+
+  {/* Templates */}
+  <div style={{ marginBottom: "1rem" }}>
+    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.75rem" }}>
+      <label style={{ fontSize: "0.875rem", fontWeight: "500", color: "#374151" }}>Templates</label>
+      <button
+        style={{
+          padding: "0.375rem 0.75rem",
+          background: "transparent",
+          border: "1px solid #D1D5DB",
+          borderRadius: "0.375rem",
+          fontSize: "0.75rem",
+          color: "#374151",
+          cursor: "pointer"
+        }}
+        onClick={() => setShowTemplates(!showTemplates)}
+      >
+        {showTemplates ? "Hide" : "Show"} Templates
+      </button>
+    </div>
+    {showTemplates && (
+      <div style={{ padding: "0.75rem", background: "#F9FAFB", borderRadius: "0.375rem" }}>
+        <select
+          style={{
+            padding: "0.5rem",
+            borderRadius: "0.375rem",
+            border: "1px solid #D1D5DB",
+            width: "100%",
+            background: "#FFF",
+            color: "#374151",
+            fontSize: "0.875rem"
+          }}
+          value={selectedTemplate}
+          onChange={(e) => setSelectedTemplate(e.target.value)}
+        >
+          <option value="">Select a template</option>
+          <option value="bug">Bug Report</option>
+          <option value="feature">Feature Request</option>
+          <option value="task">General Task</option>
+        </select>
+      </div>
+    )}
+  </div>
+
+  {/* File Upload */}
+  <div style={{ marginBottom: "1rem" }}>
+    <label style={{ fontSize: "0.875rem", fontWeight: "500", marginBottom: "0.5rem", color: "#374151", display: "block" }}>
+      File Upload
+    </label>
+    <input
+      type="file"
+      multiple
+      onChange={(e) => setNewFile((prevFiles) => [...prevFiles, ...Array.from(e.target.files)])}
+      style={{
+        padding: "0.5rem",
+        width: "100%",
+        background: "#FFF",
+        border: "1px dashed #D1D5DB",
+        borderRadius: "0.375rem",
+        fontSize: "0.875rem"
+      }}
+    />
+    {newFile.length > 0 && (
+      <div style={{ marginTop: "0.5rem" }}>
+        {newFile.map((file, index) => (
+          <div key={index} style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            padding: "0.5rem",
+            background: "#F9FAFB",
+            borderRadius: "0.375rem",
+            marginBottom: "0.25rem",
+            fontSize: "0.75rem",
+            color: "#374151"
+          }}>
+            <span>{file.name}</span>
+            <button
+              onClick={() => setNewFile(newFile.filter((_, i) => i !== index))}
+              style={{ background: "none", border: "none", cursor: "pointer", color: "#EF4444" }}
+            >
+              ×
+            </button>
+          </div>
+        ))}
+      </div>
+    )}
+  </div>
+
+  {/* Project Assignment */}
+  <div style={{ marginBottom: "1rem" }}>
+    <label style={{ fontSize: "0.875rem", fontWeight: "500", marginBottom: "0.5rem", color: "#374151", display: "block" }}>
+      Assign to Project
+    </label>
+    <select
+      value={selectedProject}
+      onChange={(e) => setSelectedProject(e.target.value)}
+      style={{
+        padding: "0.75rem",
+        borderRadius: "0.5rem",
+        border: "1px solid #D1D5DB",
+        width: "100%",
+        background: "#FFF",
+        color: "#374151",
+        fontSize: "0.875rem"
+      }}
+    >
+      <option value="all">All Projects (unassigned)</option>
+      <option value="unassigned">Unassigned</option>
+      {projects.map((p) => (
+        <option key={p.id} value={p.id}>{p.name}</option>
+      ))}
+    </select>
+  </div>
+
+  {/* Add Task Button */}
+  <button
+    style={{
+      padding: "0.75rem 1rem",
+      background: "#3B82F6",
+      color: "#FFF",
+      border: "none",
+      borderRadius: "0.5rem",
+      cursor: "pointer",
+      width: "100%",
+      fontSize: "0.875rem",
+      fontWeight: "500",
+      marginBottom: "1rem"
+    }}
+    onClick={addTask}
+  >
+    Create Task
+  </button>
+
+  <hr style={{ margin: "1rem 0", border: "none", borderTop: "1px solid #E5E7EB" }} />
+
+  {/* Event Section */}
+  <div style={{ marginBottom: "1rem" }}>
+    <h3 style={{ fontSize: "0.875rem", fontWeight: "500", color: "#374151", marginBottom: "0.75rem" }}>Add Event</h3>
+    
+    <div style={{ marginBottom: "0.75rem" }}>
+      <label style={{ fontSize: "0.875rem", fontWeight: "500", marginBottom: "0.5rem", color: "#374151", display: "block" }}>
+        Event Name
+      </label>
+      <textarea
+        ref={eventNameRef}
+        style={{
+          padding: "0.75rem",
+          borderRadius: "0.5rem",
+          border: "1px solid #D1D5DB",
+          width: "100%",
+          minHeight: "60px",
+          resize: "vertical",
+          background: "#FFF",
+          color: "#111827",
+          fontSize: "0.875rem",
+          boxShadow: "0 1px 2px rgba(0, 0, 0, 0.05)"
+        }}
+        placeholder="Event name"
+        value={newEventName}
+        onChange={(e) => setNewEventName(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" && newEventName.trim() && newEventDate) {
+            e.preventDefault();
+            addEvent();
+            setNewEventName("");
+            setTimeout(() => eventNameRef.current?.focus(), 0);
+          }
+        }}
+      />
+    </div>
+
+    <div style={{ marginBottom: "0.75rem" }}>
+      <label style={{ fontSize: "0.875rem", fontWeight: "500", marginBottom: "0.5rem", color: "#374151", display: "block" }}>
+        Event Date
+      </label>
+      <input
+        type="date"
+        style={{
+          padding: "0.75rem",
+          borderRadius: "0.5rem",
+          border: "1px solid #D1D5DB",
+          width: "100%",
+          background: "#FFF",
+          color: "#374151",
+          fontSize: "0.875rem"
+        }}
+        value={newEventDate}
+        onChange={(e) => setNewEventDate(e.target.value)}
+      />
+    </div>
+
+    <div style={{ marginBottom: "0.75rem" }}>
+      <label style={{ fontSize: "0.875rem", fontWeight: "500", marginBottom: "0.5rem", color: "#374151", display: "block" }}>
+        Event Type
+      </label>
+      <select
+        value={newEventType}
+        onChange={(e) => setNewEventType(e.target.value)}
+        style={{
+          padding: "0.75rem",
+          borderRadius: "0.5rem",
+          border: "1px solid #D1D5DB",
+          width: "100%",
+          background: "#FFF",
+          color: "#374151",
+          fontSize: "0.875rem"
+        }}
+      >
+        <option>Meeting</option>
+        <option>Event</option>
+        <option>Reminder</option>
+        <option>Deadline</option>
+      </select>
+    </div>
+
+    <button
+      style={{
+        padding: "0.75rem 1rem",
+        background: "#10B981",
+        color: "#FFF",
+        border: "none",
+        borderRadius: "0.5rem",
+        cursor: "pointer",
+        width: "100%",
+        fontSize: "0.875rem",
+        fontWeight: "500"
+      }}
+      onClick={() => {
+        if (newEventName.trim() && newEventDate) {
+          addEvent();
+          setNewEventName("");
+          setTimeout(() => eventNameRef.current?.focus(), 0);
+        }
+      }}
+    >
+      Add Event
+    </button>
+  </div>
+</Dialog>
         <Dialog
           visible={!!addingSubtask}
           onClose={() => {
@@ -1354,20 +1687,22 @@ export default function CourseDashboardEnhanced() {
             setShowAssigneeDropdown(false);
             setNewSubtaskStatus("Pending");
             setNewSubtaskPriority("Low");
-            setNewSubtaskFile(null);
+            setNewSubtaskFile([]);
           }}
           title="Add New Subtask"
         >
           <div style={{ marginBottom: "0.375rem" }}>
-            <label style={{ fontSize: "0.75rem", marginBottom: "0.25rem" }}>Subtask Name</label>
+            <label style={{ fontSize: "0.75rem", marginBottom: "0.25rem", color: "#374151" }}>Subtask Name</label>
             <input
               ref={subtaskNameRef}
               style={{
                 padding: "0.375rem",
                 borderRadius: "0.5rem",
-                border: "1px solid #e6e9ef",
+                border: "1px solid #d1d5db",
                 width: "100%",
                 marginBottom: "0.375rem",
+                background: "#fff",
+                color: "#374151",
               }}
               placeholder="Subtask name"
               value={newSubtaskName}
@@ -1377,21 +1712,23 @@ export default function CourseDashboardEnhanced() {
                   const isProject = projects.some((p) => p.id === addingSubtask);
                   addTask(isProject ? null : addingSubtask, isProject ? addingSubtask : null);
                 }
-                if (e.repeat) e.preventDefault();
+                if (e.repeat && e.key !== "Enter") e.preventDefault();
               }}
               maxLength={50}
             />
           </div>
           <div style={{ marginBottom: "0.375rem" }}>
-            <label style={{ fontSize: "0.75rem", marginBottom: "0.25rem" }}>Assignee</label>
+            <label style={{ fontSize: "0.75rem", marginBottom: "0.25rem", color: "#374151" }}>Assignee</label>
             <div ref={assigneeRef} style={{ position: "relative" }}>
               <input
                 style={{
                   padding: "0.375rem",
                   borderRadius: "0.5rem",
-                  border: "1px solid #e6e9ef",
+                  border: "1px solid #d1d5db",
                   width: "100%",
                   marginBottom: "0.375rem",
+                  background: "#fff",
+                  color: "#374151",
                 }}
                 placeholder="Assignee"
                 value={assigneeSearch}
@@ -1410,12 +1747,12 @@ export default function CourseDashboardEnhanced() {
                     left: 0,
                     right: 0,
                     background: "#fff",
-                    border: "1px solid #e6e9ef",
+                    border: "1px solid #d1d5db",
                     borderRadius: "0.5rem",
                     maxHeight: "150px",
                     overflowY: "auto",
                     zIndex: 1000,
-                    boxShadow: "0 2px 10px rgba(0,0,0,0.1)",
+                    boxShadow: "0 2px 10px rgba(0,0,0,0.3)",
                   }}
                 >
                   {filteredAssignees.map((assignee) => (
@@ -1424,10 +1761,11 @@ export default function CourseDashboardEnhanced() {
                       style={{
                         padding: "0.5rem",
                         cursor: "pointer",
-                        borderBottom: "1px solid #f0f0f2",
+                        borderBottom: "1px solid #e5e7eb",
+                        color: "#374151",
                       }}
                       onClick={() => handleSubtaskAssigneeSelect(assignee)}
-                      onMouseEnter={(e) => e.target.style.backgroundColor = "#f0f4ff"}
+                      onMouseEnter={(e) => e.target.style.backgroundColor = "#f3f4f6"}
                       onMouseLeave={(e) => e.target.style.backgroundColor = "#fff"}
                     >
                       {assignee}
@@ -1438,44 +1776,50 @@ export default function CourseDashboardEnhanced() {
             </div>
           </div>
           <div style={{ marginBottom: "0.375rem" }}>
-            <label style={{ fontSize: "0.75rem", marginBottom: "0.25rem" }}>Start Date</label>
+            <label style={{ fontSize: "0.75rem", marginBottom: "0.25rem", color: "#374151" }}>Start Date</label>
             <input
               type="date"
               style={{
                 padding: "0.375rem",
                 borderRadius: "0.5rem",
-                border: "1px solid #e6e9ef",
+                border: "1px solid #d1d5db",
                 width: "100%",
                 marginBottom: "0.375rem",
+                background: "#fff",
+                color: "#374151",
               }}
               value={newSubtaskStart}
               onChange={(e) => setNewSubtaskStart(e.target.value)}
             />
           </div>
           <div style={{ marginBottom: "0.375rem" }}>
-            <label style={{ fontSize: "0.75rem", marginBottom: "0.25rem" }}>Due Date</label>
+            <label style={{ fontSize: "0.75rem", marginBottom: "0.25rem", color: "#374151" }}>Due Date</label>
             <input
               type="date"
               style={{
                 padding: "0.375rem",
                 borderRadius: "0.5rem",
-                border: "1px solid #e6e9ef",
+                border: "1px solid #d1d5db",
                 width: "100%",
                 marginBottom: "0.375rem",
+                background: "#fff",
+                color: "#374151",
               }}
               value={newSubtaskDue}
               onChange={(e) => setNewSubtaskDue(e.target.value)}
             />
           </div>
           <div style={{ marginBottom: "0.375rem" }}>
-            <label style={{ fontSize: "0.75rem", marginBottom: "0.25rem" }}>Status</label>
+            <label style={{ fontSize: "0.75rem", marginBottom: "0.25rem", color: "#374151" }}>Status</label>
             <select
               style={{
                 padding: "0.375rem",
                 borderRadius: "0.5rem",
-                border: "1px solid #e6e9ef",
+                border: "1px solid #d1d5db",
                 width: "100%",
                 marginBottom: "0.375rem",
+                background: "#fff",
+                color: "#374151",
               }}
               value={newSubtaskStatus}
               onChange={(e) => setNewSubtaskStatus(e.target.value)}
@@ -1486,14 +1830,16 @@ export default function CourseDashboardEnhanced() {
             </select>
           </div>
           <div style={{ marginBottom: "0.375rem" }}>
-            <label style={{ fontSize: "0.75rem", marginBottom: "0.25rem" }}>Priority</label>
+            <label style={{ fontSize: "0.75rem", marginBottom: "0.25rem", color: "#374151" }}>Priority</label>
             <select
               style={{
                 padding: "0.375rem",
                 borderRadius: "0.5rem",
-                border: "1px solid #e6e9ef",
+                border: "1px solid #d1d5db",
                 width: "100%",
                 marginBottom: "0.375rem",
+                background: "#fff",
+                color: "#374151",
               }}
               value={newSubtaskPriority}
               onChange={(e) => setNewSubtaskPriority(e.target.value)}
@@ -1504,22 +1850,31 @@ export default function CourseDashboardEnhanced() {
             </select>
           </div>
           <div style={{ marginBottom: "0.375rem" }}>
-            <label style={{ fontSize: "0.75rem", marginBottom: "0.25rem" }}>File Upload</label>
+            <label style={{ fontSize: "0.75rem", marginBottom: "0.25rem", color: "#374151" }}>File Upload</label>
             <input
               type="file"
-              onChange={(e) => setNewSubtaskFile(e.target.files[0])}
+              multiple
+              onChange={(e) => setNewSubtaskFile((prevFiles) => [...prevFiles, ...Array.from(e.target.files)])}
               style={{
                 padding: "0.375rem",
                 width: "100%",
                 marginBottom: "0.375rem",
+                background: "#fff",
+                color: "#374151",
               }}
             />
-            {newSubtaskFile && <span style={{ fontSize: "0.75rem" }}>{newSubtaskFile.name}</span>}
+            {newSubtaskFile.length > 0 && (
+              <ul style={{ fontSize: "0.75rem", color: "#374151", marginTop: "0.25rem" }}>
+                {newSubtaskFile.map((file, index) => (
+                  <li key={index}>{file.name}</li>
+                ))}
+              </ul>
+            )}
           </div>
           <button
             style={{
               padding: "0.375rem 0.75rem",
-              background: "#4f46e5",
+              background: "#4A90E2", // Updated color
               color: "#fff",
               border: "none",
               borderRadius: "0.25rem",
@@ -1535,7 +1890,6 @@ export default function CourseDashboardEnhanced() {
           </button>
         </Dialog>
 
-        {/* Project Dialog */}
         <Dialog
           visible={creatingProject}
           onClose={() => {
@@ -1546,15 +1900,17 @@ export default function CourseDashboardEnhanced() {
           title={editingProjectId ? "Edit Project" : "Create Project"}
         >
           <div style={{ marginBottom: "0.375rem" }}>
-            <label style={{ fontSize: "0.75rem", marginBottom: "0.25rem" }}>Project Name</label>
+            <label style={{ fontSize: "0.75rem", marginBottom: "0.25rem", color: "#374151" }}>Project Name</label>
             <input
               ref={projectInputRef}
               style={{
                 padding: "0.375rem",
                 borderRadius: "0.5rem",
-                border: "1px solid #e6e9ef",
+                border: "1px solid #d1d5db",
                 width: "100%",
                 marginBottom: "0.75rem",
+                background: "#fff",
+                color: "#374151",
               }}
               placeholder="Project name"
               value={newProjectName}
@@ -1578,7 +1934,7 @@ export default function CourseDashboardEnhanced() {
             <button
               style={{
                 padding: "0.5rem 1rem",
-                background: "#4f46e5",
+                background: "#4A90E2", // Updated color
                 color: "#fff",
                 border: "none",
                 borderRadius: "0.25rem",
