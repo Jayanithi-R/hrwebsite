@@ -20,7 +20,9 @@ import {
   Bell,
   FolderOpen,
   Clock,
-  Target
+  Target,
+  CheckCircle,
+  Users
 } from "lucide-react";
 
 export default function CourseDashboardEnhanced() {
@@ -493,71 +495,83 @@ export default function CourseDashboardEnhanced() {
   };
 
   // --- Reusable Components ---
-  const FormField = ({ label, type = "text", value, onChange, placeholder, options, style = {} }) => (
-    <div style={{ display: "flex", flexDirection: "column", gap: 6, ...style }}>
-      <label style={{ fontSize: 14, fontWeight: 500, color: '#374151' }}>{label}</label>
-      {type === "select" ? (
-        <select 
-          value={value} 
-          onChange={onChange} 
-          style={{
-            padding: '10px 12px',
-            borderRadius: 8,
-            border: '1px solid #d1d5db',
-            fontSize: 16,
-            outline: 'none',
-            transition: 'border-color 0.2s',
-            fontFamily: 'inherit',
-            appearance: 'none',
-            background: '#fff',
-            width: '100%',
-            boxSizing: 'border-box'
-          }}
-        >
-          {options.map(option => (
-            <option key={option} value={option}>{option}</option>
-          ))}
-        </select>
-      ) : type === "textarea" ? (
-        <textarea
-          value={value}
-          onChange={onChange}
-          placeholder={placeholder}
-          style={{
-            padding: '10px 12px',
-            borderRadius: 8,
-            border: '1px solid #d1d5db',
-            fontSize: 16,
-            outline: 'none',
-            transition: 'border-color 0.2s',
-            fontFamily: 'inherit',
-            minHeight: 80,
-            resize: 'vertical',
-            width: '100%',
-            boxSizing: 'border-box'
-          }}
-        />
-      ) : (
-        <input
-          type={type}
-          value={value}
-          onChange={onChange}
-          placeholder={placeholder}
-          style={{
-            padding: '10px 12px',
-            borderRadius: 8,
-            border: '1px solid #d1d5db',
-            fontSize: 16,
-            outline: 'none',
-            transition: 'border-color 0.2s',
-            fontFamily: 'inherit',
-            width: '100%',
-            boxSizing: 'border-box'
-          }}
-        />
-      )}
-    </div>
-  );
+
+  const FormField = React.memo(function FormField({
+    label,
+    type = "text",
+    value,
+    onChange,
+    placeholder,
+    options,
+    style = {}
+  }) {
+    return (
+      <div style={{ display: "flex", flexDirection: "column", gap: 6, ...style }}>
+        <label style={{ fontSize: 14, fontWeight: 500, color: '#374151' }}>{label}</label>
+        {type === "select" ? (
+          <select
+            value={value ?? ""}
+            onChange={onChange}
+            style={{
+              padding: '10px 12px',
+              borderRadius: 8,
+              border: '1px solid #d1d5db',
+              fontSize: 16,
+              outline: 'none',
+              transition: 'border-color 0.2s',
+              fontFamily: 'inherit',
+              appearance: 'none',
+              background: '#fff',
+              width: '100%',
+              boxSizing: 'border-box'
+            }}
+          >
+            {options?.map(option => (
+              <option key={option} value={option}>{option}</option>
+            ))}
+          </select>
+        ) : type === "textarea" ? (
+          <textarea
+            value={value ?? ""}
+            onChange={onChange}
+            placeholder={placeholder}
+            style={{
+              padding: '10px 12px',
+              borderRadius: 8,
+              border: '1px solid #d1d5db',
+              fontSize: 16,
+              outline: 'none',
+              transition: 'border-color 0.2s',
+              fontFamily: 'inherit',
+              minHeight: 80,
+              resize: 'vertical',
+              width: '100%',
+              boxSizing: 'border-box'
+            }}
+          />
+        ) : (
+          <input
+            type={type}
+            value={value ?? ""}
+            onChange={onChange}
+            placeholder={placeholder}
+            style={{
+              padding: '10px 12px',
+              borderRadius: 8,
+              border: '1px solid #d1d5db',
+              fontSize: 16,
+              outline: 'none',
+              transition: 'border-color 0.2s',
+              fontFamily: 'inherit',
+              width: '100%',
+              boxSizing: 'border-box'
+            }}
+            autoComplete="off"
+          />
+        )}
+      </div>
+    );
+  });
 
   const FormRow = ({ children }) => (
     <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>{children}</div>
@@ -1594,10 +1608,11 @@ export default function CourseDashboardEnhanced() {
                 display: "flex",
                 alignItems: "center",
                 gap: "4px",
+                height: "32px"
               }}
               onClick={() => setShowFilterDropdown(!showFilterDropdown)}
             >
-              <Filter size={16} />
+              <Filter size={20} />
               Filter{" "}
               <span style={{ fontSize: "10px" }}>
                 {showFilterDropdown ? "▲" : "▼"}
@@ -1640,37 +1655,42 @@ export default function CourseDashboardEnhanced() {
             )}
           </div>
 
-          <button
-            style={{
-              background: "#fff",
-              border: "1px solid #ccc",
-              borderRadius: "14px",
-              padding: "6px 10px",
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              gap: "4px",
-            }}
-          >
-            ☑Closed
-          </button>
-
-          {/* Bookmarks */}
-          <button
-            style={{
-              background: "#fff",
-              border: "1px solid #ccc",
-              borderRadius: "14px",
-              padding: "6px 10px",
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              gap: "4px",
-            }}
-          >
-            <Bookmark size={16} />
-            Bookmarks
-          </button>
+          <div style={{ position: "relative" }}>
+            <button
+              style={{
+                background: "#fff",
+                border: "1px solid #ccc",
+                borderRadius: "14px",
+                padding: "6px 10px",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                gap: "4px",
+                height: "32px"
+              }}
+            >
+            <CheckCircle size={20} />
+            <p style={{ fontSize: "14px", paddingLeft: "5px" }}>Closed</p>
+            </button>
+          </div>
+          <div style={{ position: "relative" }}>
+            <button
+              style={{
+                background: "#fff",
+                border: "1px solid #ccc",
+                borderRadius: "14px",
+                padding: "6px 10px",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                gap: "4px",
+                height: "32px"
+              }}
+            >
+            <Users size={20}  />
+            <p style={{ fontSize: "14px", paddingLeft: "5px" }}>Assignee</p>
+            </button>
+          </div>
 
           {/* Profile */}
           <div

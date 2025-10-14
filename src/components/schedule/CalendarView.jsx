@@ -1,1476 +1,561 @@
-import React, { useState, useEffect, useRef } from "react";
-import {
-  Plus,
-  ChevronDown,
-  ChevronRight,
-  Edit2,
-  Trash2,
-  User,
-  Tag,
-  List as ListIcon,
-  Calendar as CalendarIcon,
-  ChevronLeft,
-  ChevronRight as ArrowRight,
-  MoreVertical,
-  Search,
-  Filter,
-  Bookmark,
-  Settings
-} from "lucide-react";
 
-export default function CourseDashboardEnhanced() {
-  // --- General State ---
-  const [toggleMode, setToggleMode] = useState("task");
-  const [editing, setEditing] = useState({});
-  const [filterPriority, setFilterPriority] = useState("All");
-  const [activeModal, setActiveModal] = useState(null); // 'project', 'task', 'subtask', 'event'
-  const [searchQuery, setSearchQuery] = useState("");
+import React, { useState, useEffect } from "react";
+import { ChevronLeft, ChevronRight, ChevronDown, Filter, CheckCircle, Users, Search, Settings } from "lucide-react";
 
-  // --- Calendar State ---
-  const [currentMonth, setCurrentMonth] = useState(new Date().getMonth());
-  const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
+export default function GoogleCalendarReplica() {
+  const [view, setView] = useState("month");
+  const [currentDate, setCurrentDate] = useState(new Date());
+  const [viewMode, setViewMode] = useState("desktop");
 
-  // --- Project Form ---
-  const [newProjectName, setNewProjectName] = useState("");
-  const [newProjectDue, setNewProjectDue] = useState("");
-  const [newProjectPriority, setNewProjectPriority] = useState("Low");
-  const [newProjectAssignee, setNewProjectAssignee] = useState("");
-  const [newProjectDescription, setNewProjectDescription] = useState("");
+  useEffect(() => {
+    const handleResize = () => {
+      const width = window.innerWidth;
+      if (width < 640) setViewMode("mobile");
+      else if (width >= 640 && width < 1024) setViewMode("tablet");
+      else setViewMode("desktop");
+    };
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
-  // --- Task Form ---
-  const [newTaskName, setNewTaskName] = useState("");
-  const [newTaskDue, setNewTaskDue] = useState("");
-  const [newTaskPriority, setNewTaskPriority] = useState("Low");
-  const [newTaskAssignee, setNewTaskAssignee] = useState("");
-  const [newTaskDescription, setNewTaskDescription] = useState("");
-  const [taskParentId, setTaskParentId] = useState(null);
+  const isMobile = viewMode === "mobile";
+  const isTablet = viewMode === "tablet";
 
-  // --- Subtask Form ---
-  const [newSubtaskName, setNewSubtaskName] = useState("");
-  const [newSubtaskDue, setNewSubtaskDue] = useState("");
-  const [newSubtaskPriority, setNewSubtaskPriority] = useState("Low");
-  const [newSubtaskAssignee, setNewSubtaskAssignee] = useState("");
-  const [newSubtaskDescription, setNewSubtaskDescription] = useState("");
-  const [subtaskParentId, setSubtaskParentId] = useState(null);
+  const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+  const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+  const shortDayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
-  // --- Projects & Data ---
-  const [projects, setProjects] = useState([]);
-  const [events, setEvents] = useState([]);
+  const goToToday = () => setCurrentDate(new Date());
 
-  // --- Constants ---
-  const priorities = ["High", "Medium", "Low"];
-  const priorityColors = { High: "#f87171", Medium: "#facc15", Low: "#4ade80" };
-  const eventColors = { Meeting: "#fbbf24", Event: "#34d399" };
-  const monthNames = [
-    "January", "February", "March", "April", "May", "June",
-    "July", "August", "September", "October", "November", "December"
-  ];
-  const uid = () => Math.floor(Math.random() * 1000000);
-
-  // --- Calendar Functions ---
-  const changeMonth = (delta) => {
-    let newMonth = currentMonth + delta;
-    let newYear = currentYear;
-    if (newMonth > 11) {
-      newMonth = 0;
-      newYear += 1;
+  const navigateDate = (direction) => {
+    const newDate = new Date(currentDate);
+    if (view === "day") {
+      newDate.setDate(newDate.getDate() + direction);
+    } else if (view === "week") {
+      newDate.setDate(newDate.getDate() + (direction * 7));
+    } else {
+      newDate.setMonth(newDate.getMonth() + direction);
     }
-    if (newMonth < 0) {
-      newMonth = 11;
-      newYear -= 1;
-    }
-    setCurrentMonth(newMonth);
-    setCurrentYear(newYear);
+    setCurrentDate(newDate);
   };
 
-  const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
-  const firstDay = new Date(currentYear, currentMonth, 1).getDay();
-  const calendar = [];
-  for (let i = 0; i < firstDay; i++) calendar.push(null);
-  for (let d = 1; d <= daysInMonth; d++) calendar.push(d);
+  const getDateTitle = () => {
+    const month = monthNames[currentDate.getMonth()];
+    const year = currentDate.getFullYear();
+    const day = currentDate.getDate();
+    const dayName = dayNames[currentDate.getDay()];
 
-  // Group tasks and events by date for calendar
-  const tasksByDay = {};
-  projects.forEach(project => {
-    project.tasks?.forEach(task => {
-      if (task.due) {
-        tasksByDay[task.due] = tasksByDay[task.due] || [];
-        tasksByDay[task.due].push({ ...task, type: 'task', projectName: project.name });
-      }
-    });
-  });
+    if (view === "day") {
+      if (isMobile) return `${dayName.substring(0, 3)}, ${month.substring(0, 3)} ${day}`;
+      return `${dayName}, ${month} ${day}`;
+    } else if (view === "week") {
+      const startOfWeek = new Date(currentDate);
+      startOfWeek.setDate(currentDate.getDate() - currentDate.getDay());
+      const endOfWeek = new Date(startOfWeek);
+      endOfWeek.setDate(startOfWeek.getDate() + 6);
+      if (isMobile) return `${month.substring(0, 3)} ${startOfWeek.getDate()} - ${endOfWeek.getDate()}`;
+      return `${month} ${startOfWeek.getDate()} - ${month} ${endOfWeek.getDate()}`;
+    } else {
+      return `${month} ${year}`;
+    }
+  };
 
-  const eventsByDay = {};
-  events.forEach(e => {
-    if (!e.date) return;
-    eventsByDay[e.date] = eventsByDay[e.date] || [];
-    eventsByDay[e.date].push(e);
-  });
+  const getDaysInMonth = (date) => {
+    const year = date.getFullYear();
+    const month = date.getMonth();
+    const firstDay = new Date(year, month, 1).getDay();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const days = [];
 
-  // --- Light Toolbar Styles ---
-  const lightToolbarStyles = {
+    for (let i = 0; i < firstDay; i++) {
+      days.push(null);
+    }
+    for (let i = 1; i <= daysInMonth; i++) {
+      days.push(i);
+    }
+    return days;
+  };
+
+  const getWeekDays = () => {
+    const startOfWeek = new Date(currentDate);
+    startOfWeek.setDate(currentDate.getDate() - currentDate.getDay());
+    const days = [];
+    for (let i = 0; i < 7; i++) {
+      const day = new Date(startOfWeek);
+      day.setDate(startOfWeek.getDate() + i);
+      days.push(day);
+    }
+    return days;
+  };
+
+  const getHours = () => {
+    const hours = [];
+    for (let i = 0; i < 24; i++) {
+      const period = i < 12 ? "am" : "pm";
+      const hour = i === 0 ? 12 : i > 12 ? i - 12 : i;
+      hours.push(`${hour}${period}`);
+    }
+    return hours;
+  };
+
+  const isToday = (day) => {
+    const today = new Date();
+    return day === today.getDate() &&
+      currentDate.getMonth() === today.getMonth() &&
+      currentDate.getFullYear() === today.getFullYear();
+  };
+
+
+  const styles = {
+    container: {
+      minHeight: "100vh",
+      background: "#fff",
+      fontFamily: "'Google Sans', 'Roboto', Arial, sans-serif",
+      display: "flex",
+      flexDirection: "column",
+      maxWidth: "100vw",
+      overflow: "hidden"
+    },
     toolbar: {
-      background: '#ffffff',
-      padding: '12px 20px',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      borderBottom: '1px solid #e5e7eb',
-      color: '#374151',
-      boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between",
+      padding: isMobile ? "8px 8px" : isTablet ? "10px 16px" : "12px 20px",
+      borderBottom: "1px solid #dadce0",
+      gap: isMobile ? "4px" : isTablet ? "8px" : "16px",
+      flexWrap: isMobile ? "wrap" : "nowrap",
+      position: "sticky",
+      top: 0,
+      background: "#fff",
+      zIndex: 100
     },
     leftSection: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: '20px'
+      display: "flex",
+      alignItems: "center",
+      gap: isMobile ? "4px" : isTablet ? "8px" : "12px",
+      flex: 1,
+      minWidth: 0,
+      flexWrap: isMobile ? "wrap" : "nowrap"
     },
     rightSection: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: '16px'
+      display: "flex",
+      alignItems: "center",
+      gap: isMobile ? "4px" : isTablet ? "8px" : "16px",
+      flexShrink: 0
     },
-    toolbarButton: {
-      background: 'transparent',
-      border: 'none',
-      color: '#6b7280',
-      padding: '8px 12px',
-      borderRadius: '6px',
-      cursor: 'pointer',
-      fontSize: '14px',
-      display: 'flex',
-      alignItems: 'center',
-      gap: '6px',
-      transition: 'all 0.2s ease'
+    todayBtn: {
+      border: "1px solid #dadce0",
+      background: "#fff",
+      borderRadius: "4px",
+      padding: isMobile ? "6px 8px" : isTablet ? "7px 12px" : "8px 16px",
+      fontSize: isMobile ? "12px" : isTablet ? "13px" : "14px",
+      fontWeight: 500,
+      color: "#3c4043",
+      cursor: "pointer",
+      whiteSpace: "nowrap",
+      transition: "background-color 0.2s"
     },
-    toolbarButtonHover: {
-      background: '#f3f4f6',
-      color: '#374151'
+    viewDropdown: {
+      border: "1px solid #dadce0",
+      background: "#fff",
+      borderRadius: "4px",
+      padding: isMobile ? "6px 6px" : isTablet ? "7px 10px" : "8px 12px",
+      fontSize: isMobile ? "12px" : isTablet ? "13px" : "14px",
+      fontWeight: 500,
+      color: "#3c4043",
+      cursor: "pointer",
+      display: "flex",
+      alignItems: "center",
+      gap: "4px",
+      minWidth: isMobile ? "60px" : isTablet ? "80px" : "100px",
+      transition: "background-color 0.2s"
     },
-    searchContainer: {
-      position: 'relative',
-      display: 'flex',
-      alignItems: 'center'
+    navBtn: {
+      border: "none",
+      background: "transparent",
+      padding: "6px",
+      cursor: "pointer",
+      borderRadius: "50%",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      color: "#5f6368",
+      transition: "background-color 0.2s"
     },
-    searchInput: {
-      background: '#f9fafb',
-      border: '1px solid #d1d5db',
-      borderRadius: '20px',
-      padding: '8px 16px 8px 40px',
-      color: '#374151',
-      fontSize: '14px',
-      width: '200px',
-      outline: 'none',
-      transition: 'all 0.2s ease'
+    dateTitle: {
+      fontSize: isMobile ? "16px" : isTablet ? "20px" : "22px",
+      fontWeight: 400,
+      color: "#3c4043",
+      marginLeft: isMobile ? "0px" : isTablet ? "8px" : "16px",
+      whiteSpace: "nowrap",
+      overflow: "hidden",
+      textOverflow: "ellipsis",
+      width: isMobile ? "100%" : "auto",
+      flexBasis: isMobile ? "100%" : "auto"
     },
-    searchIcon: {
-      position: 'absolute',
-      left: '12px',
-      color: '#9ca3af'
+    iconBtn: {
+      border: "none",
+      background: "transparent",
+      padding: isMobile ? "6px" : "8px",
+      cursor: "pointer",
+      borderRadius: "50%",
+      display: isMobile && (view === "month") ? "none" : "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      color: "#5f6368",
+      transition: "background-color 0.2s"
     },
-    iconButton: {
-      background: 'transparent',
-      border: 'none',
-      color: '#6b7280',
-      padding: '8px',
-      borderRadius: '6px',
-      cursor: 'pointer',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      transition: 'all 0.2s ease'
+    searchBtn: {
+      border: "none",
+      background: "transparent",
+      padding: "8px",
+      cursor: "pointer",
+      borderRadius: "4px",
+
+
+      display: (isMobile || isTablet) ? "none" : "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      color: "#5f6368",
+      transition: "background-color 0.2s"
     },
     profileIcon: {
-      background: '#10b981',
-      width: '32px',
-      height: '32px',
-      borderRadius: '50%',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      color: '#fff',
-      fontSize: '14px',
-      fontWeight: 'bold'
-    }
-  };
-
-  // --- Modal Management ---
-  const openProjectModal = () => {
-    setActiveModal('project');
-    setToggleMode('task'); // Default to project tab
-  };
-
-  const openTaskModal = (parentId) => {
-    console.log("Opening task modal for project:", parentId);
-    setActiveModal('task');
-    setTaskParentId(parentId);
-    resetTaskForm();
-  };
-
-  const openSubtaskModal = (parentId) => {
-    console.log("Opening subtask modal for task:", parentId);
-    setActiveModal('subtask');
-    setSubtaskParentId(parentId);
-    resetSubtaskForm();
-  };
-
-  const openEventModal = () => {
-    setActiveModal('event');
-    resetTaskForm();
-  };
-
-  const closeModal = () => {
-    setActiveModal(null);
-    resetProjectForm();
-    resetTaskForm();
-    resetSubtaskForm();
-    setTaskParentId(null);
-    setSubtaskParentId(null);
-  };
-
-  // --- Form Reset ---
-  const resetProjectForm = () => {
-    setNewProjectName("");
-    setNewProjectDescription("");
-    setNewProjectAssignee("");
-    setNewProjectDue("");
-    setNewProjectPriority("Low");
-  };
-
-  const resetTaskForm = () => {
-    setNewTaskName("");
-    setNewTaskDescription("");
-    setNewTaskAssignee("");
-    setNewTaskDue("");
-    setNewTaskPriority("Low");
-  };
-
-  const resetSubtaskForm = () => {
-    setNewSubtaskName("");
-    setNewSubtaskDescription("");
-    setNewSubtaskAssignee("");
-    setNewSubtaskDue("");
-    setNewSubtaskPriority("Low");
-  };
-
-  // --- Data Management ---
-  const addProject = () => {
-    if (!newProjectName.trim()) return;
-    const project = {
-      id: uid(),
-      name: newProjectName.trim(),
-      description: newProjectDescription,
-      assignee: newProjectAssignee,
-      due: newProjectDue,
-      priority: newProjectPriority,
-      expanded: true,
-      tasks: []
-    };
-    setProjects(s => [project, ...s]);
-    resetProjectForm();
-    closeModal();
-  };
-
-  const addTask = () => {
-    if (!newTaskName.trim() || !taskParentId) {
-      console.log("Cannot add task - missing name or parent ID:", newTaskName, taskParentId);
-      return;
-    }
-
-    const task = {
-      id: uid(),
-      name: newTaskName.trim(),
-      description: newTaskDescription,
-      assignee: newTaskAssignee,
-      due: newTaskDue,
-      priority: newTaskPriority,
-      expanded: true,
-      subtasks: []
-    };
-
-    console.log("Adding task to project:", taskParentId, task);
-
-    setProjects(s =>
-      s.map(p =>
-        p.id === taskParentId ? { ...p, tasks: [task, ...p.tasks] } : p
-      )
-    );
-
-    resetTaskForm();
-    closeModal();
-  };
-
-  const addSubtask = () => {
-    if (!newSubtaskName.trim() || !subtaskParentId) {
-      console.log("Cannot add subtask - missing name or parent ID:", newSubtaskName, subtaskParentId);
-      return;
-    }
-
-    const subtask = {
-      id: uid(),
-      name: newSubtaskName.trim(),
-      description: newSubtaskDescription,
-      assignee: newSubtaskAssignee,
-      due: newSubtaskDue,
-      priority: newSubtaskPriority
-    };
-
-    console.log("Adding subtask to task:", subtaskParentId, subtask);
-
-    setProjects(s =>
-      s.map(p => ({
-        ...p,
-        tasks: p.tasks.map(t =>
-          t.id === subtaskParentId ? { ...t, subtasks: [subtask, ...t.subtasks] } : t
-        )
-      }))
-    );
-
-    resetSubtaskForm();
-    closeModal();
-  };
-
-  const addEvent = () => {
-    if (!newTaskName.trim() || !newTaskDue) return;
-    setEvents(s => [...s, {
-      id: uid(),
-      name: newTaskName.trim(),
-      date: newTaskDue,
-      type: "Event"
-    }]);
-    resetTaskForm();
-    closeModal();
-  };
-
-  // --- Expand/Collapse ---
-  const toggleExpand = (id, type = 'project') => {
-    if (type === 'project') {
-      setProjects(s => s.map(p => p.id === id ? { ...p, expanded: !p.expanded } : p));
-    } else if (type === 'task') {
-      setProjects(s => s.map(p => ({
-        ...p,
-        tasks: p.tasks.map(t => t.id === id ? { ...t, expanded: !t.expanded } : t)
-      })));
-    }
-  };
-
-  // --- Delete Functions ---
-  const deleteProject = (projectId) => {
-    setProjects(s => s.filter(p => p.id !== projectId));
-  };
-
-  const deleteTask = (taskId, type = 'task') => {
-    if (type === 'task') {
-      setProjects(s => s.map(p => ({
-        ...p,
-        tasks: p.tasks.filter(t => t.id !== taskId)
-      })));
-    } else if (type === 'subtask') {
-      setProjects(s => s.map(p => ({
-        ...p,
-        tasks: p.tasks.map(t => ({
-          ...t,
-          subtasks: t.subtasks.filter(st => st.id !== taskId)
-        }))
-      })));
-    }
-  };
-
-  // --- Inline Style Objects ---
-  const styles = {
-    appContainer: {
-      minHeight: '100vh',
-      fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
-      background: '#f8fafc'
-    },
-    mainContent: {
-      margin: '0 auto',
-      background: '#fff',
-      padding: 20
-    },
-    header: {
-      display: 'flex',
-      flexWrap: 'wrap',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      gap: 12,
-      marginBottom: 20
-    },
-    headerTitle: {
-      fontWeight: 600,
-      fontSize: 20,
-      color: '#111827'
-    },
-    headerControls: {
-      display: 'flex',
-      gap: 8,
-      flexWrap: 'wrap',
-      alignItems: 'center'
-    },
-    filterSelect: {
-      padding: '8px 12px',
-      borderRadius: 6,
-      border: '1px solid #d1d5db',
-      background: '#fff',
-      fontSize: 14
-    },
-    addBtn: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: 6,
-      padding: '8px 16px',
-      background: '#4f46e5',
-      color: '#fff',
-      border: 'none',
-      borderRadius: 6,
-      cursor: 'pointer',
+      width: isMobile ? "26px" : isTablet ? "30px" : "32px",
+      height: isMobile ? "26px" : isTablet ? "30px" : "32px",
+      borderRadius: "50%",
+      background: "#1a73e8",
+      color: "#fff",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      fontSize: isMobile ? "12px" : isTablet ? "13px" : "14px",
       fontWeight: 500,
-      fontSize: 14,
-      transition: 'background 0.2s'
+      cursor: "pointer",
+      flexShrink: 0
     },
-    itemBase: {
-      border: '1px solid #e5e7eb',
-      borderRadius: 8,
-      marginBottom: 12,
-      background: '#fff',
-      transition: 'all 0.2s'
+    calendarContent: {
+      flex: 1,
+      overflow: "auto",
+      position: "relative"
     },
-    itemHeader: {
-      display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      padding: 16,
-      gap: 12
+    dayView: {
+      display: "flex",
+      flexDirection: "column",
+      height: "100%"
     },
-    mainInfo: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: 12,
+    timeSlot: {
+      display: "flex",
+      borderBottom: "1px solid #dadce0",
+      minHeight: isMobile ? "40px" : isTablet ? "44px" : "48px"
+    },
+    timeLabel: {
+      width: isMobile ? "45px" : isTablet ? "55px" : "60px",
+      padding: isMobile ? "6px 4px" : "8px",
+      fontSize: isMobile ? "10px" : isTablet ? "11px" : "12px",
+      color: "#70757a",
+      textAlign: "right",
+      borderRight: "1px solid #dadce0",
+      flexShrink: 0
+    },
+    timeContent: {
+      flex: 1,
+      position: "relative"
+    },
+    weekView: {
+      display: "flex",
+      flexDirection: "column",
+      height: "100%"
+    },
+    weekHeader: {
+      display: "grid",
+      gridTemplateColumns: `${isMobile ? "45px" : isTablet ? "55px" : "60px"} repeat(7, 1fr)`,
+      borderBottom: "1px solid #dadce0",
+      position: "sticky",
+      top: 0,
+      background: "#fff",
+      zIndex: 10
+    },
+    weekDay: {
+      padding: isMobile ? "6px 2px" : isTablet ? "10px 4px" : "12px 8px",
+      textAlign: "center",
+      borderLeft: "1px solid #dadce0",
+      overflow: "hidden"
+    },
+    weekDayName: {
+      fontSize: isMobile ? "10px" : isTablet ? "11px" : "12px",
+      color: "#70757a",
+      fontWeight: 500
+    },
+    weekDayNumber: {
+      fontSize: isMobile ? "12px" : isTablet ? "13px" : "14px",
+      color: "#3c4043",
+      marginTop: "4px"
+    },
+    weekTimeGrid: {
+      display: "grid",
+      gridTemplateColumns: `${isMobile ? "45px" : isTablet ? "55px" : "60px"} repeat(7, 1fr)`,
       flex: 1
     },
-    expandBtn: {
-      background: 'transparent',
-      border: 'none',
-      borderRadius: 4,
-      padding: 4,
-      cursor: 'pointer',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      transition: 'background 0.2s',
-      color: '#6b7280'
-    },
-    nameBase: {
-      fontWeight: 600,
-      cursor: 'pointer',
-      padding: '4px 8px',
-      borderRadius: 4,
-      transition: 'background 0.2s'
-    },
-    metaBase: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: 16,
-      color: '#6b7280'
-    },
-    metaItem: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: 4
-    },
-    priorityBadge: {
-      padding: '2px 8px',
-      borderRadius: 6,
-      fontSize: 12,
-      fontWeight: 500,
-      color: '#fff'
-    },
-    actions: {
-      display: 'flex',
-      gap: 8,
-      alignItems: 'center'
-    },
-    addTaskBtn: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: 4,
-      padding: '6px 12px',
-      border: 'none',
-      borderRadius: 6,
-      background: '#4f46e5',
-      color: '#fff',
-      cursor: 'pointer',
-      fontSize: 12,
-      transition: 'background 0.2s'
-    },
-    deleteBtn: {
-      background: '#ef4444',
-      border: 'none',
-      borderRadius: 6,
-      padding: 6,
-      cursor: 'pointer',
-      color: '#fff',
-      transition: 'background 0.2s',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center'
-    },
-    description: {
-      padding: '0 16px 6px 16px',
-      color: '#6b7280',
-      fontSize: 14,
-      lineHeight: 1.5
-    },
-    container: {
-      padding: '0 16px 16px 16px'
-    },
-    emptyState: {
-      color: '#6b7280',
-      fontSize: 14,
-      fontStyle: 'italic',
-      padding: '8px 0'
-    },
-    emptyStateLarge: {
-      textAlign: 'center',
-      padding: 40,
-      color: '#6b7280',
-      fontSize: 16
-    },
-    editableInput: {
-      fontWeight: 600,
-      border: '1px solid #d1d5db',
-      borderRadius: 6,
-      padding: '6px 10px',
-      outline: 'none',
-      width: 200,
-      boxShadow: '0 1px 2px rgba(0,0,0,0.04)'
-    },
-    modalOverlay: {
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      width: '100%',
-      height: '100%',
-      background: 'rgba(0,0,0,0.4)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      zIndex: 1000
-    },
-    modal: {
-      background: '#fff',
-      borderRadius: 12,
-      padding: 24,
-      width: '90%',
-      maxWidth: 600,
-      maxHeight: '90vh',
-      overflowY: 'auto',
-      boxShadow: '0 20px 25px rgba(0,0,0,0.15)'
-    },
-    modalHeader: {
-      display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      marginBottom: 20,
-      paddingBottom: 16,
-      borderBottom: '1px solid #e5e7eb'
-    },
-    modalTitle: {
-      fontWeight: 600,
-      fontSize: 20,
-      color: '#111827'
-    },
-    closeBtn: {
-      background: 'transparent',
-      border: 'none',
-      cursor: 'pointer',
-      padding: 8,
-      borderRadius: 6,
-      color: '#6b7280',
-      transition: 'background 0.2s',
-      fontSize: 24,
-      width: 32,
-      height: 32,
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center'
-    },
-    modalTabs: {
-      display: 'flex',
-      gap: 8,
-      marginBottom: 20,
-      borderBottom: '1px solid #e5e7eb',
-      paddingBottom: 8
-    },
-    modalTab: {
-      flex: 1,
-      padding: '10px 16px',
-      border: 'none',
-      borderBottom: '3px solid transparent',
-      background: 'transparent',
-      fontWeight: 400,
-      cursor: 'pointer',
-      color: '#6b7280',
-      fontSize: 16,
-      transition: 'all 0.2s'
-    },
-    modalTabActive: {
-      flex: 1,
-      padding: '10px 16px',
-      border: 'none',
-      borderBottom: '3px solid #4f46e5',
-      background: 'transparent',
-      fontWeight: 600,
-      cursor: 'pointer',
-      color: '#4f46e5',
-      fontSize: 16,
-      transition: 'all 0.2s'
-    },
-    modalForm: {
-      display: 'flex',
-      flexDirection: 'column',
-      gap: 16
-    },
-    formGroup: {
-      display: 'flex',
-      flexDirection: 'column',
-      gap: 6
-    },
-    formRow: {
-      display: 'flex',
-      gap: 16,
-      flexWrap: 'wrap'
-    },
-    formRowGroup: {
-      flex: 1,
-      minWidth: 150,
+    monthView: {
+      height: "100%",
       display: "flex",
       flexDirection: "column"
     },
-    label: {
-      fontSize: 14,
-      fontWeight: 500,
-      color: '#374151'
+    monthHeader: {
+      display: "grid",
+      gridTemplateColumns: "repeat(7, 1fr)",
+      borderBottom: "1px solid #dadce0",
+      background: "#fff"
     },
-    input: {
-      padding: '10px 12px',
-      borderRadius: 8,
-      border: '1px solid #d1d5db',
-      fontSize: 16,
-      outline: 'none',
-      transition: 'border-color 0.2s',
-      fontFamily: 'inherit'
+    monthDayName: {
+      padding: isMobile ? "6px 2px" : isTablet ? "10px 6px" : "12px 8px",
+      textAlign: "center",
+      fontSize: isMobile ? "10px" : isTablet ? "11px" : "12px",
+      color: "#70757a",
+      fontWeight: 500
     },
-    textarea: {
-      padding: '10px 12px',
-      borderRadius: 8,
-      border: '1px solid #d1d5db',
-      fontSize: 16,
-      outline: 'none',
-      transition: 'border-color 0.2s',
-      fontFamily: 'inherit',
-      minHeight: 80,
-      resize: 'vertical'
-    },
-    select: {
-      padding: '10px 12px',
-      borderRadius: 8,
-      border: '1px solid #d1d5db',
-      fontSize: 16,
-      outline: 'none',
-      transition: 'border-color 0.2s',
-      fontFamily: 'inherit',
-      appearance: 'none',
-      background: '#fff'
-    },
-    formActions: {
-      display: 'flex',
-      gap: 12,
-      marginTop: 8
-    },
-    primaryBtn: {
-      padding: '10px 20px',
-      background: '#4f46e5',
-      color: '#fff',
-      border: 'none',
-      borderRadius: 8,
-      cursor: 'pointer',
-      fontWeight: 500,
-      fontSize: 16,
+    monthGrid: {
+      display: "grid",
+      gridTemplateColumns: "repeat(7, 1fr)",
+      gridAutoRows: "1fr",
       flex: 1,
-      transition: 'background 0.2s'
+      border: "1px solid #dadce0",
+      borderTop: "none",
+      minHeight: 0
     },
-    secondaryBtn: {
-      padding: '10px 20px',
-      background: '#f3f4f6',
-      color: '#374151',
-      border: 'none',
-      borderRadius: 8,
-      cursor: 'pointer',
+    monthDay: {
+      border: "1px solid #dadce0",
+      borderTop: "none",
+      borderLeft: "none",
+      padding: isMobile ? "4px" : isTablet ? "6px" : "8px",
+      minHeight: isMobile ? "50px" : isTablet ? "80px" : "100px",
+      position: "relative",
+      background: "#fff",
+      overflow: "hidden"
+    },
+    monthDayNumber: {
+      fontSize: isMobile ? "10px" : isTablet ? "11px" : "12px",
+      color: "#3c4043",
+      fontWeight: 400
+    },
+    todayIndicator: {
+      width: isMobile ? "20px" : isTablet ? "24px" : "26px",
+      height: isMobile ? "20px" : isTablet ? "24px" : "26px",
+      background: "#1a73e8",
+      borderRadius: "50%",
+      color: "#fff",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      fontSize: isMobile ? "10px" : isTablet ? "11px" : "12px",
+      fontWeight: 500
+    },
+    allDayLabel: {
+      padding: isMobile ? "6px 8px" : isTablet ? "10px 12px" : "12px 16px",
+      fontSize: isMobile ? "11px" : isTablet ? "12px" : "14px",
+      color: "#70757a",
+      borderBottom: "1px solid #dadce0",
+      background: "#fff",
+      position: "sticky",
+      top: 0,
+      zIndex: 5
+    },
+    saveViewBtn: {
+      border: "1px solid #dadce0",
+      background: "#fef7e0",
+      borderRadius: "4px",
+      padding: isMobile ? "6px 8px" : isTablet ? "7px 12px" : "8px 16px",
+      fontSize: isMobile ? "12px" : isTablet ? "13px" : "14px",
       fontWeight: 500,
-      fontSize: 16,
-      flex: 1,
-      transition: 'background 0.2s'
-    },
-    // Calendar Styles
-    calendarView: {
-      width: '100%'
-    },
-    calendarHeader: {
-      display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      marginBottom: 16
-    },
-    monthNav: {
-      background: 'transparent',
-      border: '1px solid #d1d5db',
-      borderRadius: 6,
-      padding: '8px 12px',
-      cursor: 'pointer',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      transition: 'all 0.2s',
-      color: '#374151'
-    },
-    currentMonth: {
-      fontWeight: 600,
-      fontSize: 18,
-      color: '#111827'
-    },
-    calendarGrid: {
-      display: 'grid',
-      gridTemplateColumns: 'repeat(7, 1fr)',
-      gap: 1,
-      background: '#e5e7eb',
-      border: '1px solid #e5e7eb'
-    },
-    calendarDayHeader: {
-      background: '#f8fafc',
-      padding: '12px 8px',
-      textAlign: 'center',
-      fontWeight: 600,
-      fontSize: 14,
-      color: '#374151',
-      borderBottom: '1px solid #e5e7eb'
-    },
-    calendarDay: {
-      background: '#fff',
-      minHeight: 120,
-      padding: 8,
-      display: 'flex',
-      flexDirection: 'column',
-      gap: 2
-    },
-    dayNumber: {
-      fontWeight: 500,
-      fontSize: 14,
-      color: '#111827',
-      marginBottom: 4
-    },
-    calendarItem: {
-      fontSize: 11,
-      padding: '2px 6px',
-      borderRadius: 4,
-      color: '#fff',
-      overflow: 'hidden',
-      textOverflow: 'ellipsis',
-      whiteSpace: 'nowrap',
-      marginBottom: 2
+      color: "#b06000",
+      cursor: "pointer",
+      display: isMobile || isTablet ? "none" : "flex",
+      alignItems: "center",
+      gap: "6px",
+      transition: "background-color 0.2s"
     }
   };
 
-  // --- Light Toolbar Component ---
-  const LightToolbar = () => {
-    // Internal state so props aren't required
-    const [currentMonth, setCurrentMonth] = useState(new Date().getMonth());
-    const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
-    const [searchQuery, setSearchQuery] = useState("");
-    const [showDropdown, setShowDropdown] = useState(false);
+  const renderDayView = () => {
+    const hours = getHours();
+    return (
+      <div style={styles.dayView}>
+        <div style={styles.allDayLabel}>All day</div>
+        {hours.map((hour, idx) => (
+          <div key={idx} style={styles.timeSlot}>
+            <div style={styles.timeLabel}>{hour}</div>
+            <div style={styles.timeContent}></div>
+          </div>
+        ))}
+      </div>
+    );
+  };
 
-    const monthNames = [
-      "January", "February", "March", "April", "May", "June",
-      "July", "August", "September", "October", "November", "December"
-    ];
-    const monthOptions = ["Day", "Week", "Month", "Year"];
-
-    // Local function to change month
-    const changeMonth = (direction) => {
-      let newMonth = currentMonth + direction;
-      let newYear = currentYear;
-
-      if (newMonth < 0) {
-        newMonth = 11;
-        newYear--;
-      } else if (newMonth > 11) {
-        newMonth = 0;
-        newYear++;
-      }
-
-      setCurrentMonth(newMonth);
-      setCurrentYear(newYear);
-    };
+  const renderWeekView = () => {
+    const weekDays = getWeekDays();
+    const hours = getHours();
 
     return (
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          padding: "8px 12px",
-          borderBottom: "1px solid #ddd",
-          background: "#f8f8f8",
-        }}
-      >
-        {/* Left Section */}
-        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-          <button
-            style={{
-              background: "#fff",
-              border: "1px solid #ccc",
-              borderRadius: "4px",
-              padding: "6px 10px",
-              cursor: "pointer",
-            }}
-          >
-            Today
-          </button>
+      <div style={styles.weekView}>
+        <div style={styles.weekHeader}>
+          <div></div>
+          {weekDays.map((day, idx) => (
+            <div key={idx} style={styles.weekDay}>
+              <div style={styles.weekDayName}>
+                {isMobile ? shortDayNames[day.getDay()].charAt(0) : shortDayNames[day.getDay()]}
+              </div>
+              <div style={styles.weekDayNumber}>
+                {isToday(day.getDate()) && day.getMonth() === new Date().getMonth() ? (
+                  <div style={styles.todayIndicator}>{day.getDate()}</div>
+                ) : (
+                  <div>{day.getDate()}</div>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+        <div style={styles.allDayLabel}>All day</div>
+        {hours.map((hour, idx) => (
+          <div key={idx} style={styles.timeSlot}>
+            <div style={styles.timeLabel}>{hour}</div>
+            {weekDays.map((day, dayIdx) => (
+              <div key={dayIdx} style={{ ...styles.timeContent, borderLeft: "1px solid #dadce0" }}></div>
+            ))}
+          </div>
+        ))}
+      </div>
+    );
+  };
 
-          {/* Dropdown Button */}
-          <div style={{ position: "relative" }}>
-            <div style={{ position: "relative", display: "inline-block" }}>
-              {/* 🔘 Toggle Button */}
-              <button
-                style={{
-                  background: "#fff",
-                  border: "1px solid #ccc",
-                  borderRadius: "4px",
-                  padding: "6px 10px",
-                  cursor: "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  minWidth: "100px",
-                }}
-                onClick={() => setShowDropdown(!showDropdown)}
-              >
-                Month
-                <span style={{ marginLeft: "6px", fontSize: "10px" }}>
-                  {showDropdown ? "▲" : "▼"}
-                </span>
-              </button>
+  const renderMonthView = () => {
+    const days = getDaysInMonth(currentDate);
 
-              {/* ⬇️ Dropdown */}
-              {showDropdown && (
-                <div
-                  style={{
-                    position: "absolute",
-                    top: "100%",
-                    left: 0,
-                    background: "#fff",
-                    border: "1px solid #ccc",
-                    borderRadius: "4px",
-                    boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
-                    zIndex: 10,
-                    minWidth: "100px",
-                    marginTop: "4px",
-                  }}
-                >
-                  {monthOptions.map((monthOptions) => (
-                    <div
-                      key={monthOptions}
-                      style={{
-                        padding: "6px 10px",
-                        cursor: "pointer",
-                        borderBottom: "1px solid #eee",
-                      }}
-                      onClick={() => {
-                        alert(`Selected: ${monthOptions}`);
-                        setShowDropdown(false);
-                      }}
-                      onMouseEnter={(e) =>
-                        (e.currentTarget.style.background = "#f2f2f2")
-                      }
-                      onMouseLeave={(e) =>
-                        (e.currentTarget.style.background = "#fff")
-                      }
-                    >
-                      {monthOptions}
-                    </div>
-                  ))}
+    return (
+      <div style={styles.monthView}>
+        <div style={styles.monthHeader}>
+          {shortDayNames.map((day, idx) => (
+            <div key={idx} style={styles.monthDayName}>
+              {isMobile ? day.charAt(0) : day}
+            </div>
+          ))}
+        </div>
+        <div style={styles.monthGrid}>
+          {days.map((day, idx) => (
+            <div key={idx} style={styles.monthDay}>
+              {day && (
+                <div style={styles.monthDayNumber}>
+                  {isToday(day) ? (
+                    <div style={styles.todayIndicator}>{day}</div>
+                  ) : (
+                    <div>{day}</div>
+                  )}
                 </div>
               )}
             </div>
-
-            {showDropdown && (
-              <div
-                style={{
-                  position: "absolute",
-                  top: "100%",
-                  left: 0,
-                  background: "#fff",
-                  border: "1px solid #ccc",
-                  borderRadius: "4px",
-                  boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
-                  zIndex: 100,
-                  minWidth: "100px",
-                }}
-              >
-                {monthOptions.map((opt) => (
-                  <div
-                    key={opt}
-                    style={{
-                      padding: "6px 10px",
-                      cursor: "pointer",
-                      borderBottom: "1px solid #eee",
-                    }}
-                    onClick={() => {
-                      alert(`Selected: ${opt}`);
-                      setShowDropdown(false);
-                    }}
-                    onMouseEnter={(e) => (e.target.style.background = "#f2f2f2")}
-                    onMouseLeave={(e) => (e.target.style.background = "#fff")}
-                  >
-                    {opt}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Month Navigation */}
-          <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
-            <button
-              onClick={() => changeMonth(-1)}
-              style={{
-                padding: "6px",
-                border: "none",
-                borderRadius: "4px",
-                background: "#fff",
-                cursor: "pointer",
-                color: "black"
-              }}
-            >
-              <ChevronLeft size={15} />
-            </button>
-            <div
-              style={{
-                minWidth: "80px",
-                textAlign: "center",
-                // fontWeight: "bold",
-              }}
-            >
-              {monthNames[currentMonth]} {currentYear}
-            </div>
-            <button
-              onClick={() => changeMonth(1)}
-              style={{
-                padding: "6px",
-                border: "None",
-                borderRadius: "4px",
-                background: "#fff",
-                cursor: "pointer",
-              }}
-            >
-              <ArrowRight size={15} />
-            </button>
-          </div>
-        </div>
-
-        {/* Right Section */}
-        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-          <button
-            style={{
-              background: "#fff",
-              border: "1px solid #ccc",
-              borderRadius: "14px",
-              padding: "6px 10px",
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              gap: "4px",
-            }}
-          >
-            <Filter size={16} />
-            Filter
-          </button>
-          <button
-            style={{
-              background: "#fff",
-              border: "1px solid #ccc",
-              borderRadius: "14px",
-              padding: "6px 10px",
-              cursor: "pointer",
-            }}
-          >
-            Groups
-          </button>
-          <button
-            style={{
-              background: "#fff",
-              border: "1px solid #ccc",
-              borderRadius: "14px",
-              padding: "6px 10px",
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              gap: "4px",
-            }}
-          >
-            <Bookmark size={16} />
-            Bookmarks
-          </button>
-
-          {/* Profile Icon */}
-          <div
-            style={{
-              width: "28px",
-              height: "28px",
-              borderRadius: "50%",
-              background: "#007bff",
-              color: "#fff",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontWeight: "bold",
-              fontSize: "14px",
-            }}
-          >
-            A
-          </div>
-
-          {/* Search Bar */}
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              border: "1px solid #ccc",
-              borderRadius: "4px",
-              background: "#fff",
-              padding: "4px 8px",
-            }}
-          >
-            <Search size={16} style={{ marginRight: "4px", color: "#888" }} />
-            <input
-              type="text"
-              placeholder="Search..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              style={{
-                border: "none",
-                outline: "none",
-                fontSize: "14px",
-                width: "120px",
-                background: "transparent",
-              }}
-            />
-          </div>
+          ))}
         </div>
       </div>
     );
   };
 
-  // --- Calendar View Component ---
-  const CalendarView = () => (
-    <div style={styles.calendarView}>
-      <div style={styles.calendarGrid}>
-        {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map(day => (
-          <div key={day} style={styles.calendarDayHeader}>{day}</div>
-        ))}
-
-        {calendar.map((day, idx) => {
-          const dateStr = day ? new Date(currentYear, currentMonth, day).toISOString().split("T")[0] : null;
-          const dayTasks = dateStr ? tasksByDay[dateStr] || [] : [];
-          const dayEvents = dateStr ? eventsByDay[dateStr] || [] : [];
-          const isToday = day && dateStr === new Date().toISOString().split("T")[0];
-
-          return (
-            <div
-              key={idx}
-              style={{
-                ...styles.calendarDay,
-                background: isToday ? '#fffbeb' : (dayTasks.length || dayEvents.length ? '#f0f9ff' : '#fff')
-              }}
-            >
-              {day && <div style={styles.dayNumber}>{day}</div>}
-              {dayTasks.map(item => (
-                <div
-                  key={item.id}
-                  style={{ ...styles.calendarItem, background: item.priority === 'High' ? '#f87171' : item.priority === 'Medium' ? '#facc15' : '#4ade80' }}
-                  title={item.name}
-                >
-                  {item.name}
-                </div>
-              ))}
-              {dayEvents.map(e => (
-                <div
-                  key={e.id}
-                  style={{ ...styles.calendarItem, background: e.type === 'Meeting' ? '#fbbf24' : '#34d399' }}
-                  title={e.name}
-                >
-                  {e.name}
-                </div>
-              ))}
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-
-  // --- Modal Content ---
-  const renderProjectModal = () => (
-    <div>
-      <div style={styles.modalTabs}>
-        <button
-          onClick={() => setToggleMode("task")}
-          style={toggleMode === "task" ? styles.modalTabActive : styles.modalTab}
-        >
-          Project
-        </button>
-        <button
-          onClick={() => setToggleMode("event")}
-          style={toggleMode === "event" ? styles.modalTabActive : styles.modalTab}
-        >
-          Event
-        </button>
-      </div>
-
-      {toggleMode === "task" ? (
-        <div style={styles.modalForm}>
-          <div style={styles.formGroup}>
-            <label style={styles.label}>Project Title</label>
-            <input
-              value={newProjectName}
-              onChange={e => setNewProjectName(e.target.value)}
-              placeholder="Enter project title"
-              style={styles.input}
-            />
-          </div>
-
-          <div style={styles.formGroup}>
-            <label style={styles.label}>Description</label>
-            <textarea
-              value={newProjectDescription}
-              onChange={e => setNewProjectDescription(e.target.value)}
-              placeholder="Enter description"
-              style={styles.textarea}
-            />
-          </div>
-
-          <div style={styles.formRow}>
-            <div style={styles.formRowGroup}>
-              <label style={styles.label}>Assignee</label>
-              <input
-                value={newProjectAssignee}
-                onChange={e => setNewProjectAssignee(e.target.value)}
-                placeholder="Assignee name"
-                style={styles.input}
-              />
-            </div>
-
-            <div style={styles.formRowGroup}>
-              <label style={styles.label}>Due Date</label>
-              <input
-                type="date"
-                value={newProjectDue}
-                onChange={e => setNewProjectDue(e.target.value)}
-                style={styles.input}
-              />
-            </div>
-
-            <div style={styles.formRowGroup}>
-              <label style={styles.label}>Priority</label>
-              <select
-                value={newProjectPriority}
-                onChange={e => setNewProjectPriority(e.target.value)}
-                style={styles.select}
-              >
-                {priorities.map(p => (
-                  <option key={p} value={p}>{p}</option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          <div style={styles.formActions}>
-            <button onClick={addProject} style={styles.primaryBtn}>
-              Create Project
-            </button>
-            <button onClick={closeModal} style={styles.secondaryBtn}>
-              Cancel
-            </button>
-          </div>
-        </div>
-      ) : (
-        <div style={styles.modalForm}>
-          <div style={styles.formGroup}>
-            <label style={styles.label}>Event Name</label>
-            <input
-              value={newTaskName}
-              onChange={e => setNewTaskName(e.target.value)}
-              placeholder="Enter event name"
-              style={styles.input}
-            />
-          </div>
-          <div style={styles.formRow}>
-            <div style={styles.formRowGroup}>
-              <label style={styles.label}>Date</label>
-              <input
-                type="date"
-                value={newTaskDue}
-                onChange={e => setNewTaskDue(e.target.value)}
-                style={styles.input}
-              />
-            </div>
-          </div>
-          <div style={styles.formActions}>
-            <button onClick={addEvent} style={styles.primaryBtn}>
-              Create Event
-            </button>
-            <button onClick={closeModal} style={styles.secondaryBtn}>
-              Cancel
-            </button>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-
-  const renderTaskModal = () => (
-    <div style={styles.modalForm}>
-      <div style={styles.formGroup}>
-        <label style={styles.label}>Task Title</label>
-        <input
-          value={newTaskName}
-          onChange={e => setNewTaskName(e.target.value)}
-          placeholder="Enter task title"
-          style={styles.input}
-        />
-      </div>
-
-      <div style={styles.formGroup}>
-        <label style={styles.label}>Description</label>
-        <textarea
-          value={newTaskDescription}
-          onChange={e => setNewTaskDescription(e.target.value)}
-          placeholder="Enter description"
-          style={styles.textarea}
-        />
-      </div>
-
-      <div style={styles.formRow}>
-        <div style={styles.formRowGroup}>
-          <label style={styles.label}>Assignee</label>
-          <input
-            value={newTaskAssignee}
-            onChange={e => setNewTaskAssignee(e.target.value)}
-            placeholder="Assignee name"
-            style={styles.input}
-          />
-        </div>
-
-        <div style={styles.formRowGroup}>
-          <label style={styles.label}>Due Date</label>
-          <input
-            type="date"
-            value={newTaskDue}
-            onChange={e => setNewTaskDue(e.target.value)}
-            style={styles.input}
-          />
-        </div>
-
-        <div style={styles.formRowGroup}>
-          <label style={styles.label}>Priority</label>
-          <select
-            value={newTaskPriority}
-            onChange={e => setNewTaskPriority(e.target.value)}
-            style={styles.select}
-          >
-            {priorities.map(p => (
-              <option key={p} value={p}>{p}</option>
-            ))}
-          </select>
-        </div>
-      </div>
-
-      <div style={styles.formActions}>
-        <button onClick={addTask} style={styles.primaryBtn}>
-          Create Task
-        </button>
-        <button onClick={closeModal} style={styles.secondaryBtn}>
-          Cancel
-        </button>
-      </div>
-    </div>
-  );
-
-  const renderSubtaskModal = () => (
-    <div style={styles.modalForm}>
-      <div style={styles.formGroup}>
-        <label style={styles.label}>Subtask Title</label>
-        <input
-          value={newSubtaskName}
-          onChange={e => setNewSubtaskName(e.target.value)}
-          placeholder="Enter subtask title"
-          style={styles.input}
-        />
-      </div>
-
-      <div style={styles.formGroup}>
-        <label style={styles.label}>Description</label>
-        <textarea
-          value={newSubtaskDescription}
-          onChange={e => setNewSubtaskDescription(e.target.value)}
-          placeholder="Enter description"
-          style={styles.textarea}
-        />
-      </div>
-
-      <div style={styles.formRow}>
-        <div style={styles.formRowGroup}>
-          <label style={styles.label}>Assignee</label>
-          <input
-            value={newSubtaskAssignee}
-            onChange={e => setNewSubtaskAssignee(e.target.value)}
-            placeholder="Assignee name"
-            style={styles.input}
-          />
-        </div>
-
-        <div style={styles.formRowGroup}>
-          <label style={styles.label}>Due Date</label>
-          <input
-            type="date"
-            value={newSubtaskDue}
-            onChange={e => setNewSubtaskDue(e.target.value)}
-            style={styles.input}
-          />
-        </div>
-
-        <div style={styles.formRowGroup}>
-          <label style={styles.label}>Priority</label>
-          <select
-            value={newSubtaskPriority}
-            onChange={e => setNewSubtaskPriority(e.target.value)}
-            style={styles.select}
-          >
-            {priorities.map(p => (
-              <option key={p} value={p}>{p}</option>
-            ))}
-          </select>
-        </div>
-      </div>
-
-      <div style={styles.formActions}>
-        <button onClick={addSubtask} style={styles.primaryBtn}>
-          Create Subtask
-        </button>
-        <button onClick={closeModal} style={styles.secondaryBtn}>
-          Cancel
-        </button>
-      </div>
-    </div>
-  );
-
-  const getModalTitle = () => {
-    switch (activeModal) {
-      case 'project': return 'Create New Project or Event';
-      case 'task': return 'Create New Task';
-      case 'subtask': return 'Create New Subtask';
-      case 'event': return 'Create New Event';
-      default: return '';
-    }
-  };
-
-  const renderModalContent = () => {
-    switch (activeModal) {
-      case 'project': return renderProjectModal();
-      case 'task': return renderTaskModal();
-      case 'subtask': return renderSubtaskModal();
-      case 'event': return renderEventModal();
-      default: return null;
-    }
-  };
-
-  const renderEventModal = () => (
-    <div style={styles.modalForm}>
-      <div style={styles.formGroup}>
-        <label style={styles.label}>Event Name</label>
-        <input
-          value={newTaskName}
-          onChange={e => setNewTaskName(e.target.value)}
-          placeholder="Enter event name"
-          style={styles.input}
-        />
-      </div>
-      <div style={styles.formRow}>
-        <div style={styles.formRowGroup}>
-          <label style={styles.label}>Date</label>
-          <input
-            type="date"
-            value={newTaskDue}
-            onChange={e => setNewTaskDue(e.target.value)}
-            style={styles.input}
-          />
-        </div>
-      </div>
-      <div style={styles.formActions}>
-        <button onClick={addEvent} style={styles.primaryBtn}>
-          Create Event
-        </button>
-        <button onClick={closeModal} style={styles.secondaryBtn}>
-          Cancel
-        </button>
-      </div>
-    </div>
-  );
 
   return (
-    <div style={styles.appContainer}>
-      {/* Light Toolbar */}
-      <LightToolbar />
-
-      <div style={styles.mainContent}>
-        {/* Header */}
-        {/* <div style={styles.header}>
-          <div style={styles.headerControls}>
+    <div style={styles.container}>
+      <div style={styles.toolbar}>
+        <div style={styles.leftSection}>
+          <button style={styles.todayBtn} onClick={goToToday}>Today</button>
+          <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
             <select
-              value={filterPriority}
-              onChange={e => setFilterPriority(e.target.value)}
-              style={styles.filterSelect}
+              style={styles.viewDropdown}
+              value={view}
+              onChange={(e) => setView(e.target.value)}
             >
-              <option value="All">All Priorities</option>
-              {priorities.map(p => <option key={p} value={p}>{p}</option>)}
+              <option value="day">Day</option>
+              <option value="week">Week</option>
+              <option value="month">Month</option>
             </select>
-            
           </div>
-        </div> */}
-
-        {/* Permanent Calendar View */}
-        <div>
-          <CalendarView />
-          {(projects.length === 0 && events.length === 0) && (
-            <div style={styles.emptyStateLarge}>
-              No tasks or events scheduled. Add some to see them on the calendar.
-            </div>
-          )}
+          <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+            <button style={styles.navBtn} onClick={() => navigateDate(-1)}>
+              <ChevronLeft size={isMobile ? 18 : 20} />
+            </button>
+            <button style={styles.navBtn} onClick={() => navigateDate(1)}>
+              <ChevronRight size={isMobile ? 18 : 20} />
+            </button>
+          </div>
+          <div style={styles.dateTitle}>{getDateTitle()}</div>
         </div>
 
-        {/* Modal */}
-        {activeModal && (
-          <div style={styles.modalOverlay}>
-            <div style={styles.modal}>
-              <div style={styles.modalHeader}>
-                <div style={styles.modalTitle}>{getModalTitle()}</div>
-                <button onClick={closeModal} style={styles.closeBtn}>
-                  ×
-                </button>
-              </div>
-              {renderModalContent()}
-            </div>
+        <div style={styles.rightSection}>
+          <div style={{ position: "relative" }}>
+            <button
+              style={{
+                background: "#fff",
+                border: "1px solid #ccc",
+                borderRadius: "14px",
+                padding: "6px 10px",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                gap: "4px",
+                height: "32px"
+              }}
+            >
+              <Filter size={isMobile ? 16 : isTablet ? 18 : 20} />
+              <p style={{ fontSize: "15px", paddingLeft: "5px" }}>Filter</p>
+            </button>
           </div>
-        )}
+          <div style={{ position: "relative" }}>
+            <button
+              style={{
+                background: "#fff",
+                border: "1px solid #ccc",
+                borderRadius: "14px",
+                padding: "6px 10px",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                gap: "4px",
+                height: "32px"
+              }}
+            >
+              <CheckCircle size={20} />
+              <p style={{ fontSize: "14px", paddingLeft: "5px" }}>Closed</p>
+            </button>
+          </div>
+          <div style={{ position: "relative" }}>
+            <button
+              style={{
+                background: "#fff",
+                border: "1px solid #ccc",
+                borderRadius: "14px",
+                padding: "6px 10px",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                gap: "4px",
+                height: "32px"
+              }}
+            >
+              <Users size={20} />
+              <p style={{ fontSize: "14px", paddingLeft: "5px" }}>Assignee</p>
+            </button>
+          </div>
+          <div style={styles.profileIcon}>J</div>
+          <button style={styles.searchBtn}>
+            <Search size={20} />
+          </button>
+          <button style={styles.iconBtn}>
+            <Settings size={isMobile ? 16 : isTablet ? 18 : 20} />
+          </button>
+        </div>
+      </div>
+
+      <div style={styles.calendarContent}>
+        {view === "day" && renderDayView()}
+        {view === "week" && renderWeekView()}
+        {view === "month" && renderMonthView()}
       </div>
     </div>
   );
