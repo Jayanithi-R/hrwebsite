@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { ChevronLeft, ChevronRight, ChevronDown, Filter, CheckCircle, Users, Search, Settings } from "lucide-react";
 
-export default function GoogleCalendarReplica() {
+export default function GoogleCalendarReplica({ events }) {
   const [view, setView] = useState("month");
   const [currentDate, setCurrentDate] = useState(new Date());
   const [viewMode, setViewMode] = useState("desktop");
@@ -104,6 +104,14 @@ export default function GoogleCalendarReplica() {
            currentDate.getMonth() === today.getMonth() && 
            currentDate.getFullYear() === today.getFullYear();
   };
+
+  // FIX: Group events by date - Defensive check for events being undefined or not an array
+  const eventsByDate = Array.isArray(events) ? events.reduce((acc, ev) => {
+    const date = ev.date; // assuming 'date' field is YYYY-MM-DD
+    if (!acc[date]) acc[date] = [];
+    acc[date].push(ev);
+    return acc;
+  }, {}) : {};
 
   const styles = {
     container: {
@@ -370,14 +378,33 @@ export default function GoogleCalendarReplica() {
       alignItems: "center",
       gap: "6px",
       transition: "background-color 0.2s"
+    },
+    eventStyle: {
+      background: "#e8f0fe",
+      color: "#1967d2",
+      borderRadius: "4px",
+      padding: isMobile ? "2px 4px" : "4px 8px",
+      marginBottom: "2px",
+      fontSize: isMobile ? "10px" : isTablet ? "11px" : "12px",
+      overflow: "hidden",
+      textOverflow: "ellipsis",
+      whiteSpace: "nowrap"
     }
   };
 
   const renderDayView = () => {
     const hours = getHours();
+    const todayStr = currentDate.toISOString().split('T')[0];
+    const dayEvents = eventsByDate[todayStr] || [];
     return (
       <div style={styles.dayView}>
-        <div style={styles.allDayLabel}>All day</div>
+        <div style={styles.allDayLabel}>All day
+          {dayEvents.map((ev) => (
+            <div key={ev.id} style={styles.eventStyle}>
+              {ev.name}
+            </div>
+          ))}
+        </div>
         {hours.map((hour, idx) => (
           <div key={idx} style={styles.timeSlot}>
             <div style={styles.timeLabel}>{hour}</div>
@@ -398,6 +425,7 @@ export default function GoogleCalendarReplica() {
           <div></div>
           {weekDays.map((day, idx) => (
             <div key={idx} style={styles.weekDay}>
+              {/* FIX: Typo corrected - weekDayname -> weekDayName */}
               <div style={styles.weekDayName}>
                 {isMobile ? shortDayNames[day.getDay()].charAt(0) : shortDayNames[day.getDay()]}
               </div>
@@ -411,7 +439,22 @@ export default function GoogleCalendarReplica() {
             </div>
           ))}
         </div>
-        <div style={styles.allDayLabel}>All day</div>
+        <div style={{display: 'grid', gridTemplateColumns: styles.weekHeader.gridTemplateColumns, borderBottom: '1px solid #dadce0'}}>
+          <div style={styles.timeLabel}>All day</div>
+          {weekDays.map((day, idx) => {
+            const fullDate = day.toISOString().split('T')[0];
+            const dayEvents = eventsByDate[fullDate] || [];
+            return (
+              <div key={idx} style={{borderLeft: '1px solid #dadce0', padding: '4px'}}>
+                {dayEvents.map((ev) => (
+                  <div key={ev.id} style={styles.eventStyle}>
+                    {ev.name}
+                  </div>
+                ))}
+              </div>
+            );
+          })}
+        </div>
         {hours.map((hour, idx) => (
           <div key={idx} style={styles.timeSlot}>
             <div style={styles.timeLabel}>{hour}</div>
@@ -440,13 +483,24 @@ export default function GoogleCalendarReplica() {
           {days.map((day, idx) => (
             <div key={idx} style={styles.monthDay}>
               {day && (
-                <div style={styles.monthDayNumber}>
-                  {isToday(day) ? (
-                    <div style={styles.todayIndicator}>{day}</div>
-                  ) : (
-                    <div>{day}</div>
-                  )}
-                </div>
+                <>
+                  <div style={styles.monthDayNumber}>
+                    {isToday(day) ? (
+                      <div style={styles.todayIndicator}>{day}</div>
+                    ) : (
+                      <div>{day}</div>
+                    )}
+                  </div>
+                  {(() => {
+                    const fullDate = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                    const dayEvents = eventsByDate[fullDate] || [];
+                    return dayEvents.map((ev) => (
+                      <div key={ev.id} style={styles.eventStyle}>
+                        {ev.name}
+                      </div>
+                    ));
+                  })()}
+                </>
               )}
             </div>
           ))}

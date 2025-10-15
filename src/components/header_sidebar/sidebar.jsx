@@ -1,5 +1,7 @@
 import React, { useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
+// ADD: Import useFavorites to access recentUpdates
+import { useFavorites } from "./favorites"; // Assume this is the path to favorites.jsx
 
 export default function Sidebar() {
   const navigate = useNavigate();
@@ -10,6 +12,9 @@ export default function Sidebar() {
     { label: "Leave Requests", path: "/leaves", color: "#ef4444", badge: 2 },
     { label: "Performance Reviews", path: "/reviews", color: "#f59e0b", badge: 3 },
   ]);
+
+  // ADD: Get recentUpdates from context
+  const { recentUpdates } = useFavorites();
 
   // Add new favorite
   const addFavorite = () => {
@@ -123,6 +128,17 @@ export default function Sidebar() {
       cursor: "pointer",
       fontSize: 13,
     },
+    addButton: {
+      width: "100%",
+      marginTop: 8,
+      padding: "6px 0",
+      backgroundColor: "#2C6BED",
+      color: "#fff",
+      border: "none",
+      borderRadius: 6,
+      cursor: "pointer",
+      fontSize: 13,
+    },
     quickActions: {
       display: "flex",
       flexDirection: "column",
@@ -165,6 +181,20 @@ export default function Sidebar() {
     },
     userName: { fontSize: 14, fontWeight: 600 },
     userEmail: { fontSize: 12, color: "#9ca3af" },
+    // ADD: Recent updates style
+    recentUpdatesList: {
+      listStyle: 'none',
+      padding: 0,
+      marginTop: 10,
+      fontSize: 13,
+      color: '#4b5563'
+    },
+    recentUpdateItem: {
+      marginBottom: 8,
+      padding: '6px 8px',
+      background: '#f9fafb',
+      borderRadius: 6
+    }
   };
 
   const menu = [
@@ -217,6 +247,18 @@ export default function Sidebar() {
         <button style={styles.addButton} onClick={addFavorite}>
           + Add Favorite
         </button>
+
+        {/* ADD: Recent Updates section below favorites */}
+        <div style={styles.sectionTitle}>RECENT UPDATES</div>
+        <ul style={styles.recentUpdatesList}>
+          {recentUpdates.length > 0 ? (
+            recentUpdates.map((update, i) => (
+              <li key={i} style={styles.recentUpdateItem}>{update}</li>
+            ))
+          ) : (
+            <li style={styles.recentUpdateItem}>No recent updates</li>
+          )}
+        </ul>
 
         {/* Others */}
         <div style={styles.sectionTitle}>OTHERS</div>

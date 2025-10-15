@@ -1,10 +1,9 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom"; // Added for navigation
 import Sidebar from "./sidebar";
 import { Bell, Search } from "lucide-react";
-import { Box } from "@mui/material";
-import { Outlet } from "react-router-dom";
 
 // Example feature list
 const FEATURES = ["Schedule", "Attendance", "Create Request", "Employees", "Reports", "Settings"];
@@ -16,6 +15,7 @@ function TopNavbar() {
   const [filteredFeatures, setFilteredFeatures] = useState([]);
   const [notifOpen, setNotifOpen] = useState(false);
 
+  const navigate = useNavigate(); // Hook for navigation
   const searchRef = useRef(null);
   const notifRef = useRef(null);
   const inputRef = useRef(null);
@@ -40,7 +40,7 @@ function TopNavbar() {
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    return () => document.addEventListener("mousedown", handleClickOutside);
   }, []);
 
   // Focus input when search opens
@@ -73,6 +73,11 @@ function TopNavbar() {
     setFilteredFeatures([]);
   };
 
+  // Navigate to /schedule on Schedule button click
+  const handleScheduleClick = () => {
+    navigate("/schedule");
+  };
+
   return (
     <div style={{ width: "100%", backgroundColor: "white", boxShadow: "0 1px 2px rgba(0,0,0,0.1)", position: "relative" }}>
       <Sidebar />
@@ -90,9 +95,13 @@ function TopNavbar() {
         <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
           <img
             src="https://via.placeholder.com/40"
-            alt="Avatar"
-            style={{ width: "40px", height: "40px", borderRadius: "50%" }}
+            alt="Profile"
+            style={{ width: "40px", height: "40px", borderRadius: "50%",backgroundColor: '#ddd',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center' }}
           />
+            <span style={{ color: '#666', fontSize: '14px' }}>User</span>
           {isDesktop && (
             <div style={{ display: "flex", flexDirection: "column" }}>
               <p style={{ fontWeight: 600, color: "#1f2937", margin: 0 }}>Juwita</p>
@@ -173,7 +182,13 @@ function TopNavbar() {
                         cursor: "pointer",
                         borderBottom: "1px solid #e5e7eb"
                       }}
-                      onClick={() => alert(`Clicked on ${feature}`)}
+                      onClick={() => {
+                        if (feature === "Schedule") {
+                          navigate("/schedule");
+                        } else {
+                          alert(`Clicked on ${feature}`);
+                        }
+                      }}
                     >
                       {feature}
                     </div>
@@ -234,7 +249,7 @@ function TopNavbar() {
           {isDesktop && (
             <>
               <button
-                onClick={() => alert("Schedule clicked!")}
+                onClick={handleScheduleClick} // Updated to navigate
                 style={{
                   padding: "8px 16px",
                   border: "1px solid #d1d5db",
@@ -246,19 +261,6 @@ function TopNavbar() {
               >
                 Schedule
               </button>
-              {/* <button
-                onClick={() => alert("Create Request clicked!")}
-                style={{
-                  padding: "8px 16px",
-                  borderRadius: "6px",
-                  backgroundColor: "#2563eb",
-                  color: "white",
-                  border: "none",
-                  cursor: "pointer",
-                }}
-              >
-                Create Request
-              </button> */}
             </>
           )}
         </div>
@@ -313,7 +315,13 @@ function TopNavbar() {
                     cursor: "pointer",
                     borderBottom: "1px solid #e5e7eb"
                   }}
-                  onClick={() => alert(`Clicked on ${feature}`)}
+                  onClick={() => {
+                    if (feature === "Schedule") {
+                      navigate("/schedule");
+                    } else {
+                      alert(`Clicked on ${feature}`);
+                    }
+                  }}
                 >
                   {feature}
                 </div>

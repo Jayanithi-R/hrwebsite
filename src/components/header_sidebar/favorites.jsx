@@ -1,3 +1,4 @@
+// src/components/header_sidebar/favorites.jsx
 import React, { createContext, useContext, useState, useEffect } from "react";
 
 const FavoritesContext = createContext();
@@ -12,10 +13,21 @@ export const FavoritesProvider = ({ children }) => {
     ];
   });
 
-  // Persist to localStorage
+  // Recent updates state with localStorage
+  const [recentUpdates, setRecentUpdates] = useState(() => {
+    const saved = localStorage.getItem("recentUpdates");
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  // Persist favorites to localStorage
   useEffect(() => {
     localStorage.setItem("favorites", JSON.stringify(favorites));
   }, [favorites]);
+
+  // Persist recentUpdates to localStorage
+  useEffect(() => {
+    localStorage.setItem("recentUpdates", JSON.stringify(recentUpdates));
+  }, [recentUpdates]);
 
   const addFavorite = (label, path) => {
     if (!label || !path) return;
@@ -32,10 +44,22 @@ export const FavoritesProvider = ({ children }) => {
   };
 
   return (
-    <FavoritesContext.Provider value={{ favorites, addFavorite, removeFavorite }}>
+    <FavoritesContext.Provider value={{ 
+      favorites, 
+      addFavorite, 
+      removeFavorite, 
+      recentUpdates, 
+      setRecentUpdates 
+    }}>
       {children}
     </FavoritesContext.Provider>
   );
 };
 
-export const useFavorites = () => useContext(FavoritesContext);
+export const useFavorites = () => {
+  const context = useContext(FavoritesContext);
+  if (!context) {
+    throw new Error('useFavorites must be used within a FavoritesProvider');
+  }
+  return context;
+};
