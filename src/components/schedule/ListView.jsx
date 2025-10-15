@@ -43,6 +43,21 @@ export default function CourseDashboardEnhanced() {
   const [groupBy, setGroupBy] = useState("project");
   const [showClosed, setShowClosed] = useState(false);
 
+  // NEW: State for edit dialog
+  const [editDialog, setEditDialog] = useState({
+    isOpen: false,
+    type: null,
+    data: null,
+    isEditing: false
+  });
+
+  // NEW: State for view dialog
+  const [viewDialog, setViewDialog] = useState({
+    isOpen: false,
+    type: null,
+    data: null
+  });
+
   // --- Consolidated Form State ---
   const [formData, setFormData] = useState({
     project: {
@@ -334,7 +349,78 @@ export default function CourseDashboardEnhanced() {
   const priorityColors = { High: "#f87171", Medium: "#facc15", Low: "#4ade80" };
   const uid = () => Math.floor(Math.random() * 1000000);
 
-  // --- NEW: Search and Filter Functions ---
+  // --- NEW: Edit Dialog Functions ---
+  const openEditDialog = (type, data) => {
+    setEditDialog({
+      isOpen: true,
+      type,
+      data: { ...data },
+      isEditing: true
+    });
+  };
+
+  const openViewDialog = (type, data) => {
+    setViewDialog({
+      isOpen: true,
+      type,
+      data: { ...data }
+    });
+  };
+
+  const closeEditDialog = () => {
+    setEditDialog({ isOpen: false, type: null, data: null, isEditing: false });
+  };
+
+  const closeViewDialog = () => {
+    setViewDialog({ isOpen: false, type: null, data: null });
+  };
+
+  const handleSaveEdit = () => {
+    const { type, data } = editDialog;
+
+    if (type === 'project' || type === 'event') {
+      setProjects(prev =>
+        prev.map(item =>
+          item.id === data.id ? { ...item, ...data, updatedAt: new Date().toISOString() } : item
+        )
+      );
+    } else if (type === 'task') {
+      setProjects(prev =>
+        prev.map(project => ({
+          ...project,
+          tasks: project.tasks.map(task =>
+            task.id === data.id ? { ...task, ...data, updatedAt: new Date().toISOString() } : task
+          )
+        }))
+      );
+    } else if (type === 'subtask') {
+      setProjects(prev =>
+        prev.map(project => ({
+          ...project,
+          tasks: project.tasks.map(task => ({
+            ...task,
+            subtasks: task.subtasks.map(subtask =>
+              subtask.id === data.id ? { ...subtask, ...data, updatedAt: new Date().toISOString() } : subtask
+            )
+          }))
+        }))
+      );
+    }
+
+    closeEditDialog();
+  };
+
+  const updateEditDialogData = (field, value) => {
+    setEditDialog(prev => ({
+      ...prev,
+      data: {
+        ...prev.data,
+        [field]: value
+      }
+    }));
+  };
+
+  // --- Search and Filter Functions ---
   const handleSearch = (query) => {
     setSearchQuery(query);
   };
@@ -363,7 +449,7 @@ export default function CourseDashboardEnhanced() {
     // Filter by search query
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(project => 
+      filtered = filtered.filter(project =>
         project.name.toLowerCase().includes(query) ||
         project.description.toLowerCase().includes(query) ||
         project.assignee.toLowerCase().includes(query)
@@ -378,7 +464,7 @@ export default function CourseDashboardEnhanced() {
     return filtered;
   };
 
-  // --- NEW: File Download Handler ---
+  // --- File Download Handler ---
   const handleFileDownload = (file) => {
     // Create a temporary link element
     const link = document.createElement('a');
@@ -389,7 +475,7 @@ export default function CourseDashboardEnhanced() {
     document.body.removeChild(link);
   };
 
-  // --- NEW: File Preview Handler ---
+  // --- File Preview Handler ---
   const handleFilePreview = (file) => {
     // For image files, open in new tab
     if (file.type.startsWith('image/')) {
@@ -400,7 +486,7 @@ export default function CourseDashboardEnhanced() {
     }
   };
 
-  // --- NEW: Bulk Actions ---
+  // --- Bulk Actions ---
   const handleBulkDelete = (selectedIds) => {
     if (window.confirm(`Are you sure you want to delete ${selectedIds.length} items?`)) {
       setProjects(prev => prev.filter(project => !selectedIds.includes(project.id)));
@@ -408,16 +494,16 @@ export default function CourseDashboardEnhanced() {
   };
 
   const handleBulkStatusChange = (selectedIds, newStatus) => {
-    setProjects(prev => 
-      prev.map(project => 
-        selectedIds.includes(project.id) 
+    setProjects(prev =>
+      prev.map(project =>
+        selectedIds.includes(project.id)
           ? { ...project, status: newStatus, updatedAt: new Date().toISOString() }
           : project
       )
     );
   };
 
-  // --- NEW: Export Data Function ---
+  // --- Export Data Function ---
   const handleExportData = () => {
     const dataToExport = {
       projects: projects,
@@ -427,7 +513,7 @@ export default function CourseDashboardEnhanced() {
 
     const dataStr = JSON.stringify(dataToExport, null, 2);
     const dataBlob = new Blob([dataStr], { type: 'application/json' });
-    
+
     const link = document.createElement('a');
     link.href = URL.createObjectURL(dataBlob);
     link.download = `course-dashboard-export-${new Date().toISOString().split('T')[0]}.json`;
@@ -436,7 +522,7 @@ export default function CourseDashboardEnhanced() {
     document.body.removeChild(link);
   };
 
-  // --- NEW: Import Data Function ---
+  // --- Import Data Function ---
   const handleImportData = (event) => {
     const file = event.target.files[0];
     if (!file) return;
@@ -445,14 +531,14 @@ export default function CourseDashboardEnhanced() {
     reader.onload = (e) => {
       try {
         const importedData = JSON.parse(e.target.result);
-        
+
         if (importedData.projects) {
           setProjects(importedData.projects);
         }
         if (importedData.events) {
           setEvents(importedData.events);
         }
-        
+
         alert('Data imported successfully!');
       } catch (error) {
         alert('Error importing data. Please check the file format.');
@@ -460,12 +546,12 @@ export default function CourseDashboardEnhanced() {
       }
     };
     reader.readAsText(file);
-    
+
     // Reset the input
     event.target.value = '';
   };
 
-  // --- NEW: Duplicate Project Function ---
+  // --- Duplicate Project Function ---
   const handleDuplicateProject = (projectId) => {
     const projectToDuplicate = projects.find(p => p.id === projectId);
     if (!projectToDuplicate) return;
@@ -481,7 +567,7 @@ export default function CourseDashboardEnhanced() {
     setProjects(prev => [duplicatedProject, ...prev]);
   };
 
-  // --- NEW: Sort Projects Function ---
+  // --- Sort Projects Function ---
   const handleSortProjects = (sortBy) => {
     const sortedProjects = [...projects].sort((a, b) => {
       switch (sortBy) {
@@ -1043,6 +1129,8 @@ export default function CourseDashboardEnhanced() {
           deleteItem={deleteItem}
           openModal={openModal}
           handleUpdateTask={handleUpdateTask}
+          openEditDialog={openEditDialog}
+          openViewDialog={openViewDialog}
         />
       ))
     ) : (
@@ -1054,391 +1142,399 @@ export default function CourseDashboardEnhanced() {
 
   // --- TaskItem Component ---
   const TaskItem = ({
-  task,
-  level = 0,
-  dummyAssignees = [],
-  priorities = [],
-  priorityColors = {},
-  deleteItem,
-  openModal,
-  handleUpdateTask
-}) => {
-  const [isEditing, setIsEditing] = useState(false);
-  const [isExpanded, setIsExpanded] = useState(true);
-  const [showAssigneeDropdown, setShowAssigneeDropdown] = useState(false);
-  const [showPriorityDropdown, setShowPriorityDropdown] = useState(false);
+    task,
+    level = 0,
+    dummyAssignees = [],
+    priorities = [],
+    priorityColors = {},
+    deleteItem,
+    openModal,
+    handleUpdateTask,
+    openEditDialog,
+    openViewDialog
+  }) => {
+    const [isEditing, setIsEditing] = useState(false);
+    const [isExpanded, setIsExpanded] = useState(true);
+    const [showAssigneeDropdown, setShowAssigneeDropdown] = useState(false);
+    const [showPriorityDropdown, setShowPriorityDropdown] = useState(false);
 
-  const [editValues, setEditValues] = useState({
-    name: task.name,
-    assignee: task.assignee || "",
-    priority: task.priority || priorities[0] || "",
-    due: task.due || ""
-  });
-
-  const handleInputChange = (field, value) =>
-    setEditValues(prev => ({ ...prev, [field]: value }));
-
-  const handleSave = () => {
-    handleUpdateTask?.({ ...task, ...editValues, updatedAt: new Date().toISOString() });
-    setIsEditing(false);
-  };
-
-  const handleCancel = () => {
-    setEditValues({
+    const [editValues, setEditValues] = useState({
       name: task.name,
       assignee: task.assignee || "",
       priority: task.priority || priorities[0] || "",
       due: task.due || ""
     });
-    setIsEditing(false);
-  };
 
-  const toggleExpand = () => setIsExpanded(prev => !prev);
+    const handleInputChange = (field, value) =>
+      setEditValues(prev => ({ ...prev, [field]: value }));
 
-  return (
-    <>
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns:
-            "1.5fr 1fr 0.6fr 0.6fr 0.8fr 0.8fr",
-          alignItems: "center",
-          padding: "10px 16px",
-          backgroundColor: level === 0 ? "#f9fafb" : "#ffffff",
-          borderBottom: "1px solid #e5e7eb",
-          marginLeft: level * 20,
-          borderLeft: level > 0 ? "2px solid #4f46e5" : "none",
-        }}
-      >
-        {/* --- Task Name & Expand --- */}
-        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          {task.subtasks?.length > 0 && (
+    const handleSave = () => {
+      handleUpdateTask?.({ ...task, ...editValues, updatedAt: new Date().toISOString() });
+      setIsEditing(false);
+    };
+
+    const handleCancel = () => {
+      setEditValues({
+        name: task.name,
+        assignee: task.assignee || "",
+        priority: task.priority || priorities[0] || "",
+        due: task.due || ""
+      });
+      setIsEditing(false);
+    };
+
+    const toggleExpand = () => setIsExpanded(prev => !prev);
+
+    return (
+      <>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "1.5fr 1fr 0.6fr 0.6fr 0.8fr 0.8fr 0.8fr",
+            alignItems: "center",
+            padding: "10px 16px",
+            backgroundColor: level === 0 ? "#f9fafb" : "#ffffff",
+            borderBottom: "1px solid #e5e7eb",
+            marginLeft: level * 20,
+            borderLeft: level > 0 ? "2px solid #4f46e5" : "none"
+          }}
+        >
+          {/* --- Task Name --- */}
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            {task.subtasks?.length > 0 && (
+              <button
+                onClick={toggleExpand}
+                style={{
+                  cursor: "pointer",
+                  background: "none",
+                  border: "none",
+                  fontSize: 14,
+                  transform: isExpanded ? "rotate(90deg)" : "rotate(0deg)",
+                  transition: "transform 0.2s ease"
+                }}
+              >
+                ▶
+              </button>
+            )}
+
+            {isEditing ? (
+              <input
+                type="text"
+                value={editValues.name}
+                onChange={e => handleInputChange("name", e.target.value)}
+                style={{
+                  border: "1px solid #d1d5db",
+                  borderRadius: 6,
+                  padding: "6px 10px",
+                  fontSize: 14,
+                  fontWeight: 600,
+                  width: "100%"
+                }}
+                autoFocus
+              />
+            ) : (
+              <span style={{ fontWeight: 600, fontSize: 14, color: "#111827" }}>
+                {task.name}
+              </span>
+            )}
+          </div>
+<div></div>
+          {/* --- Status --- */}
+          <div>
+            <StatusSelector
+              value={task.status || "To Do"}
+              onChange={status => handleUpdateTask?.({ ...task, status })}
+            />
+          </div>
+          
+          {/* --- Assignee --- */}
+          <div style={{ position: "relative" }}>
             <button
-              onClick={toggleExpand}
+              onClick={() => isEditing && setShowAssigneeDropdown(!showAssigneeDropdown)}
+              style={{
+                cursor: isEditing ? "pointer" : "default",
+                border: "none",
+                borderRadius: "50%",
+                width: 32,
+                height: 32,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                backgroundColor: "#007bff",
+                color: "#fff",
+                fontWeight: "bold",
+                fontSize: 14
+              }}
+            >
+              {editValues.assignee
+                ? editValues.assignee.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2)
+                : <User size={16} />}
+            </button>
+
+            {isEditing && showAssigneeDropdown && (
+              <div
+                style={{
+                  position: "absolute",
+                  top: "110%",
+                  left: 0,
+                  background: "#fff",
+                  border: "1px solid #ccc",
+                  borderRadius: 4,
+                  boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+                  minWidth: 140,
+                  zIndex: 10
+                }}
+              >
+                {dummyAssignees.map(a => (
+                  <div
+                    key={a}
+                    style={{
+                      padding: "8px 12px",
+                      cursor: "pointer",
+                      background: editValues.assignee === a ? "#f3f4f6" : "transparent"
+                    }}
+                    onClick={() => {
+                      handleInputChange("assignee", a);
+                      setShowAssigneeDropdown(false);
+                    }}
+                  >
+                    {a}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* --- Priority --- */}
+          <div style={{ position: "relative" }}>
+            <button
+              onClick={() => isEditing && setShowPriorityDropdown(!showPriorityDropdown)}
               style={{
                 cursor: "pointer",
-                background: "none",
                 border: "none",
-                fontSize: 14,
-                transform: isExpanded ? "rotate(90deg)" : "rotate(0deg)",
-                transition: "transform 0.2s ease"
+                background: "none",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center"
               }}
             >
-              ▶
+              <Flag color={priorityColors[editValues.priority]} size={18} />
             </button>
-          )}
 
-          {isEditing ? (
-            <input
-              type="text"
-              value={editValues.name}
-              onChange={e => handleInputChange("name", e.target.value)}
-              style={{
-                border: "1px solid #d1d5db",
-                borderRadius: 6,
-                padding: "6px 10px",
-                fontSize: 14,
-                fontWeight: 600,
-                width: "100%"
-              }}
-              autoFocus
-            />
-          ) : (
-            <span style={{ fontWeight: 600, fontSize: 14, color: "#111827" }}>
-              {task.name}
-            </span>
-          )}
-        </div>
-
-        {/* --- Status --- */}
-        <div>
-          <StatusSelector
-            value={task.status || "To Do"}
-            onChange={status => handleUpdateTask?.({ ...task, status })}
-          />
-        </div>
-
-        {/* --- Assignee --- */}
-        <div style={{ position: "relative" }}>
-          <button
-            onClick={() => isEditing && setShowAssigneeDropdown(!showAssigneeDropdown)}
-            style={{
-              cursor: isEditing ? "pointer" : "default",
-              border: "none",
-              borderRadius: "50%",
-              width: 32,
-              height: 32,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              backgroundColor: "#007bff",
-              color: "#fff",
-              fontWeight: "bold",
-              fontSize: 14
-            }}
-          >
-            {editValues.assignee
-              ? editValues.assignee.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2)
-              : <User size={16} />}
-          </button>
-
-          {isEditing && showAssigneeDropdown && (
-            <div
-              style={{
-                position: "absolute",
-                top: "110%",
-                left: 0,
-                background: "#fff",
-                border: "1px solid #ccc",
-                borderRadius: 4,
-                boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
-                minWidth: 140,
-                zIndex: 10
-              }}
-            >
-              {dummyAssignees.map(a => (
-                <div
-                  key={a}
-                  style={{
-                    padding: "8px 12px",
-                    cursor: "pointer",
-                    background: editValues.assignee === a ? "#f3f4f6" : "transparent"
-                  }}
-                  onClick={() => {
-                    handleInputChange("assignee", a);
-                    setShowAssigneeDropdown(false);
-                  }}
-                >
-                  {a}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* --- Priority --- */}
-        <div style={{ position: "relative" }}>
-          <button
-            onClick={() => isEditing && setShowPriorityDropdown(!showPriorityDropdown)}
-            style={{
-              cursor: "pointer",
-              border: "none",
-              background: "none",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center"
-            }}
-          >
-            <Flag color={priorityColors[editValues.priority]} size={18} />
-          </button>
-
-          {isEditing && showPriorityDropdown && (
-            <div
-              style={{
-                position: "absolute",
-                top: "110%",
-                left: 0,
-                background: "#fff",
-                border: "1px solid #ccc",
-                borderRadius: 4,
-                boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
-                minWidth: 120
-              }}
-            >
-              {priorities.map(p => (
-                <div
-                  key={p}
-                  onClick={() => {
-                    handleInputChange("priority", p);
-                    setShowPriorityDropdown(false);
-                  }}
-                  style={{
-                    padding: "8px 12px",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 8,
-                    cursor: "pointer",
-                    background: editValues.priority === p ? "#f3f4f6" : "transparent"
-                  }}
-                >
+            {isEditing && showPriorityDropdown && (
+              <div
+                style={{
+                  position: "absolute",
+                  top: "110%",
+                  left: 0,
+                  background: "#fff",
+                  border: "1px solid #ccc",
+                  borderRadius: 4,
+                  boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+                  minWidth: 120
+                }}
+              >
+                {priorities.map(p => (
                   <div
-                    style={{
-                      width: 8,
-                      height: 8,
-                      borderRadius: "50%",
-                      background: priorityColors[p]
+                    key={p}
+                    onClick={() => {
+                      handleInputChange("priority", p);
+                      setShowPriorityDropdown(false);
                     }}
-                  />
-                  {p}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+                    style={{
+                      padding: "8px 12px",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 8,
+                      cursor: "pointer",
+                      background: editValues.priority === p ? "#f3f4f6" : "transparent"
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: 8,
+                        height: 8,
+                        borderRadius: "50%",
+                        background: priorityColors[p]
+                      }}
+                    />
+                    {p}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
 
-        {/* --- Due Date --- */}
-        <div style={{ display: "flex", alignItems: "center", gap: 8, position: "relative" }}>
-          <button
-            style={{
-              border: "none",
-              background: "none",
-              cursor: isEditing ? "pointer" : "default"
-            }}
-            onClick={() =>
-              isEditing &&
-              document.getElementById(`calendar-input-${task.id}`)?.showPicker()
-            }
-          >
-            <CalendarIcon size={18} />
-          </button>
-
-          <span style={{ fontSize: 14, color: "#374151" }}>
-            {editValues.due || "—"}
-          </span>
-
-          {isEditing && (
-            <input
-              id={`calendar-input-${task.id}`}
-              type="date"
-              value={editValues.due}
-              onChange={e => handleInputChange("due", e.target.value)}
+          {/* --- Due Date --- */}
+          <div style={{ display: "flex", alignItems: "center", gap: 8, position: "relative" }}>
+            <button
               style={{
-                position: "absolute",
-                opacity: 0,
+                border: "none",
+                background: "none",
+                cursor: isEditing ? "pointer" : "default"
+              }}
+              onClick={() =>
+                isEditing &&
+                document.getElementById(`calendar-input-${task.id}`)?.showPicker()
+              }
+            >
+              <CalendarIcon size={18} />
+            </button>
+
+            <span style={{ fontSize: 14, color: "#374151" }}>
+              {editValues.due || "—"}
+            </span>
+
+            {isEditing && (
+              <input
+                id={`calendar-input-${task.id}`}
+                type="date"
+                value={editValues.due}
+                onChange={e => handleInputChange("due", e.target.value)}
+                style={{
+                  position: "absolute",
+                  opacity: 0,
+                  width: 30,
+                  height: 30,
+                  cursor: "pointer"
+                }}
+              />
+            )}
+          </div>
+
+
+          {/* --- Actions --- */}
+          <div style={{ display: "flex", alignItems: "center", gap: 8, justifyContent: "flex-end" }}>
+            <button
+              title="View Details"
+              onClick={() => openViewDialog("task", task)}
+              style={{
+                border: "none",
+                borderRadius: 4,
                 width: 30,
                 height: 30,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                background: "#3b82f6",
+                color: "white",
                 cursor: "pointer"
               }}
-            />
-          )}
-        </div>
-
-        {/* --- Actions --- */}
-        <div style={{ display: "flex", alignItems: "center", gap: 8, justifyContent: "flex-end" }}>
-          <button
-            title={isEditing ? "Save" : "Edit"}
-            onClick={isEditing ? handleSave : () => setIsEditing(true)}
-            style={{
-              border: "none",
-              borderRadius: 4,
-              width: 30,
-              height: 30,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              background: isEditing ? "#4f46e5" : "#f3f4f6",
-              color: isEditing ? "white" : "#111827",
-              cursor: "pointer"
-            }}
-          >
-            {isEditing ? <Save size={16} /> : <Edit3 size={14} />}
-          </button>
-
-          <button
-            title="Delete Task"
-            onClick={() => deleteItem?.(task.id, "task")}
-            style={{
-              border: "none",
-              borderRadius: 4,
-              width: 30,
-              height: 30,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              background: "#ef4444",
-              color: "white",
-              cursor: "pointer"
-            }}
-          >
-            <Trash2 size={16} />
-          </button>
-
-          {!isEditing && level === 0 && (
+            >
+              <Eye size={14} />
+            </button>
             <button
-              onClick={() => openModal?.("subtask", task.id)}
+              title="Edit Task"
+              onClick={() => openEditDialog("task", task)}
               style={{
-                padding: "6px 10px",
                 border: "none",
                 borderRadius: 4,
-                backgroundColor: "#4f46e5",
-                color: "#fff",
-                cursor: "pointer",
-                fontSize: 13
+                width: 30,
+                height: 30,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                background: "#f3f4f6",
+                color: "#111827",
+                cursor: "pointer"
               }}
             >
-              + Subtask
+              <Edit3 size={16} />
             </button>
-          )}
-        </div>
-      </div>
 
-      {/* --- Subtasks --- */}
-      {isExpanded &&
-        task.subtasks?.map(subtask => (
-          <TaskItem
-            key={subtask.id}
-            task={subtask}
-            level={level + 1}
-            dummyAssignees={dummyAssignees}
-            priorities={priorities}
-            priorityColors={priorityColors}
-            deleteItem={deleteItem}
-            openModal={openModal}
-            handleUpdateTask={handleUpdateTask}
-          />
-        ))}
-    </>
-  );
-};
+            <button
+              title="Delete Task"
+              onClick={() => deleteItem?.(task.id, "task")}
+              style={{
+                border: "none",
+                borderRadius: 4,
+                width: 30,
+                height: 30,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                background: "#ef4444",
+                color: "white",
+                cursor: "pointer"
+              }}
+            >
+              <Trash2 size={16} />
+            </button>
+
+            {!isEditing && level === 0 && (
+              <button
+                onClick={() => openModal?.("subtask", task.id)}
+                style={{
+                  padding: "6px 10px",
+                  border: "none",
+                  borderRadius: 4,
+                  backgroundColor: "#4f46e5",
+                  color: "#fff",
+                  cursor: "pointer",
+                  fontSize: 13
+                }}
+              >
+                + Subtask
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* --- Subtasks --- */}
+        {isExpanded &&
+          task.subtasks?.map(subtask => (
+            <TaskItem
+              key={subtask.id}
+              task={subtask}
+              level={level + 1}
+              dummyAssignees={dummyAssignees}
+              priorities={priorities}
+              priorityColors={priorityColors}
+              deleteItem={deleteItem}
+              openModal={openModal}
+              handleUpdateTask={handleUpdateTask}
+              openEditDialog={openEditDialog}
+              openViewDialog={openViewDialog}
+            />
+          ))}
+      </>
+    );
+  };
 
   // --- Enhanced Project Header Component ---
-  const ProjectHeader = ({ project }) => {
-    const isEditing = projectEditMode[project.id];
+  const ProjectHeader = ({
+    project,
+    toggleExpand,
+    deleteItem,
+    openModal,
+    setProjects,
+    dummyAssignees,
+    priorities,
+    priorityColors,
+    openViewDialog,
+    openEditDialog
+  }) => {
     const [showAssigneeDropdown, setShowAssigneeDropdown] = useState(false);
     const [showPriorityDropdown, setShowPriorityDropdown] = useState(false);
 
-    const currentName = getEditingValue(project.id, 'name', project.name);
-    const currentAssignee = getEditingValue(project.id, 'assignee', project.assignee);
-    const currentPriority = getEditingValue(project.id, 'priority', project.priority);
-    const currentDue = getEditingValue(project.id, 'due', project.due);
-
-    const handleInputChange = (field, value) => {
-      updateEditingValue(project.id, field, value);
-    };
-
-    const handleSave = () => {
-      setProjects(prev =>
-        prev.map(p =>
-          p.id === project.id
-            ? {
-              ...p,
-              name: currentName || p.name,
-              assignee: currentAssignee || p.assignee,
-              priority: currentPriority || p.priority,
-              due: currentDue || p.due,
-              updatedAt: new Date().toISOString()
-            }
-            : p
-        )
-      );
-      setProjectEditMode(prev => ({ ...prev, [project.id]: false }));
-      setEditingValues(prev => {
-        const newValues = { ...prev };
-        delete newValues[project.id];
-        return newValues;
-      });
+    // Add safe access to priority color
+    const getPriorityColor = (priority) => {
+      return priorityColors[priority] || priorityColors.Low; // Default to Low if undefined
     };
 
     return (
-      <div style={{
-        display: "flex",
-        gap: "10px",
-        marginRight: "15px",
-        alignItems: "center",
-        padding: "12px 15px",
-        borderBottom: "1px solid #d1d9e6",
-        fontWeight: "bold",
-      }}>
+      <div
+        style={{
+          display: "flex",
+          gap: "10px",
+          marginRight: "15px",
+          alignItems: "center",
+          padding: "12px 15px",
+          borderBottom: "1px solid #d1d9e6",
+          fontWeight: "bold",
+        }}
+      >
+        {/* Left: Project Title + Expand Button */}
         <div style={{ display: "flex", alignItems: "center", gap: 10, width: "50%" }}>
           <button
             onClick={() => toggleExpand(project.id, "project")}
@@ -1453,62 +1549,56 @@ export default function CourseDashboardEnhanced() {
             {project.expanded ? "▼" : "▶"}
           </button>
 
-          {isEditing ? (
-            <input
-              type="text"
-              value={currentName}
-              onChange={(e) => handleInputChange('name', e.target.value)}
-              style={{
-                border: '1px solid #d1d5db',
-                borderRadius: 6,
-                padding: '6px 10px',
-                outline: 'none',
-                fontSize: 16,
-                fontWeight: 600,
-                width: 200
-              }}
-              autoFocus
-            />
-          ) : (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ fontSize: 16, fontWeight: 600 }}>
-                {project.name || "Untitled Project"}
-              </span>
-              {project.type === 'event' && (
-                <div style={{
-                  background: '#e0f2fe',
-                  color: '#0369a1',
-                  padding: '2px 8px',
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <span style={{ fontSize: 16, fontWeight: 600 }}>
+              {project.name || "Untitled Project"}
+            </span>
+
+            {project.type === "event" && (
+              <div
+                style={{
+                  background: "#e0f2fe",
+                  color: "#0369a1",
+                  padding: "2px 8px",
                   borderRadius: 12,
                   fontSize: 12,
                   fontWeight: 500,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 4
-                }}>
-                  <Clock size={12} />
-                  Event
-                </div>
-              )}
-            </div>
-          )}
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 4,
+                }}
+              >
+                <Clock size={12} />
+                Event
+              </div>
+            )}
+          </div>
         </div>
 
-        <div style={{ display: "flex", justifyContent: "space-around", alignItems: "center", width: "60%" }}>
+        {/* Right: Controls */}
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-around",
+            alignItems: "center",
+            width: "60%",
+          }}
+        >
+          {/* ✅ Status Selector */}
           <StatusSelector
             value={project.status || "To Do"}
             onChange={(status) => {
-              setProjects(prev => 
-                prev.map(p => 
-                  p.id === project.id 
-                    ? { ...p, status, updatedAt: new Date().toISOString() } 
+              setProjects((prev) =>
+                prev.map((p) =>
+                  p.id === project.id
+                    ? { ...p, status, updatedAt: new Date().toISOString() }
                     : p
                 )
               );
             }}
           />
 
-          {/* Assignee Button */}
+          {/* 🧍 Assignee */}
           <div style={{ position: "relative" }}>
             <button
               title="Assignee"
@@ -1526,14 +1616,12 @@ export default function CourseDashboardEnhanced() {
                 color: "#fff",
                 fontWeight: "bold",
                 fontSize: 14,
-                position: "relative",
-                overflow: "hidden"
               }}
-              onClick={() => isEditing && setShowAssigneeDropdown(!showAssigneeDropdown)}
+              onClick={() => setShowAssigneeDropdown(!showAssigneeDropdown)}
             >
-              {currentAssignee ? (
+              {project.assignee ? (
                 <span>
-                  {currentAssignee
+                  {project.assignee
                     .split(" ")
                     .map((n) => n[0])
                     .join("")
@@ -1544,7 +1632,8 @@ export default function CourseDashboardEnhanced() {
                 <User size={18} />
               )}
             </button>
-            {isEditing && showAssigneeDropdown && (
+
+            {showAssigneeDropdown && (
               <div
                 style={{
                   position: "absolute",
@@ -1566,17 +1655,27 @@ export default function CourseDashboardEnhanced() {
                       padding: "8px 12px",
                       cursor: "pointer",
                       borderBottom: "1px solid #eee",
-                      background: currentAssignee === assignee ? "#f3f4f6" : "transparent",
+                      background:
+                        project.assignee === assignee ? "#f3f4f6" : "transparent",
                       display: "flex",
                       alignItems: "center",
-                      gap: 8
+                      gap: 8,
                     }}
                     onClick={() => {
-                      handleInputChange('assignee', assignee);
+                      setProjects((prev) =>
+                        prev.map((p) =>
+                          p.id === project.id ? { ...p, assignee } : p
+                        )
+                      );
                       setShowAssigneeDropdown(false);
                     }}
-                    onMouseEnter={(e) => (e.currentTarget.style.background = "#f2f2f2")}
-                    onMouseLeave={(e) => (e.currentTarget.style.background = currentAssignee === assignee ? "#f3f4f6" : "#fff")}
+                    onMouseEnter={(e) =>
+                      (e.currentTarget.style.background = "#f2f2f2")
+                    }
+                    onMouseLeave={(e) =>
+                    (e.currentTarget.style.background =
+                      project.assignee === assignee ? "#f3f4f6" : "#fff")
+                    }
                   >
                     <span>{assignee}</span>
                   </div>
@@ -1585,7 +1684,7 @@ export default function CourseDashboardEnhanced() {
             )}
           </div>
 
-          {/* Priority Button */}
+          {/* 🚩 Priority */}
           <div style={{ position: "relative" }}>
             <button
               title="Priority"
@@ -1598,14 +1697,14 @@ export default function CourseDashboardEnhanced() {
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                transition: "background 0.2s",
                 background: "#fff",
               }}
-              onClick={() => isEditing && setShowPriorityDropdown(!showPriorityDropdown)}
+              onClick={() => setShowPriorityDropdown(!showPriorityDropdown)}
             >
-              <Flag color={priorityColors[currentPriority]} />
+              <Flag color={getPriorityColor(project.priority)} />
             </button>
-            {isEditing && showPriorityDropdown && (
+
+            {showPriorityDropdown && (
               <div
                 style={{
                   position: "absolute",
@@ -1618,7 +1717,6 @@ export default function CourseDashboardEnhanced() {
                   zIndex: 100,
                   minWidth: "120px",
                   marginTop: "4px",
-                  background: "#fff",
                 }}
               >
                 {priorities.map((priority) => (
@@ -1631,21 +1729,31 @@ export default function CourseDashboardEnhanced() {
                       display: "flex",
                       alignItems: "center",
                       gap: 8,
-                      background: currentPriority === priority ? "#f3f4f6" : "transparent",
+                      background:
+                        project.priority === priority ? "#f3f4f6" : "transparent",
                     }}
                     onClick={() => {
-                      handleInputChange('priority', priority);
+                      setProjects((prev) =>
+                        prev.map((p) =>
+                          p.id === project.id ? { ...p, priority } : p
+                        )
+                      );
                       setShowPriorityDropdown(false);
                     }}
-                    onMouseEnter={(e) => (e.currentTarget.style.background = "#f2f2f2")}
-                    onMouseLeave={(e) => (e.currentTarget.style.background = currentPriority === priority ? "#f3f4f6" : "#fff")}
+                    onMouseEnter={(e) =>
+                      (e.currentTarget.style.background = "#f2f2f2")
+                    }
+                    onMouseLeave={(e) =>
+                    (e.currentTarget.style.background =
+                      project.priority === priority ? "#f3f4f6" : "#fff")
+                    }
                   >
                     <div
                       style={{
                         width: 8,
                         height: 8,
                         borderRadius: "50%",
-                        background: priorityColors[priority]
+                        background: getPriorityColor(priority),
                       }}
                     />
                     {priority}
@@ -1655,116 +1763,425 @@ export default function CourseDashboardEnhanced() {
             )}
           </div>
 
-          {/* Calendar Button */}
-          <div style={{ position: "relative", display: "flex", alignItems: "center", gap: 8 }}>
-            <button
-              title="Due Date"
-              style={{
-                cursor: "pointer",
-                border: "none",
-                borderRadius: 4,
-                width: 30,
-                height: 30,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                transition: "background 0.2s",
-                background: "#fff",
-              }}
-              onClick={() =>
-                isEditing &&
-                document
-                  .getElementById(`calendar-input-${project.id}`)
-                  ?.showPicker()
-              }
-            >
-              <CalendarIcon />
-            </button>
-
-            <div style={{ fontSize: 14, color: "#333" }}>
-              {currentDue}
-            </div>
-
-            {isEditing && (
-              <input
-                id={`calendar-input-${project.id}`}
-                type="date"
-                value={currentDue}
-                onChange={(e) => handleInputChange("due", e.target.value)}
-                style={{
-                  position: "absolute",
-                  top: 0,
-                  left: 0,
-                  opacity: 0,
-                  width: 30,
-                  height: 30,
-                  cursor: "pointer",
-                }}
-              />
-            )}
+          {/* 📅 Due Date */}
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <CalendarIcon />
+            <span style={{ fontSize: 14, color: "#333" }}>
+              {project.due || "No Date"}
+            </span>
           </div>
 
-          {/* action Button */}
-          <div style={{ position: "relative", display: "flex", alignItems: "center", gap: 8 }}>
-            {/* Settings Button - Toggle Edit Mode */}
-            <button
-              title={isEditing ? "Save Changes" : "Edit Project"}
-              onClick={isEditing ? handleSave : () => setProjectEditMode(prev => ({ ...prev, [project.id]: true }))}
-              style={{
-                cursor: "pointer",
-                border: "none",
-                borderRadius: 4,
-                width: 30,
-                height: 30,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                transition: "background 0.2s",
-                background: isEditing ? "#4f46e5" : "transparent",
-                color: isEditing ? "white" : "inherit"
-              }}
-            >
-              {isEditing ? <Save size={16} /> : <Edit3 size={16} />}
-            </button>
-            <button
-              onClick={() => openModal("task", project.id)} // ✅ use project.id
-              style={{
-                padding: "6px 12px",
-                border: "none",
-                borderRadius: 4,
-                backgroundColor: "#4f46e5",
-                color: "#fff",
-                cursor: "pointer",
-                fontSize: 14,
-                display: "flex",
-                alignItems: "center",
-                gap: 4
-              }}
-            >
-              <Plus size={14} /> Add Task
-            </button>
-            {/* Delete Project Button */}
-            <button
-              title="Delete Project"
-              onClick={() => deleteItem(project.id, 'project')}
-              style={{
-                cursor: "pointer",
-                border: "none",
-                borderRadius: 4,
-                width: 30,
-                height: 30,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                transition: "background 0.2s",
-                background: "#ef4444",
-                color: "white"
-              }}
-            >
-              <Trash2 size={16} />
-            </button>            
-         </div>
+          {/* 👁️ View */}
+          <button
+            title="View Details"
+            onClick={() => openViewDialog(project.type, project)}
+            style={{
+              cursor: "pointer",
+              border: "none",
+              borderRadius: 4,
+              width: 30,
+              height: 30,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              background: "#3b82f6",
+              color: "white",
+              transition: "background 0.2s",
+            }}
+          >
+            <Eye size={16} />
+          </button>
 
+          {/* ✏️ Edit — Opens Modal */}
+          <button
+            title="Edit Project"
+            onClick={() => openEditDialog("project", project)}
+            style={{
+              cursor: "pointer",
+              border: "none",
+              borderRadius: 4,
+              width: 30,
+              height: 30,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              background: "#f3f4f6",
+              color: "#111827",
+            }}
+          >
+            <Edit3 size={16} />
+          </button>
+
+          {/* ➕ Add Task */}
+          <button
+            onClick={() => openModal("task", project.id)}
+            style={{
+              padding: "6px 12px",
+              border: "none",
+              borderRadius: 4,
+              backgroundColor: "#4f46e5",
+              color: "#fff",
+              cursor: "pointer",
+              fontSize: 14,
+              display: "flex",
+              alignItems: "center",
+              gap: 4,
+            }}
+          >
+            <Plus size={14} /> Add Task
+          </button>
+
+          {/* 🗑️ Delete */}
+          <button
+            title="Delete Project"
+            onClick={() => deleteItem(project.id, "project")}
+            style={{
+              cursor: "pointer",
+              border: "none",
+              borderRadius: 4,
+              width: 30,
+              height: 30,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              background: "#ef4444",
+              color: "white",
+            }}
+          >
+            <Trash2 size={16} />
+          </button>
+        </div>
+      </div>
+    );
+  };
+
+  // --- NEW: Edit Dialog Component ---
+  const EditDialog = () => {
+    const { isOpen, type, data, isEditing } = editDialog;
+
+    if (!isOpen) return null;
+
+    const renderFormField = (label, field, inputType = "text") => (
+      <div style={{ marginBottom: 16 }}>
+        <label style={{ display: 'block', marginBottom: 4, fontWeight: 500, color: '#374151' }}>
+          {label}
+        </label>
+        {inputType === "select" ? (
+          <select
+            value={data[field] || ""}
+            onChange={(e) => updateEditDialogData(field, e.target.value)}
+            style={{
+              width: '100%',
+              padding: '8px 12px',
+              border: '1px solid #d1d5db',
+              borderRadius: 6,
+              fontSize: 14
+            }}
+          >
+            {field === 'priority' ? (
+              priorities.map(p => <option key={p} value={p}>{p}</option>)
+            ) : field === 'assignee' ? (
+              [<option key="" value="">Select Assignee</option>,
+              ...dummyAssignees.map(a => <option key={a} value={a}>{a}</option>)]
+            ) : field === 'status' ? (
+              ["To Do", "In Progress", "Completed"].map(s => <option key={s} value={s}>{s}</option>)
+            ) : null}
+          </select>
+        ) : inputType === "textarea" ? (
+          <textarea
+            value={data[field] || ""}
+            onChange={(e) => updateEditDialogData(field, e.target.value)}
+            style={{
+              width: '100%',
+              padding: '8px 12px',
+              border: '1px solid #d1d5db',
+              borderRadius: 6,
+              fontSize: 14,
+              minHeight: 80,
+              resize: 'vertical'
+            }}
+          />
+        ) : (
+          <input
+            type={inputType}
+            value={data[field] || ""}
+            onChange={(e) => updateEditDialogData(field, e.target.value)}
+            style={{
+              width: '100%',
+              padding: '8px 12px',
+              border: '1px solid #d1d5db',
+              borderRadius: 6,
+              fontSize: 14
+            }}
+          />
+        )}
+      </div>
+    );
+
+    return (
+      <div style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        width: '100%',
+        height: '100%',
+        background: 'rgba(0,0,0,0.4)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 1001
+      }}>
+        <div style={{
+          background: '#fff',
+          borderRadius: 12,
+          padding: 24,
+          width: '90%',
+          maxWidth: 500,
+          maxHeight: '90vh',
+          overflowY: 'auto',
+          boxShadow: '0 20px 25px rgba(0,0,0,0.15)'
+        }}>
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: 20,
+            paddingBottom: 16,
+            borderBottom: '1px solid #e5e7eb'
+          }}>
+            <div style={{ fontWeight: 600, fontSize: 20, color: '#111827' }}>
+              Edit {type?.charAt(0).toUpperCase() + type?.slice(1)}
+            </div>
+            <button onClick={closeEditDialog} style={{
+              background: 'transparent',
+              border: 'none',
+              cursor: 'pointer',
+              padding: 8,
+              borderRadius: 6,
+              color: '#6b7280',
+              transition: 'background 0.2s',
+              fontSize: 24,
+              width: 32,
+              height: 32,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}>
+              ×
+            </button>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            {renderFormField("Name", "name", "text")}
+            {renderFormField("Description", "description", "textarea")}
+            {renderFormField("Assignee", "assignee", "select")}
+            {renderFormField("Due Date", "due", "date")}
+            {renderFormField("Priority", "priority", "select")}
+            {renderFormField("Status", "status", "select")}
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <input
+                type="checkbox"
+                id="reminder"
+                checked={data.reminder || false}
+                onChange={(e) => updateEditDialogData("reminder", e.target.checked)}
+                style={{ width: 16, height: 16 }}
+              />
+              <label htmlFor="reminder" style={{ fontSize: 14, fontWeight: 500 }}>
+                Set Reminder
+              </label>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', gap: 12, marginTop: 24 }}>
+            <button
+              onClick={handleSaveEdit}
+              style={{
+                padding: '12px 24px',
+                background: '#4f46e5',
+                color: '#fff',
+                border: 'none',
+                borderRadius: 8,
+                cursor: 'pointer',
+                fontWeight: 500,
+                fontSize: 16,
+                flex: 1
+              }}
+            >
+              Save Changes
+            </button>
+            <button
+              onClick={closeEditDialog}
+              style={{
+                padding: '12px 24px',
+                background: '#f3f4f6',
+                color: '#374151',
+                border: 'none',
+                borderRadius: 8,
+                cursor: 'pointer',
+                fontWeight: 500,
+                fontSize: 16,
+                flex: 1
+              }}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // --- NEW: View Dialog Component ---
+  const ViewDialog = () => {
+    const { isOpen, type, data } = viewDialog;
+
+    if (!isOpen) return null;
+
+    const renderDetailRow = (label, value, IconComponent) => (
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '8px 0', borderBottom: '1px solid #f3f4f6' }}>
+        {IconComponent && <IconComponent size={16} color="#6b7280" />}
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 12, color: '#6b7280', fontWeight: 500 }}>{label}</div>
+          <div style={{ fontSize: 14, color: '#374151' }}>{value || "—"}</div>
+        </div>
+      </div>
+    );
+
+    return (
+      <div style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        width: '100%',
+        height: '100%',
+        background: 'rgba(0,0,0,0.4)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 1001
+      }}>
+        <div style={{
+          background: '#fff',
+          borderRadius: 12,
+          padding: 24,
+          width: '90%',
+          maxWidth: 500,
+          maxHeight: '90vh',
+          overflowY: 'auto',
+          boxShadow: '0 20px 25px rgba(0,0,0,0.15)'
+        }}>
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: 20,
+            paddingBottom: 16,
+            borderBottom: '1px solid #e5e7eb'
+          }}>
+            <div style={{ fontWeight: 600, fontSize: 20, color: '#111827' }}>
+              {data?.name || "Untitled"}
+            </div>
+            <button onClick={closeViewDialog} style={{
+              background: 'transparent',
+              border: 'none',
+              cursor: 'pointer',
+              padding: 8,
+              borderRadius: 6,
+              color: '#6b7280',
+              transition: 'background 0.2s',
+              fontSize: 24,
+              width: 32,
+              height: 32,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}>
+              ×
+            </button>
+          </div>
+
+          <div style={{ marginBottom: 20 }}>
+            <div style={{
+              display: 'inline-block',
+              padding: '4px 12px',
+              background: type === 'event' ? '#e0f2fe' : '#f3f4f6',
+              color: type === 'event' ? '#0369a1' : '#374151',
+              borderRadius: 12,
+              fontSize: 12,
+              fontWeight: 500
+            }}>
+              {type?.charAt(0).toUpperCase() + type?.slice(1)}
+            </div>
+          </div>
+
+          <div style={{ marginBottom: 24 }}>
+            {renderDetailRow("Description", data?.description, FileText)}
+            {renderDetailRow("Assignee", data?.assignee, User)}
+            {renderDetailRow("Due Date", data?.due, CalendarIcon)}
+            {renderDetailRow("Priority", data?.priority, Flag)}
+            {renderDetailRow("Status", data?.status, CheckCircle)}
+            {renderDetailRow("Reminder", data?.reminder ? "Yes" : "No", Bell)}
+            {renderDetailRow("Created", data?.createdAt ? new Date(data.createdAt).toLocaleDateString() : "—", Clock)}
+            {renderDetailRow("Last Updated", data?.updatedAt ? new Date(data.updatedAt).toLocaleDateString() : "—", Save)}
+          </div>
+
+          {data?.files && data.files.length > 0 && (
+            <div style={{ marginBottom: 24 }}>
+              <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 12, color: '#374151' }}>
+                Attached Files ({data.files.length})
+              </div>
+              {data.files.map(file => (
+                <div key={file.id} style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '8px 12px',
+                  background: '#f8fafc',
+                  borderRadius: 6,
+                  marginBottom: 4
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <FileText size={16} />
+                    <span style={{ fontSize: 14 }}>{file.name}</span>
+                  </div>
+                  <button
+                    onClick={() => handleFilePreview(file)}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: '#4f46e5',
+                      cursor: 'pointer',
+                      padding: 4
+                    }}
+                    title="Preview"
+                  >
+                    <Eye size={16} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div style={{ display: 'flex', gap: 12 }}>
+
+            <button
+              onClick={closeViewDialog}
+              style={{
+                padding: '12px 24px',
+                background: '#f3f4f6',
+                color: '#374151',
+                border: 'none',
+                borderRadius: 8,
+                cursor: 'pointer',
+                fontWeight: 500,
+                fontSize: 16,
+                flex: 1
+              }}
+            >
+              Close
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -2217,7 +2634,7 @@ export default function CourseDashboardEnhanced() {
           </div>
 
           {/* Closed Button */}
-          <button 
+          <button
             style={{
               ...styles.btn,
               background: showClosed ? "#4f46e5" : "#fff",
@@ -2381,7 +2798,18 @@ export default function CourseDashboardEnhanced() {
                   fontFamily: "Segoe UI, sans-serif",
                 }}
               >
-                <ProjectHeader project={p} />
+                <ProjectHeader
+                  project={p}
+                  toggleExpand={toggleExpand}
+                  deleteItem={deleteItem}
+                  openModal={openModal}
+                  setProjects={setProjects}
+                  dummyAssignees={dummyAssignees}
+                  priorities={priorities}
+                  priorityColors={priorityColors} // Add this line
+                  openViewDialog={openViewDialog}
+                  openEditDialog={openEditDialog}
+                />
 
                 {p.expanded && p.type !== 'event' && (
                   <div style={{ padding: 15 }}>
@@ -2396,13 +2824,13 @@ export default function CourseDashboardEnhanced() {
                       <div style={{ marginBottom: 12 }}>
                         <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Attached Files:</div>
                         {p.files.map(file => (
-                          <div 
-                            key={file.id} 
-                            style={{ 
-                              display: 'flex', 
-                              alignItems: 'center', 
-                              gap: 6, 
-                              fontSize: 12, 
+                          <div
+                            key={file.id}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 6,
+                              fontSize: 12,
                               color: '#666',
                               cursor: 'pointer',
                               padding: '4px 8px',
@@ -2462,13 +2890,13 @@ export default function CourseDashboardEnhanced() {
                       <div style={{ marginBottom: 12 }}>
                         <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Attached Files:</div>
                         {p.files.map(file => (
-                          <div 
-                            key={file.id} 
-                            style={{ 
-                              display: 'flex', 
-                              alignItems: 'center', 
-                              gap: 6, 
-                              fontSize: 12, 
+                          <div
+                            key={file.id}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 6,
+                              fontSize: 12,
                               color: '#666',
                               cursor: 'pointer',
                               padding: '4px 8px',
@@ -2558,6 +2986,21 @@ export default function CourseDashboardEnhanced() {
             </div>
           </div>
         )}
+
+        {/* Edit Dialog */}
+        <EditDialog
+          editDialog={editDialog}
+          closeEditDialog={closeEditDialog}
+          updateEditDialogData={updateEditDialogData}
+          handleSaveEdit={handleSaveEdit}
+          dummyAssignees={dummyAssignees}
+          priorities={priorities}
+          priorityColors={priorityColors}
+        />
+
+
+        {/* View Dialog */}
+        <ViewDialog />
       </div>
     </div>
   );
