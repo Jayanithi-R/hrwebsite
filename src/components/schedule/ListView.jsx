@@ -33,7 +33,7 @@ export default function CourseDashboardEnhanced() {
   const [searchQuery, setSearchQuery] = useState("");
   const [taskParentId, setTaskParentId] = useState(null);
   const [subtaskParentId, setSubtaskParentId] = useState(null);
-  const [itemType, setItemType] = useState("project"); // "project" | "task" | "subtask"
+  const [itemType, setItemType] = useState("project");
   const [isEvent, setIsEvent] = useState(false);
   const [detailView, setDetailView] = useState({ isOpen: false, type: null, data: null });
   const [projectEditMode, setProjectEditMode] = useState({});
@@ -42,6 +42,11 @@ export default function CourseDashboardEnhanced() {
   const [taskEditMode, setTaskEditMode] = useState({});
   const [groupBy, setGroupBy] = useState("project");
   const [showClosed, setShowClosed] = useState(false);
+  
+  // --- NEW: Dialog States ---
+  const [projectDialog, setProjectDialog] = useState({ isOpen: false, data: null, mode: 'create' });
+  const [eventDialog, setEventDialog] = useState({ isOpen: false, data: null, mode: 'create' });
+  const [viewDialog, setViewDialog] = useState({ isOpen: false, data: null, type: null });
 
   // --- Consolidated Form State ---
   const [formData, setFormData] = useState({
@@ -52,7 +57,8 @@ export default function CourseDashboardEnhanced() {
       due: "",
       priority: "Low",
       reminder: false,
-      files: []
+      files: [],
+      status: "To Do"
     },
     task: {
       name: "",
@@ -61,7 +67,8 @@ export default function CourseDashboardEnhanced() {
       due: "",
       priority: "Low",
       reminder: false,
-      files: []
+      files: [],
+      status: "To Do"
     },
     subtask: {
       name: "",
@@ -70,7 +77,8 @@ export default function CourseDashboardEnhanced() {
       due: "",
       priority: "Low",
       reminder: false,
-      files: []
+      files: [],
+      status: "To Do"
     },
     event: {
       name: "",
@@ -79,7 +87,8 @@ export default function CourseDashboardEnhanced() {
       due: "",
       priority: "Low",
       reminder: false,
-      files: []
+      files: [],
+      status: "To Do"
     }
   });
 
@@ -168,7 +177,7 @@ export default function CourseDashboardEnhanced() {
   const [projects, setProjects] = useState([]);
   const [events, setEvents] = useState([]);
 
-  // StatusSelector Component (already defined in your code)
+  // StatusSelector Component
   const StatusSelector = ({ value: propValue = "To Do", onChange, toggleExpand, todoExpanded }) => {
     const statuses = ["To Do", "In Progress", "Completed"];
     const colors = {
@@ -183,7 +192,6 @@ export default function CourseDashboardEnhanced() {
     const dropdownRef = useRef();
     const ref = useRef();
 
-    // Calculate dropdown height when opening
     useEffect(() => {
       if (open && dropdownRef.current) {
         const height = dropdownRef.current.scrollHeight;
@@ -193,7 +201,6 @@ export default function CourseDashboardEnhanced() {
       }
     }, [open]);
 
-    // Close dropdown if clicked outside
     useEffect(() => {
       const handleClickOutside = (event) => {
         if (ref.current && !ref.current.contains(event.target)) setOpen(false);
@@ -210,7 +217,6 @@ export default function CourseDashboardEnhanced() {
 
     return (
       <div ref={ref} style={{ position: "relative", display: "inline-block" }}>
-        {/* Current status button */}
         <div
           onClick={() => setOpen(!open)}
           style={{
@@ -229,7 +235,6 @@ export default function CourseDashboardEnhanced() {
           }}
         >
           {value}
-          {/* Arrow button */}
           <div
             onClick={(e) => {
               e.stopPropagation();
@@ -251,7 +256,6 @@ export default function CourseDashboardEnhanced() {
           </div>
         </div>
 
-        {/* Dropdown list */}
         <div
           ref={dropdownRef}
           style={{
@@ -334,7 +338,169 @@ export default function CourseDashboardEnhanced() {
   const priorityColors = { High: "#f87171", Medium: "#facc15", Low: "#4ade80" };
   const uid = () => Math.floor(Math.random() * 1000000);
 
-  // --- NEW: Search and Filter Functions ---
+  // --- NEW: Dialog Functions ---
+  const openProjectDialog = (project = null) => {
+    if (project) {
+      // Edit mode
+      setProjectDialog({
+        isOpen: true,
+        data: project,
+        mode: 'edit'
+      });
+      // Pre-fill form data
+      setFormData(prev => ({
+        ...prev,
+        project: {
+          name: project.name || "",
+          description: project.description || "",
+          assignee: project.assignee || "",
+          due: project.due || "",
+          priority: project.priority || "Low",
+          reminder: project.reminder || false,
+          files: project.files || [],
+          status: project.status || "To Do"
+        }
+      }));
+    } else {
+      // Create mode
+      setProjectDialog({
+        isOpen: true,
+        data: null,
+        mode: 'create'
+      });
+      resetFormData('project');
+    }
+  };
+
+  const openEventDialog = (event = null) => {
+    if (event) {
+      // Edit mode
+      setEventDialog({
+        isOpen: true,
+        data: event,
+        mode: 'edit'
+      });
+      // Pre-fill form data
+      setFormData(prev => ({
+        ...prev,
+        event: {
+          name: event.name || "",
+          description: event.description || "",
+          assignee: event.assignee || "",
+          due: event.due || "",
+          priority: event.priority || "Low",
+          reminder: event.reminder || false,
+          files: event.files || [],
+          status: event.status || "To Do"
+        }
+      }));
+    } else {
+      // Create mode
+      setEventDialog({
+        isOpen: true,
+        data: null,
+        mode: 'create'
+      });
+      resetFormData('event');
+    }
+  };
+
+  const openViewDialog = (data, type) => {
+    setViewDialog({
+      isOpen: true,
+      data: data,
+      type: type
+    });
+  };
+
+  const closeProjectDialog = () => {
+    setProjectDialog({ isOpen: false, data: null, mode: 'create' });
+    setUploadedFiles([]);
+  };
+
+  const closeEventDialog = () => {
+    setEventDialog({ isOpen: false, data: null, mode: 'create' });
+    setUploadedFiles([]);
+  };
+
+  const closeViewDialog = () => {
+    setViewDialog({ isOpen: false, data: null, type: null });
+  };
+
+  // --- Save Project/Event Functions ---
+  const saveProject = () => {
+    const projectForm = formData.project;
+    
+    if (!projectForm.name?.trim()) {
+      alert("Please enter a project name");
+      return;
+    }
+
+    if (projectDialog.mode === 'create') {
+      const newProject = {
+        id: uid(),
+        ...projectForm,
+        type: 'project',
+        expanded: true,
+        todoExpanded: true,
+        tasks: [],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+      setProjects(prev => [newProject, ...prev]);
+    } else {
+      // Edit mode
+      setProjects(prev => prev.map(p => 
+        p.id === projectDialog.data.id 
+          ? { 
+              ...p, 
+              ...projectForm,
+              updatedAt: new Date().toISOString()
+            } 
+          : p
+      ));
+    }
+
+    closeProjectDialog();
+  };
+
+  const saveEvent = () => {
+    const eventForm = formData.event;
+    
+    if (!eventForm.name?.trim()) {
+      alert("Please enter an event name");
+      return;
+    }
+
+    if (eventDialog.mode === 'create') {
+      const newEvent = {
+        id: uid(),
+        ...eventForm,
+        type: 'event',
+        expanded: true,
+        todoExpanded: true,
+        tasks: [],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+      setProjects(prev => [newEvent, ...prev]);
+    } else {
+      // Edit mode
+      setProjects(prev => prev.map(p => 
+        p.id === eventDialog.data.id 
+          ? { 
+              ...p, 
+              ...eventForm,
+              updatedAt: new Date().toISOString()
+            } 
+          : p
+      ));
+    }
+
+    closeEventDialog();
+  };
+
+  // --- Search and Filter Functions ---
   const handleSearch = (query) => {
     setSearchQuery(query);
   };
@@ -355,12 +521,10 @@ export default function CourseDashboardEnhanced() {
   const getFilteredProjects = () => {
     let filtered = projects;
 
-    // Filter by priority
     if (filterPriority !== "All") {
       filtered = filtered.filter(project => project.priority === filterPriority);
     }
 
-    // Filter by search query
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter(project => 
@@ -370,7 +534,6 @@ export default function CourseDashboardEnhanced() {
       );
     }
 
-    // Filter by closed status
     if (!showClosed) {
       filtered = filtered.filter(project => project.status !== "Completed");
     }
@@ -378,131 +541,8 @@ export default function CourseDashboardEnhanced() {
     return filtered;
   };
 
-  // --- NEW: File Download Handler ---
-  const handleFileDownload = (file) => {
-    // Create a temporary link element
-    const link = document.createElement('a');
-    link.href = file.url;
-    link.download = file.name;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
-
-  // --- NEW: File Preview Handler ---
-  const handleFilePreview = (file) => {
-    // For image files, open in new tab
-    if (file.type.startsWith('image/')) {
-      window.open(file.url, '_blank');
-    } else {
-      // For other files, try to open in new tab (may not work for all file types)
-      window.open(file.url, '_blank');
-    }
-  };
-
-  // --- NEW: Bulk Actions ---
-  const handleBulkDelete = (selectedIds) => {
-    if (window.confirm(`Are you sure you want to delete ${selectedIds.length} items?`)) {
-      setProjects(prev => prev.filter(project => !selectedIds.includes(project.id)));
-    }
-  };
-
-  const handleBulkStatusChange = (selectedIds, newStatus) => {
-    setProjects(prev => 
-      prev.map(project => 
-        selectedIds.includes(project.id) 
-          ? { ...project, status: newStatus, updatedAt: new Date().toISOString() }
-          : project
-      )
-    );
-  };
-
-  // --- NEW: Export Data Function ---
-  const handleExportData = () => {
-    const dataToExport = {
-      projects: projects,
-      events: events,
-      exportedAt: new Date().toISOString()
-    };
-
-    const dataStr = JSON.stringify(dataToExport, null, 2);
-    const dataBlob = new Blob([dataStr], { type: 'application/json' });
-    
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(dataBlob);
-    link.download = `course-dashboard-export-${new Date().toISOString().split('T')[0]}.json`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
-
-  // --- NEW: Import Data Function ---
-  const handleImportData = (event) => {
-    const file = event.target.files[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      try {
-        const importedData = JSON.parse(e.target.result);
-        
-        if (importedData.projects) {
-          setProjects(importedData.projects);
-        }
-        if (importedData.events) {
-          setEvents(importedData.events);
-        }
-        
-        alert('Data imported successfully!');
-      } catch (error) {
-        alert('Error importing data. Please check the file format.');
-        console.error('Import error:', error);
-      }
-    };
-    reader.readAsText(file);
-    
-    // Reset the input
-    event.target.value = '';
-  };
-
-  // --- NEW: Duplicate Project Function ---
-  const handleDuplicateProject = (projectId) => {
-    const projectToDuplicate = projects.find(p => p.id === projectId);
-    if (!projectToDuplicate) return;
-
-    const duplicatedProject = {
-      ...projectToDuplicate,
-      id: uid(),
-      name: `${projectToDuplicate.name} (Copy)`,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    };
-
-    setProjects(prev => [duplicatedProject, ...prev]);
-  };
-
-  // --- NEW: Sort Projects Function ---
-  const handleSortProjects = (sortBy) => {
-    const sortedProjects = [...projects].sort((a, b) => {
-      switch (sortBy) {
-        case 'name':
-          return a.name.localeCompare(b.name);
-        case 'dueDate':
-          return new Date(a.due) - new Date(b.due);
-        case 'priority':
-          const priorityOrder = { High: 3, Medium: 2, Low: 1 };
-          return priorityOrder[b.priority] - priorityOrder[a.priority];
-        case 'created':
-          return new Date(b.createdAt) - new Date(a.createdAt);
-        default:
-          return 0;
-      }
-    });
-    setProjects(sortedProjects);
-  };
-
-  // --- File Upload Handler ---
-  const handleFileUpload = (event) => {
+  // --- File Operations ---
+  const handleFileUpload = (event, type) => {
     const files = Array.from(event.target.files);
     const newFiles = files.map(file => ({
       id: uid(),
@@ -514,92 +554,41 @@ export default function CourseDashboardEnhanced() {
     }));
 
     setUploadedFiles(prev => [...prev, ...newFiles]);
-
-    // Update form data with uploaded files
-    if (activeModal) {
-      const currentType = isEvent ? 'event' : itemType;
-      setFormData(prev => ({
-        ...prev,
-        [currentType]: {
-          ...prev[currentType],
-          files: [...(prev[currentType].files || []), ...newFiles]
-        }
-      }));
-    }
-  };
-
-  // --- Remove File ---
-  const removeFile = (fileId) => {
-    setUploadedFiles(prev => prev.filter(file => file.id !== fileId));
-
-    if (activeModal) {
-      const currentType = isEvent ? 'event' : itemType;
-      setFormData(prev => ({
-        ...prev,
-        [currentType]: {
-          ...prev[currentType],
-          files: (prev[currentType].files || []).filter(file => file.id !== fileId)
-        }
-      }));
-    }
-  };
-
-  // --- Toggle Edit Mode ---
-  const toggleProjectEditMode = (projectId) => {
-    setProjectEditMode(prev => ({
+    setFormData(prev => ({
       ...prev,
-      [projectId]: !prev[projectId]
-    }));
-
-    if (projectEditMode[projectId] && editingValues[projectId]) {
-      const values = editingValues[projectId];
-      setProjects(prev =>
-        prev.map(project =>
-          project.id === projectId
-            ? {
-              ...project,
-              name: values.name || project.name,
-              assignee: values.assignee || project.assignee,
-              priority: values.priority || project.priority,
-              due: values.due || project.due,
-              updatedAt: new Date().toISOString()
-            }
-            : project
-        )
-      );
-      setEditingValues(prev => {
-        const newValues = { ...prev };
-        delete newValues[projectId];
-        return newValues;
-      });
-    }
-  };
-
-  // --- Update Editing Values ---
-  const updateEditingValue = (projectId, field, value) => {
-    setEditingValues(prev => ({
-      ...prev,
-      [projectId]: {
-        ...prev[projectId],
-        [field]: value
+      [type]: {
+        ...prev[type],
+        files: [...(prev[type].files || []), ...newFiles]
       }
     }));
   };
 
-  // --- Get current value for editing ---
-  const getEditingValue = (projectId, field, defaultValue = "") => {
-    return editingValues[projectId]?.[field] !== undefined
-      ? editingValues[projectId][field]
-      : defaultValue;
+  const removeFile = (fileId, type) => {
+    setUploadedFiles(prev => prev.filter(file => file.id !== fileId));
+    setFormData(prev => ({
+      ...prev,
+      [type]: {
+        ...prev[type],
+        files: (prev[type].files || []).filter(file => file.id !== fileId)
+      }
+    }));
   };
 
-  // --- Detail View Functions ---
-  const openDetailView = (type, data) => {
-    setDetailView({ isOpen: true, type, data });
+  const handleFileDownload = (file) => {
+    const link = document.createElement('a');
+    link.href = file.url;
+    link.download = file.name;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
-  const closeDetailView = () => {
-    setDetailView({ isOpen: false, type: null, data: null });
+  const handleFilePreview = (file) => {
+    if (file.type.startsWith('image/')) {
+      window.open(file.url, '_blank');
+    } else {
+      window.open(file.url, '_blank');
+    }
   };
 
   // --- Form Management ---
@@ -623,13 +612,14 @@ export default function CourseDashboardEnhanced() {
         due: "",
         priority: "Low",
         reminder: false,
-        files: []
+        files: [],
+        status: "To Do"
       }
     }));
     setUploadedFiles([]);
   };
 
-  // --- Modal Management ---
+  // --- Modal Management (for tasks/subtasks) ---
   const openModal = (modalType, parentId = null) => {
     setActiveModal(modalType);
     if (modalType === 'task') {
@@ -638,11 +628,7 @@ export default function CourseDashboardEnhanced() {
     } else if (modalType === 'subtask') {
       setItemType('subtask');
       setSubtaskParentId(parentId);
-    } else {
-      setItemType('project');
     }
-    setIsEvent(false);
-
     resetFormData(modalType);
   };
 
@@ -651,11 +637,9 @@ export default function CourseDashboardEnhanced() {
     setTaskParentId(null);
     setSubtaskParentId(null);
     setUploadedFiles([]);
-    setIsEvent(false);
-    setItemType('project');
   };
 
-  // --- Item Creation ---
+  // --- Item Creation (for tasks/subtasks) ---
   const createItem = (type, data, parentId = null) => {
     const baseItem = {
       id: uid(),
@@ -675,70 +659,57 @@ export default function CourseDashboardEnhanced() {
     };
 
     switch (type) {
-      case 'project':
-        return { ...baseItem, tasks: [] };
       case 'task':
         return { ...baseItem, subtasks: [] };
       case 'subtask':
         return baseItem;
-      case 'event':
-        return { ...baseItem, tasks: [] };
       default:
         return baseItem;
     }
   };
 
-  // --- Data Management ---
   const addItem = () => {
-    const currentType = isEvent ? 'event' : itemType;
-    const currentForm = formData[currentType];
+    const currentForm = formData[itemType];
 
     if (!currentForm?.name?.trim()) {
-      alert(`Please enter a name for the ${isEvent ? 'event' : itemType}`);
+      alert(`Please enter a name for the ${itemType}`);
       return;
     }
 
-    const item = createItem(currentType, currentForm,
+    const item = createItem(itemType, currentForm,
       itemType === 'task' ? taskParentId :
         itemType === 'subtask' ? subtaskParentId : null
     );
 
-    if (isEvent) {
-      setProjects(s => [item, ...s]);
-    } else {
-      switch (itemType) {
-        case 'project':
-          setProjects(s => [item, ...s]);
-          break;
-        case 'task':
-          if (!taskParentId) return;
-          setProjects(s => s.map(p =>
-            p.id === taskParentId ? {
-              ...p,
-              tasks: [item, ...(p.tasks || [])],
-              updatedAt: new Date().toISOString()
-            } : p
-          ));
-          break;
-        case 'subtask':
-          if (!subtaskParentId) return;
-          setProjects(s => s.map(p => ({
+    switch (itemType) {
+      case 'task':
+        if (!taskParentId) return;
+        setProjects(s => s.map(p =>
+          p.id === taskParentId ? {
             ...p,
-            tasks: (p.tasks || []).map(t =>
-              t.id === subtaskParentId ? {
-                ...t,
-                subtasks: [item, ...(t.subtasks || [])],
-                updatedAt: new Date().toISOString()
-              } : t
-            )
-          })));
-          break;
-        default:
-          return;
-      }
+            tasks: [item, ...(p.tasks || [])],
+            updatedAt: new Date().toISOString()
+          } : p
+        ));
+        break;
+      case 'subtask':
+        if (!subtaskParentId) return;
+        setProjects(s => s.map(p => ({
+          ...p,
+          tasks: (p.tasks || []).map(t =>
+            t.id === subtaskParentId ? {
+              ...t,
+              subtasks: [item, ...(t.subtasks || [])],
+              updatedAt: new Date().toISOString()
+            } : t
+          )
+        })));
+        break;
+      default:
+        return;
     }
 
-    resetFormData(currentType);
+    resetFormData(itemType);
     closeModal();
   };
 
@@ -814,7 +785,6 @@ export default function CourseDashboardEnhanced() {
   };
 
   // --- Reusable Components ---
-
   const FormField = React.memo(function FormField({
     label,
     type = "text",
@@ -933,17 +903,17 @@ export default function CourseDashboardEnhanced() {
   );
 
   // --- File Upload Component ---
-  const FileUploadSection = () => (
+  const FileUploadSection = ({ type }) => (
     <div style={{ border: '2px dashed #d1d5db', borderRadius: 8, padding: 20, textAlign: 'center' }}>
       <input
         type="file"
         multiple
-        onChange={handleFileUpload}
+        onChange={(e) => handleFileUpload(e, type)}
         style={{ display: 'none' }}
-        id="file-upload"
+        id={`file-upload-${type}`}
       />
       <label
-        htmlFor="file-upload"
+        htmlFor={`file-upload-${type}`}
         style={{
           display: 'flex',
           flexDirection: 'column',
@@ -960,10 +930,10 @@ export default function CourseDashboardEnhanced() {
         </div>
       </label>
 
-      {uploadedFiles.length > 0 && (
+      {formData[type]?.files?.length > 0 && (
         <div style={{ marginTop: 16, textAlign: 'left' }}>
           <div style={{ fontSize: 14, fontWeight: 500, marginBottom: 8 }}>Uploaded Files:</div>
-          {uploadedFiles.map(file => (
+          {formData[type].files.map(file => (
             <div
               key={file.id}
               style={{
@@ -1008,7 +978,7 @@ export default function CourseDashboardEnhanced() {
                   <Save size={16} />
                 </button>
                 <button
-                  onClick={() => removeFile(file.id)}
+                  onClick={() => removeFile(file.id, type)}
                   style={{
                     background: 'none',
                     border: 'none',
@@ -1027,6 +997,486 @@ export default function CourseDashboardEnhanced() {
       )}
     </div>
   );
+
+  // --- Project/Event Dialog Content ---
+  const renderProjectDialogContent = () => {
+    const currentForm = formData.project;
+    const isEdit = projectDialog.mode === 'edit';
+
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          <label style={{ fontSize: 14, fontWeight: 500, color: "#374151" }}>Project Name</label>
+          <input
+            type="text"
+            value={currentForm.name || ""}
+            onChange={(e) => updateFormData("project", "name", e.target.value)}
+            placeholder="Enter project name"
+            style={{
+              padding: "8px 10px",
+              border: "1px solid #ccc",
+              borderRadius: 6,
+              fontSize: 14,
+              outline: "none",
+            }}
+          />
+        </div>
+
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          <label style={{ fontSize: 14, fontWeight: 500, color: "#374151" }}>Description</label>
+          <textarea
+            value={currentForm.description || ""}
+            onChange={(e) => updateFormData("project", "description", e.target.value)}
+            placeholder="Enter project description"
+            style={{
+              padding: "8px 10px",
+              border: "1px solid #ccc",
+              borderRadius: 6,
+              fontSize: 14,
+              outline: "none",
+              minHeight: 80,
+              resize: 'vertical'
+            }}
+          />
+        </div>
+
+        <FormRow>
+          <div style={{ flex: 1, minWidth: 150, display: "flex", flexDirection: "column" }}>
+            <FormField
+              label="Assignee"
+              type="select"
+              value={currentForm.assignee || ""}
+              onChange={e => updateFormData('project', 'assignee', e.target.value)}
+              options={["", ...dummyAssignees]}
+            />
+          </div>
+          <div style={{ flex: 1, minWidth: 150, display: "flex", flexDirection: "column" }}>
+            <FormField
+              label="Due Date"
+              type="date"
+              value={currentForm.due || ""}
+              onChange={e => updateFormData('project', 'due', e.target.value)}
+            />
+          </div>
+          <div style={{ flex: 1, minWidth: 150, display: "flex", flexDirection: "column" }}>
+            <FormField
+              label="Priority"
+              type="select"
+              value={currentForm.priority || "Low"}
+              onChange={e => updateFormData('project', 'priority', e.target.value)}
+              options={priorities}
+            />
+          </div>
+        </FormRow>
+
+        <FormRow>
+          <div style={{ flex: 1, minWidth: 150, display: "flex", flexDirection: "column" }}>
+            <FormField
+              label="Status"
+              type="select"
+              value={currentForm.status || "To Do"}
+              onChange={e => updateFormData('project', 'status', e.target.value)}
+              options={["To Do", "In Progress", "Completed"]}
+            />
+          </div>
+        </FormRow>
+
+        <div style={{
+          border: '1px solid #e5e7eb',
+          borderRadius: 8,
+          padding: 16,
+          background: '#f8fafc'
+        }}>
+          <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 12, color: '#374151' }}>
+            Settings
+          </div>
+          <ToggleSwitch
+            label="Set Reminder"
+            checked={currentForm.reminder || false}
+            onChange={(checked) => updateFormData('project', 'reminder', checked)}
+            icon={Bell}
+          />
+        </div>
+
+        <div>
+          <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 8, color: '#374151' }}>
+            File Upload
+          </div>
+          <FileUploadSection type="project" />
+        </div>
+
+        <div style={{ display: 'flex', gap: 12, marginTop: 8 }}>
+          <button
+            onClick={saveProject}
+            style={{
+              padding: '12px 24px',
+              background: '#4f46e5',
+              color: '#fff',
+              border: 'none',
+              borderRadius: 8,
+              cursor: 'pointer',
+              fontWeight: 500,
+              fontSize: 16,
+              flex: 1,
+              transition: 'background 0.2s'
+            }}
+          >
+            {isEdit ? 'Update Project' : 'Create Project'}
+          </button>
+          <button
+            onClick={closeProjectDialog}
+            style={{
+              padding: '12px 24px',
+              background: '#f3f4f6',
+              color: '#374151',
+              border: 'none',
+              borderRadius: 8,
+              cursor: 'pointer',
+              fontWeight: 500,
+              fontSize: 16,
+              flex: 1,
+              transition: 'background 0.2s'
+            }}
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    );
+  };
+
+  const renderEventDialogContent = () => {
+    const currentForm = formData.event;
+    const isEdit = eventDialog.mode === 'edit';
+
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          <label style={{ fontSize: 14, fontWeight: 500, color: "#374151" }}>Event Name</label>
+          <input
+            type="text"
+            value={currentForm.name || ""}
+            onChange={(e) => updateFormData("event", "name", e.target.value)}
+            placeholder="Enter event name"
+            style={{
+              padding: "8px 10px",
+              border: "1px solid #ccc",
+              borderRadius: 6,
+              fontSize: 14,
+              outline: "none",
+            }}
+          />
+        </div>
+
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          <label style={{ fontSize: 14, fontWeight: 500, color: "#374151" }}>Description</label>
+          <textarea
+            value={currentForm.description || ""}
+            onChange={(e) => updateFormData("event", "description", e.target.value)}
+            placeholder="Enter event description"
+            style={{
+              padding: "8px 10px",
+              border: "1px solid #ccc",
+              borderRadius: 6,
+              fontSize: 14,
+              outline: "none",
+              minHeight: 80,
+              resize: 'vertical'
+            }}
+          />
+        </div>
+
+        <FormRow>
+          <div style={{ flex: 1, minWidth: 150, display: "flex", flexDirection: "column" }}>
+            <FormField
+              label="Assignee"
+              type="select"
+              value={currentForm.assignee || ""}
+              onChange={e => updateFormData('event', 'assignee', e.target.value)}
+              options={["", ...dummyAssignees]}
+            />
+          </div>
+          <div style={{ flex: 1, minWidth: 150, display: "flex", flexDirection: "column" }}>
+            <FormField
+              label="Due Date"
+              type="date"
+              value={currentForm.due || ""}
+              onChange={e => updateFormData('event', 'due', e.target.value)}
+            />
+          </div>
+          <div style={{ flex: 1, minWidth: 150, display: "flex", flexDirection: "column" }}>
+            <FormField
+              label="Priority"
+              type="select"
+              value={currentForm.priority || "Low"}
+              onChange={e => updateFormData('event', 'priority', e.target.value)}
+              options={priorities}
+            />
+          </div>
+        </FormRow>
+
+        <FormRow>
+          <div style={{ flex: 1, minWidth: 150, display: "flex", flexDirection: "column" }}>
+            <FormField
+              label="Status"
+              type="select"
+              value={currentForm.status || "To Do"}
+              onChange={e => updateFormData('event', 'status', e.target.value)}
+              options={["To Do", "In Progress", "Completed"]}
+            />
+          </div>
+        </FormRow>
+
+        <div style={{
+          border: '1px solid #e5e7eb',
+          borderRadius: 8,
+          padding: 16,
+          background: '#f8fafc'
+        }}>
+          <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 12, color: '#374151' }}>
+            Settings
+          </div>
+          <ToggleSwitch
+            label="Set Reminder"
+            checked={currentForm.reminder || false}
+            onChange={(checked) => updateFormData('event', 'reminder', checked)}
+            icon={Bell}
+          />
+        </div>
+
+        <div>
+          <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 8, color: '#374151' }}>
+            File Upload
+          </div>
+          <FileUploadSection type="event" />
+        </div>
+
+        <div style={{ display: 'flex', gap: 12, marginTop: 8 }}>
+          <button
+            onClick={saveEvent}
+            style={{
+              padding: '12px 24px',
+              background: '#4f46e5',
+              color: '#fff',
+              border: 'none',
+              borderRadius: 8,
+              cursor: 'pointer',
+              fontWeight: 500,
+              fontSize: 16,
+              flex: 1,
+              transition: 'background 0.2s'
+            }}
+          >
+            {isEdit ? 'Update Event' : 'Create Event'}
+          </button>
+          <button
+            onClick={closeEventDialog}
+            style={{
+              padding: '12px 24px',
+              background: '#f3f4f6',
+              color: '#374151',
+              border: 'none',
+              borderRadius: 8,
+              cursor: 'pointer',
+              fontWeight: 500,
+              fontSize: 16,
+              flex: 1,
+              transition: 'background 0.2s'
+            }}
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    );
+  };
+
+  // --- View Dialog Content ---
+  const renderViewDialogContent = () => {
+    const { data, type } = viewDialog;
+    if (!data) return null;
+
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <div style={{ borderBottom: '1px solid #e5e7eb', paddingBottom: 16 }}>
+          <h2 style={{ fontSize: 20, fontWeight: 600, color: '#111827', margin: 0 }}>
+            {data.name}
+          </h2>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8 }}>
+            <div style={{
+              background: type === 'event' ? '#e0f2fe' : '#f3f4f6',
+              color: type === 'event' ? '#0369a1' : '#374151',
+              padding: '2px 8px',
+              borderRadius: 12,
+              fontSize: 12,
+              fontWeight: 500,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 4
+            }}>
+              {type === 'event' ? <Clock size={12} /> : <Target size={12} />}
+              {type === 'event' ? 'Event' : 'Project'}
+            </div>
+            <div style={{
+              background: priorityColors[data.priority] + '20',
+              color: priorityColors[data.priority],
+              padding: '2px 8px',
+              borderRadius: 12,
+              fontSize: 12,
+              fontWeight: 500,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 4
+            }}>
+              <Flag size={12} />
+              {data.priority}
+            </div>
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div>
+            <label style={{ fontSize: 14, fontWeight: 600, color: '#374151' }}>Description</label>
+            <div style={{ 
+              padding: '12px', 
+              background: '#f8fafc', 
+              borderRadius: 6, 
+              marginTop: 4,
+              fontSize: 14,
+              color: '#6b7280'
+            }}>
+              {data.description || 'No description provided'}
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+            <div>
+              <label style={{ fontSize: 14, fontWeight: 600, color: '#374151' }}>Assignee</label>
+              <div style={{ marginTop: 4, fontSize: 14, color: '#6b7280' }}>
+                {data.assignee || 'Unassigned'}
+              </div>
+            </div>
+            <div>
+              <label style={{ fontSize: 14, fontWeight: 600, color: '#374151' }}>Due Date</label>
+              <div style={{ marginTop: 4, fontSize: 14, color: '#6b7280' }}>
+                {data.due || 'No due date'}
+              </div>
+            </div>
+            <div>
+              <label style={{ fontSize: 14, fontWeight: 600, color: '#374151' }}>Status</label>
+              <div style={{ marginTop: 4 }}>
+                <StatusSelector value={data.status || "To Do"} readOnly />
+              </div>
+            </div>
+            <div>
+              <label style={{ fontSize: 14, fontWeight: 600, color: '#374151' }}>Reminder</label>
+              <div style={{ marginTop: 4, fontSize: 14, color: '#6b7280' }}>
+                {data.reminder ? 'On' : 'Off'}
+              </div>
+            </div>
+          </div>
+
+          {data.files && data.files.length > 0 && (
+            <div>
+              <label style={{ fontSize: 14, fontWeight: 600, color: '#374151' }}>Attached Files</label>
+              <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {data.files.map(file => (
+                  <div
+                    key={file.id}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '8px 12px',
+                      background: '#f8fafc',
+                      borderRadius: 6
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <FileText size={16} />
+                      <span style={{ fontSize: 14 }}>{file.name}</span>
+                    </div>
+                    <div style={{ display: 'flex', gap: 4 }}>
+                      <button
+                        onClick={() => handleFilePreview(file)}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          color: '#4f46e5',
+                          cursor: 'pointer',
+                          padding: 4
+                        }}
+                        title="Preview"
+                      >
+                        <Eye size={16} />
+                      </button>
+                      <button
+                        onClick={() => handleFileDownload(file)}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          color: '#059669',
+                          cursor: 'pointer',
+                          padding: 4
+                        }}
+                        title="Download"
+                      >
+                        <Save size={16} />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div style={{ display: 'flex', gap: 12, marginTop: 8 }}>
+          <button
+            onClick={() => {
+              closeViewDialog();
+              if (type === 'project') {
+                openProjectDialog(data);
+              } else {
+                openEventDialog(data);
+              }
+            }}
+            style={{
+              padding: '12px 24px',
+              background: '#4f46e5',
+              color: '#fff',
+              border: 'none',
+              borderRadius: 8,
+              cursor: 'pointer',
+              fontWeight: 500,
+              fontSize: 16,
+              flex: 1,
+              transition: 'background 0.2s'
+            }}
+          >
+            Edit
+          </button>
+          <button
+            onClick={closeViewDialog}
+            style={{
+              padding: '12px 24px',
+              background: '#f3f4f6',
+              color: '#374151',
+              border: 'none',
+              borderRadius: 8,
+              cursor: 'pointer',
+              fontWeight: 500,
+              fontSize: 16,
+              flex: 1,
+              transition: 'background 0.2s'
+            }}
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    );
+  };
 
   // --- Render Task List Function ---
   const renderTaskList = (tasks) => {
@@ -1397,37 +1847,10 @@ export default function CourseDashboardEnhanced() {
     const [showAssigneeDropdown, setShowAssigneeDropdown] = useState(false);
     const [showPriorityDropdown, setShowPriorityDropdown] = useState(false);
 
-    const currentName = getEditingValue(project.id, 'name', project.name);
-    const currentAssignee = getEditingValue(project.id, 'assignee', project.assignee);
-    const currentPriority = getEditingValue(project.id, 'priority', project.priority);
-    const currentDue = getEditingValue(project.id, 'due', project.due);
-
-    const handleInputChange = (field, value) => {
-      updateEditingValue(project.id, field, value);
-    };
-
-    const handleSave = () => {
-      setProjects(prev =>
-        prev.map(p =>
-          p.id === project.id
-            ? {
-              ...p,
-              name: currentName || p.name,
-              assignee: currentAssignee || p.assignee,
-              priority: currentPriority || p.priority,
-              due: currentDue || p.due,
-              updatedAt: new Date().toISOString()
-            }
-            : p
-        )
-      );
-      setProjectEditMode(prev => ({ ...prev, [project.id]: false }));
-      setEditingValues(prev => {
-        const newValues = { ...prev };
-        delete newValues[project.id];
-        return newValues;
-      });
-    };
+    const currentName = project.name;
+    const currentAssignee = project.assignee;
+    const currentPriority = project.priority;
+    const currentDue = project.due;
 
     return (
       <div style={{
@@ -1453,45 +1876,27 @@ export default function CourseDashboardEnhanced() {
             {project.expanded ? "▼" : "▶"}
           </button>
 
-          {isEditing ? (
-            <input
-              type="text"
-              value={currentName}
-              onChange={(e) => handleInputChange('name', e.target.value)}
-              style={{
-                border: '1px solid #d1d5db',
-                borderRadius: 6,
-                padding: '6px 10px',
-                outline: 'none',
-                fontSize: 16,
-                fontWeight: 600,
-                width: 200
-              }}
-              autoFocus
-            />
-          ) : (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ fontSize: 16, fontWeight: 600 }}>
-                {project.name || "Untitled Project"}
-              </span>
-              {project.type === 'event' && (
-                <div style={{
-                  background: '#e0f2fe',
-                  color: '#0369a1',
-                  padding: '2px 8px',
-                  borderRadius: 12,
-                  fontSize: 12,
-                  fontWeight: 500,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 4
-                }}>
-                  <Clock size={12} />
-                  Event
-                </div>
-              )}
-            </div>
-          )}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ fontSize: 16, fontWeight: 600 }}>
+              {project.name || "Untitled Project"}
+            </span>
+            {project.type === 'event' && (
+              <div style={{
+                background: '#e0f2fe',
+                color: '#0369a1',
+                padding: '2px 8px',
+                borderRadius: 12,
+                fontSize: 12,
+                fontWeight: 500,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 4
+              }}>
+                <Clock size={12} />
+                Event
+              </div>
+            )}
+          </div>
         </div>
 
         <div style={{ display: "flex", justifyContent: "space-around", alignItems: "center", width: "60%" }}>
@@ -1529,7 +1934,6 @@ export default function CourseDashboardEnhanced() {
                 position: "relative",
                 overflow: "hidden"
               }}
-              onClick={() => isEditing && setShowAssigneeDropdown(!showAssigneeDropdown)}
             >
               {currentAssignee ? (
                 <span>
@@ -1544,45 +1948,6 @@ export default function CourseDashboardEnhanced() {
                 <User size={18} />
               )}
             </button>
-            {isEditing && showAssigneeDropdown && (
-              <div
-                style={{
-                  position: "absolute",
-                  top: "100%",
-                  right: 0,
-                  background: "#fff",
-                  border: "1px solid #ccc",
-                  borderRadius: "4px",
-                  boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
-                  zIndex: 100,
-                  minWidth: "150px",
-                  marginTop: "4px",
-                }}
-              >
-                {dummyAssignees.map((assignee) => (
-                  <div
-                    key={assignee}
-                    style={{
-                      padding: "8px 12px",
-                      cursor: "pointer",
-                      borderBottom: "1px solid #eee",
-                      background: currentAssignee === assignee ? "#f3f4f6" : "transparent",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 8
-                    }}
-                    onClick={() => {
-                      handleInputChange('assignee', assignee);
-                      setShowAssigneeDropdown(false);
-                    }}
-                    onMouseEnter={(e) => (e.currentTarget.style.background = "#f2f2f2")}
-                    onMouseLeave={(e) => (e.currentTarget.style.background = currentAssignee === assignee ? "#f3f4f6" : "#fff")}
-                  >
-                    <span>{assignee}</span>
-                  </div>
-                ))}
-              </div>
-            )}
           </div>
 
           {/* Priority Button */}
@@ -1601,58 +1966,9 @@ export default function CourseDashboardEnhanced() {
                 transition: "background 0.2s",
                 background: "#fff",
               }}
-              onClick={() => isEditing && setShowPriorityDropdown(!showPriorityDropdown)}
             >
               <Flag color={priorityColors[currentPriority]} />
             </button>
-            {isEditing && showPriorityDropdown && (
-              <div
-                style={{
-                  position: "absolute",
-                  top: "100%",
-                  right: 0,
-                  background: "#fff",
-                  border: "1px solid #ccc",
-                  borderRadius: "4px",
-                  boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
-                  zIndex: 100,
-                  minWidth: "120px",
-                  marginTop: "4px",
-                  background: "#fff",
-                }}
-              >
-                {priorities.map((priority) => (
-                  <div
-                    key={priority}
-                    style={{
-                      padding: "8px 12px",
-                      cursor: "pointer",
-                      borderBottom: "1px solid #eee",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 8,
-                      background: currentPriority === priority ? "#f3f4f6" : "transparent",
-                    }}
-                    onClick={() => {
-                      handleInputChange('priority', priority);
-                      setShowPriorityDropdown(false);
-                    }}
-                    onMouseEnter={(e) => (e.currentTarget.style.background = "#f2f2f2")}
-                    onMouseLeave={(e) => (e.currentTarget.style.background = currentPriority === priority ? "#f3f4f6" : "#fff")}
-                  >
-                    <div
-                      style={{
-                        width: 8,
-                        height: 8,
-                        borderRadius: "50%",
-                        background: priorityColors[priority]
-                      }}
-                    />
-                    {priority}
-                  </div>
-                ))}
-              </div>
-            )}
           </div>
 
           {/* Calendar Button */}
@@ -1671,12 +1987,6 @@ export default function CourseDashboardEnhanced() {
                 transition: "background 0.2s",
                 background: "#fff",
               }}
-              onClick={() =>
-                isEditing &&
-                document
-                  .getElementById(`calendar-input-${project.id}`)
-                  ?.showPicker()
-              }
             >
               <CalendarIcon />
             </button>
@@ -1684,32 +1994,14 @@ export default function CourseDashboardEnhanced() {
             <div style={{ fontSize: 14, color: "#333" }}>
               {currentDue}
             </div>
-
-            {isEditing && (
-              <input
-                id={`calendar-input-${project.id}`}
-                type="date"
-                value={currentDue}
-                onChange={(e) => handleInputChange("due", e.target.value)}
-                style={{
-                  position: "absolute",
-                  top: 0,
-                  left: 0,
-                  opacity: 0,
-                  width: 30,
-                  height: 30,
-                  cursor: "pointer",
-                }}
-              />
-            )}
           </div>
 
           {/* action Button */}
           <div style={{ position: "relative", display: "flex", alignItems: "center", gap: 8 }}>
-            {/* Settings Button - Toggle Edit Mode */}
+            {/* View Button */}
             <button
-              title={isEditing ? "Save Changes" : "Edit Project"}
-              onClick={isEditing ? handleSave : () => setProjectEditMode(prev => ({ ...prev, [project.id]: true }))}
+              title="View Details"
+              onClick={() => openViewDialog(project, project.type)}
               style={{
                 cursor: "pointer",
                 border: "none",
@@ -1720,32 +2012,58 @@ export default function CourseDashboardEnhanced() {
                 alignItems: "center",
                 justifyContent: "center",
                 transition: "background 0.2s",
-                background: isEditing ? "#4f46e5" : "transparent",
-                color: isEditing ? "white" : "inherit"
+                background: "transparent",
+                color: "#4f46e5"
               }}
             >
-              {isEditing ? <Save size={16} /> : <Edit3 size={16} />}
+              <Eye size={16} />
             </button>
+
+            {/* Edit Button */}
             <button
-              onClick={() => openModal("task", project.id)} // ✅ use project.id
+              title="Edit"
+              onClick={() => project.type === 'event' ? openEventDialog(project) : openProjectDialog(project)}
               style={{
-                padding: "6px 12px",
+                cursor: "pointer",
                 border: "none",
                 borderRadius: 4,
-                backgroundColor: "#4f46e5",
-                color: "#fff",
-                cursor: "pointer",
-                fontSize: 14,
+                width: 30,
+                height: 30,
                 display: "flex",
                 alignItems: "center",
-                gap: 4
+                justifyContent: "center",
+                transition: "background 0.2s",
+                background: "transparent",
+                color: "inherit"
               }}
             >
-              <Plus size={14} /> Add Task
+              <Edit3 size={16} />
             </button>
-            {/* Delete Project Button */}
+
+            {/* Add Task Button (only for projects) */}
+            {project.type === 'project' && (
+              <button
+                onClick={() => openModal("task", project.id)}
+                style={{
+                  padding: "6px 12px",
+                  border: "none",
+                  borderRadius: 4,
+                  backgroundColor: "#4f46e5",
+                  color: "#fff",
+                  cursor: "pointer",
+                  fontSize: 14,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 4
+                }}
+              >
+                <Plus size={14} /> Add Task
+              </button>
+            )}
+
+            {/* Delete Button */}
             <button
-              title="Delete Project"
+              title="Delete"
               onClick={() => deleteItem(project.id, 'project')}
               style={{
                 cursor: "pointer",
@@ -1765,233 +2083,6 @@ export default function CourseDashboardEnhanced() {
             </button>            
          </div>
 
-        </div>
-      </div>
-    );
-  };
-
-  // --- Enhanced Modal Content ---
-  const renderModalContent = () => {
-    const currentType = isEvent ? 'event' : itemType;
-    const currentForm = formData[currentType] || {};
-
-    return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-        {/* Main Toggle - Event vs Project/Task/Subtask */}
-        <div style={{
-          display: 'flex',
-          gap: 8,
-          marginBottom: 10,
-          borderBottom: '1px solid #e5e7eb',
-          paddingBottom: 8
-        }}>
-          <button
-            onClick={() => setIsEvent(false)}
-            style={!isEvent ? {
-              flex: 1,
-              padding: '10px 16px',
-              border: 'none',
-              borderBottom: '3px solid #4f46e5',
-              background: 'transparent',
-              fontWeight: 600,
-              cursor: 'pointer',
-              color: '#4f46e5',
-              fontSize: 16,
-              transition: 'all 0.2s',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 8
-            } : {
-              flex: 1,
-              padding: '10px 16px',
-              border: 'none',
-              borderBottom: '3px solid transparent',
-              background: 'transparent',
-              fontWeight: 400,
-              cursor: 'pointer',
-              color: '#6b7280',
-              fontSize: 16,
-              transition: 'all 0.2s',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 8
-            }}
-          >
-            <Target size={18} />
-            Project/Task
-          </button>
-          <button
-            onClick={() => setIsEvent(true)}
-            style={isEvent ? {
-              flex: 1,
-              padding: '10px 16px',
-              border: 'none',
-              borderBottom: '3px solid #4f46e5',
-              background: 'transparent',
-              fontWeight: 600,
-              cursor: 'pointer',
-              color: '#4f46e5',
-              fontSize: 16,
-              transition: 'all 0.2s',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 8
-            } : {
-              flex: 1,
-              padding: '10px 16px',
-              border: 'none',
-              borderBottom: '3px solid transparent',
-              background: 'transparent',
-              fontWeight: 400,
-              cursor: 'pointer',
-              color: '#6b7280',
-              fontSize: 16,
-              transition: 'all 0.2s',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 8
-            }}
-          >
-            <Clock size={18} />
-            Event
-          </button>
-        </div>
-
-        {/* Name Field */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-          <label style={{ fontSize: 14, fontWeight: 500, color: "#374151" }}>
-            {`${isEvent ? "Event" : itemType.charAt(0).toUpperCase() + itemType.slice(1)} Name`}
-          </label>
-          <input
-            type="text"
-            value={currentForm.name || ""}
-            onChange={(e) => updateFormData(currentType, "name", e.target.value)}
-            placeholder={`Enter ${isEvent ? "event" : itemType} name`}
-            style={{
-              padding: "8px 10px",
-              border: "1px solid #ccc",
-              borderRadius: 6,
-              fontSize: 14,
-              outline: "none",
-            }}
-          />
-        </div>
-
-        {/* Description Field */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-          <label style={{ fontSize: 14, fontWeight: 500, color: "#374151" }}>Description</label>
-          <input
-            type="text"
-            value={currentForm.description || ""}
-            onChange={(e) => updateFormData(currentType, "description", e.target.value)}
-            placeholder="Enter description"
-            style={{
-              padding: "8px 10px",
-              border: "1px solid #ccc",
-              borderRadius: 6,
-              fontSize: 14,
-              outline: "none",
-            }}
-          />
-        </div>
-
-        {/* Form Row - Assignee, Due Date, Priority */}
-        <FormRow>
-          <div style={{ flex: 1, minWidth: 150, display: "flex", flexDirection: "column" }}>
-            <FormField
-              label="Assignee"
-              type="select"
-              value={currentForm.assignee || ""}
-              onChange={e => updateFormData(currentType, 'assignee', e.target.value)}
-              options={["", ...dummyAssignees]}
-            />
-          </div>
-          <div style={{ flex: 1, minWidth: 150, display: "flex", flexDirection: "column" }}>
-            <FormField
-              label="Due Date"
-              type="date"
-              value={currentForm.due || ""}
-              onChange={e => updateFormData(currentType, 'due', e.target.value)}
-            />
-          </div>
-          <div style={{ flex: 1, minWidth: 150, display: "flex", flexDirection: "column" }}>
-            <FormField
-              label="Priority"
-              type="select"
-              value={currentForm.priority || "Low"}
-              onChange={e => updateFormData(currentType, 'priority', e.target.value)}
-              options={priorities}
-            />
-          </div>
-        </FormRow>
-
-        {/* Toggles Section */}
-        <div style={{
-          border: '1px solid #e5e7eb',
-          borderRadius: 8,
-          padding: 16,
-          background: '#f8fafc'
-        }}>
-          <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 12, color: '#374151' }}>
-            Settings
-          </div>
-
-          <ToggleSwitch
-            label="Set Reminder"
-            checked={currentForm.reminder || false}
-            onChange={(checked) => updateFormData(currentType, 'reminder', checked)}
-            icon={Bell}
-          />
-        </div>
-
-        {/* File Upload Section */}
-        <div>
-          <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 8, color: '#374151' }}>
-            File Upload
-          </div>
-          <FileUploadSection />
-        </div>
-
-        {/* Action Buttons */}
-        <div style={{ display: 'flex', gap: 12, marginTop: 8 }}>
-          <button
-            onClick={addItem}
-            style={{
-              padding: '12px 24px',
-              background: '#4f46e5',
-              color: '#fff',
-              border: 'none',
-              borderRadius: 8,
-              cursor: 'pointer',
-              fontWeight: 500,
-              fontSize: 16,
-              flex: 1,
-              transition: 'background 0.2s'
-            }}
-          >
-            Create {isEvent ? 'Event' : itemType.charAt(0).toUpperCase() + itemType.slice(1)}
-          </button>
-          <button
-            onClick={closeModal}
-            style={{
-              padding: '12px 24px',
-              background: '#f3f4f6',
-              color: '#374151',
-              border: 'none',
-              borderRadius: 8,
-              cursor: 'pointer',
-              fontWeight: 500,
-              fontSize: 16,
-              flex: 1,
-              transition: 'background 0.2s'
-            }}
-          >
-            Cancel
-          </button>
         </div>
       </div>
     );
@@ -2043,23 +2134,10 @@ export default function CourseDashboardEnhanced() {
         gap: "4px",
         height: "32px",
       },
-      profileIcon: {
-        width: "28px",
-        height: "28px",
-        borderRadius: "50%",
-        background: "#007bff",
-        color: "#fff",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        fontWeight: "bold",
-        fontSize: "14px",
-        cursor: "pointer",
-      },
       searchBox: {
         display: "flex",
         alignItems: "center",
-        border: "none",
+        border: "1px solid #ccc",
         borderRadius: "14px",
         background: "#fff",
         padding: "4px 8px",
@@ -2155,7 +2233,6 @@ export default function CourseDashboardEnhanced() {
                       borderBottom: "1px solid #eee",
                     }}
                     onClick={() => {
-                      handleSortProjects(option.value);
                       setShowSortDropdown(false);
                     }}
                   >
@@ -2241,71 +2318,9 @@ export default function CourseDashboardEnhanced() {
             />
           </div>
 
-          {/* More Options Dropdown */}
-          <div style={{ position: "relative" }}>
-            <button
-              style={styles.btn}
-              onClick={() => setShowMoreDropdown(!showMoreDropdown)}
-            >
-              <Settings size={18} />
-            </button>
-
-            {showMoreDropdown && (
-              <div
-                style={{
-                  position: "absolute",
-                  top: "100%",
-                  right: 0,
-                  background: "#fff",
-                  border: "1px solid #ccc",
-                  borderRadius: "6px",
-                  boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
-                  zIndex: 100,
-                  minWidth: "160px",
-                  marginTop: "4px",
-                }}
-              >
-                <div
-                  style={{
-                    padding: "8px 12px",
-                    cursor: "pointer",
-                    borderBottom: "1px solid #eee",
-                  }}
-                  onClick={() => {
-                    handleExportData();
-                    setShowMoreDropdown(false);
-                  }}
-                >
-                  Export Data
-                </div>
-                <div
-                  style={{
-                    padding: "8px 12px",
-                    cursor: "pointer",
-                  }}
-                  onClick={() => {
-                    document.getElementById('import-data')?.click();
-                    setShowMoreDropdown(false);
-                  }}
-                >
-                  Import Data
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Hidden import input */}
-          <input
-            type="file"
-            id="import-data"
-            accept=".json"
-            onChange={handleImportData}
-            style={{ display: 'none' }}
-          />
-
-          {/* Add Project/Event Button */}
+          {/* Add Project Button */}
           <button
-            onClick={() => openModal('project')}
+            onClick={() => openProjectDialog()}
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -2321,7 +2336,28 @@ export default function CourseDashboardEnhanced() {
               transition: 'background 0.2s'
             }}
           >
-            <Plus size={16} /> Add Project/Event
+            <Plus size={16} /> Add Project
+          </button>
+
+          {/* Add Event Button */}
+          <button
+            onClick={() => openEventDialog()}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+              padding: '8px 16px',
+              background: '#059669',
+              color: '#fff',
+              border: 'none',
+              borderRadius: 6,
+              cursor: 'pointer',
+              fontWeight: 500,
+              fontSize: 14,
+              transition: 'background 0.2s'
+            }}
+          >
+            <Plus size={16} /> Add Event
           </button>
 
           {/* Clear All Button */}
@@ -2385,7 +2421,6 @@ export default function CourseDashboardEnhanced() {
 
                 {p.expanded && p.type !== 'event' && (
                   <div style={{ padding: 15 }}>
-
                     {p.description && (
                       <div style={{ fontSize: 13, color: "#666", marginBottom: 8, padding: 8, background: '#f8fafc', borderRadius: 4 }}>
                         {p.description}
@@ -2434,7 +2469,7 @@ export default function CourseDashboardEnhanced() {
                     <div style={{ display: 'flex', gap: 16, marginBottom: 12, flexWrap: 'wrap' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: '#666' }}>
                         <User size={12} />
-                        <strong>Assignee:</strong> {p.assignee || "Unassigned"}
+                        <strong>Assignee:</strong> {p.assignee || 'Unassigned'}
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: '#666' }}>
                         <Flag size={12} color={priorityColors[p.priority]} />
@@ -2442,7 +2477,7 @@ export default function CourseDashboardEnhanced() {
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: '#666' }}>
                         <CalendarIcon size={12} />
-                        <strong>Date:</strong> {p.due || "No date set"}
+                        <strong>Date:</strong> {p.due || 'No date set'}
                       </div>
                       {p.reminder && (
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: '#666' }}>
@@ -2496,12 +2531,186 @@ export default function CourseDashboardEnhanced() {
               color: '#6b7280',
               fontSize: 16
             }}>
-              No projects found. {searchQuery || filterPriority !== "All" ? "Try adjusting your search or filters." : "Click \"Add Project/Event\" to create your first project."}
+              No projects found. {searchQuery || filterPriority !== "All" ? "Try adjusting your search or filters." : "Click \"Add Project\" to create your first project."}
             </div>
           )}
         </div>
 
-        {/* Create Modal */}
+        {/* Project Dialog */}
+        {projectDialog.isOpen && (
+          <div style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            background: 'rgba(0,0,0,0.4)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000
+          }}>
+            <div style={{
+              background: '#fff',
+              borderRadius: 12,
+              padding: 24,
+              width: '90%',
+              maxWidth: 600,
+              maxHeight: '90vh',
+              overflowY: 'auto',
+              boxShadow: '0 20px 25px rgba(0,0,0,0.15)'
+            }}>
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: 20,
+                paddingBottom: 16,
+                borderBottom: '1px solid #e5e7eb'
+              }}>
+                <div style={{ fontWeight: 600, fontSize: 20, color: '#111827' }}>
+                  {projectDialog.mode === 'edit' ? 'Edit Project' : 'Create New Project'}
+                </div>
+                <button onClick={closeProjectDialog} style={{
+                  background: 'transparent',
+                  border: 'none',
+                  cursor: 'pointer',
+                  padding: 8,
+                  borderRadius: 6,
+                  color: '#6b7280',
+                  transition: 'background 0.2s',
+                  fontSize: 24,
+                  width: 32,
+                  height: 32,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  ×
+                </button>
+              </div>
+              {renderProjectDialogContent()}
+            </div>
+          </div>
+        )}
+
+        {/* Event Dialog */}
+        {eventDialog.isOpen && (
+          <div style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            background: 'rgba(0,0,0,0.4)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000
+          }}>
+            <div style={{
+              background: '#fff',
+              borderRadius: 12,
+              padding: 24,
+              width: '90%',
+              maxWidth: 600,
+              maxHeight: '90vh',
+              overflowY: 'auto',
+              boxShadow: '0 20px 25px rgba(0,0,0,0.15)'
+            }}>
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: 20,
+                paddingBottom: 16,
+                borderBottom: '1px solid #e5e7eb'
+              }}>
+                <div style={{ fontWeight: 600, fontSize: 20, color: '#111827' }}>
+                  {eventDialog.mode === 'edit' ? 'Edit Event' : 'Create New Event'}
+                </div>
+                <button onClick={closeEventDialog} style={{
+                  background: 'transparent',
+                  border: 'none',
+                  cursor: 'pointer',
+                  padding: 8,
+                  borderRadius: 6,
+                  color: '#6b7280',
+                  transition: 'background 0.2s',
+                  fontSize: 24,
+                  width: 32,
+                  height: 32,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  ×
+                </button>
+              </div>
+              {renderEventDialogContent()}
+            </div>
+          </div>
+        )}
+
+        {/* View Dialog */}
+        {viewDialog.isOpen && (
+          <div style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            background: 'rgba(0,0,0,0.4)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000
+          }}>
+            <div style={{
+              background: '#fff',
+              borderRadius: 12,
+              padding: 24,
+              width: '90%',
+              maxWidth: 600,
+              maxHeight: '90vh',
+              overflowY: 'auto',
+              boxShadow: '0 20px 25px rgba(0,0,0,0.15)'
+            }}>
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: 20,
+                paddingBottom: 16,
+                borderBottom: '1px solid #e5e7eb'
+              }}>
+                <div style={{ fontWeight: 600, fontSize: 20, color: '#111827' }}>
+                  {viewDialog.type === 'event' ? 'Event Details' : 'Project Details'}
+                </div>
+                <button onClick={closeViewDialog} style={{
+                  background: 'transparent',
+                  border: 'none',
+                  cursor: 'pointer',
+                  padding: 8,
+                  borderRadius: 6,
+                  color: '#6b7280',
+                  transition: 'background 0.2s',
+                  fontSize: 24,
+                  width: 32,
+                  height: 32,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  ×
+                </button>
+              </div>
+              {renderViewDialogContent()}
+            </div>
+          </div>
+        )}
+
+        {/* Task/Subtask Modal (existing functionality) */}
         {activeModal && (
           <div style={{
             position: 'fixed',
@@ -2534,7 +2743,7 @@ export default function CourseDashboardEnhanced() {
                 borderBottom: '1px solid #e5e7eb'
               }}>
                 <div style={{ fontWeight: 600, fontSize: 20, color: '#111827' }}>
-                  Create New {isEvent ? 'Event' : itemType.charAt(0).toUpperCase() + itemType.slice(1)}
+                  Create New {itemType.charAt(0).toUpperCase() + itemType.slice(1)}
                 </div>
                 <button onClick={closeModal} style={{
                   background: 'transparent',
@@ -2554,7 +2763,7 @@ export default function CourseDashboardEnhanced() {
                   ×
                 </button>
               </div>
-              {renderModalContent()}
+              {/* Existing modal content for tasks/subtasks */}
             </div>
           </div>
         )}

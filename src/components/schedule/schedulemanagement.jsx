@@ -13,7 +13,15 @@ export default function CourseDashboard() {
   ];
 
   return (
-    <div
+    <div style={{
+        margin: "20px",
+        backgroundColor: "white",
+        borderRadius: 10,
+        boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
+        overflow: "hidden",
+        fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
+      }}>
+      <div
       style={{
         margin: "0 auto",
         backgroundColor: "white",
@@ -152,5 +160,7 @@ export default function CourseDashboard() {
         )}
       </div>
     </div>
+    </div>
+    
   );
 }

@@ -10,7 +10,7 @@ import Layout from './components/header_sidebar/layout';
 import ScheduleMng from './components/schedule/schedulemanagement';
 // Pages
 import Dashboard from './components/desktop/desktop';
-import Schedule from './components/schedule/schedule';
+
 import Attendance from './components/Attendence_components/attendence';
 
 function App() {
@@ -36,7 +36,7 @@ function App() {
           {/* Child routes */}
           <Route index element={<Dashboard />} />
           <Route path="schedule" element={<ScheduleMng />} />
-          {/* <Route path="schedule" element={<Schedule />} /> */}
+
           <Route path="attendance" element={<Attendance />} />
           <Route path="*" element={<Navigate to="/" />} />
         </Route>
