@@ -1,25 +1,23 @@
 "use client";
-
 import React, { useState, useEffect, useRef } from "react";
 import Sidebar from "./sidebar";
 import { Bell, Search } from "lucide-react";
 import { Box } from "@mui/material";
 import { Outlet } from "react-router-dom";
-
+import { useNavigate } from "react-router-dom"; // :white_check_mark: NEW: Import for navigation
 // Example feature list
 const FEATURES = ["Schedule", "Attendance", "Create Request", "Employees", "Reports", "Settings"];
-
 function TopNavbar() {
   const [isDesktop, setIsDesktop] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [filteredFeatures, setFilteredFeatures] = useState([]);
   const [notifOpen, setNotifOpen] = useState(false);
-
   const searchRef = useRef(null);
   const notifRef = useRef(null);
   const inputRef = useRef(null);
-
+  // :white_check_mark: NEW: Navigate hook
+  const navigate = useNavigate();
   // Set initial desktop state and listen for resize
   useEffect(() => {
     const handleResize = () => setIsDesktop(window.innerWidth >= 640);
@@ -27,7 +25,6 @@ function TopNavbar() {
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
-
   // Close dropdowns if clicked outside
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -42,20 +39,16 @@ function TopNavbar() {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
-
   // Focus input when search opens
   useEffect(() => {
     if (searchOpen && inputRef.current) inputRef.current.focus();
   }, [searchOpen]);
-
   // Handlers
   const handleSearchClick = () => setSearchOpen(!searchOpen);
   const handleNotifClick = () => setNotifOpen(!notifOpen);
-
   const handleSearchChange = (e) => {
     const value = e.target.value;
     setSearchQuery(value);
-
     if (!value.trim()) {
       setFilteredFeatures([]);
     } else {
@@ -65,18 +58,19 @@ function TopNavbar() {
       setFilteredFeatures(filtered);
     }
   };
-
   const handleSearchSubmit = (e) => {
     e.preventDefault();
     alert(`Searching for: ${searchQuery}`);
     setSearchOpen(false);
     setFilteredFeatures([]);
   };
-
+  // :white_check_mark: NEW: Navigate to Schedule
+  const handleScheduleClick = () => {
+    navigate('/schedule'); // Navigates to /schedule route (renders ScheduleMng)
+  };
   return (
     <div style={{ width: "100%", backgroundColor: "white", boxShadow: "0 1px 2px rgba(0,0,0,0.1)", position: "relative" }}>
       <Sidebar />
-
       {/* Navbar */}
       <div
         style={{
@@ -95,14 +89,13 @@ function TopNavbar() {
           />
           {isDesktop && (
             <div style={{ display: "flex", flexDirection: "column" }}>
-              <p style={{ fontWeight: 600, color: "#1f2937", margin: 0 }}>Juwita</p>
-              <p style={{ fontSize: "0.875rem", color: "#6b7280", margin: 0, display: "flex", alignItems: "center", gap: "4px" }}>
-                Welcome back to HRsync <span>👋</span>
+              <p style={{ fontWeight: 600, color: "#1F2937", margin: 0 }}>Juwita</p>
+              <p style={{ fontSize: "0.875rem", color: "#6B7280", margin: 0, display: "flex", alignItems: "center", gap: "4px" }}>
+                Welcome back to HRsync <span>:wave:</span>
               </p>
             </div>
           )}
         </div>
-
         {/* Right: Buttons */}
         <div style={{ display: "flex", alignItems: "center", gap: "12px", position: "relative" }}>
           {/* Search Button */}
@@ -119,7 +112,6 @@ function TopNavbar() {
           >
             <Search size={18} />
           </button>
-
           {/* Desktop Search Bar */}
           {isDesktop && searchOpen && (
             <div ref={searchRef} style={{ position: "relative" }}>
@@ -133,7 +125,7 @@ function TopNavbar() {
                   style={{
                     padding: "8px 12px",
                     borderRadius: "6px",
-                    border: "1px solid #d1d5db",
+                    border: "1px solid #D1D5DB",
                     outline: "none",
                     minWidth: "200px",
                   }}
@@ -143,7 +135,7 @@ function TopNavbar() {
                   style={{
                     padding: "8px 16px",
                     borderRadius: "6px",
-                    backgroundColor: "#2563eb",
+                    backgroundColor: "#2563EB",
                     color: "white",
                     border: "none",
                     cursor: "pointer",
@@ -152,7 +144,6 @@ function TopNavbar() {
                   Go
                 </button>
               </form>
-
               {/* Search Dropdown */}
               {filteredFeatures.length > 0 && (
                 <div style={{
@@ -171,7 +162,7 @@ function TopNavbar() {
                       style={{
                         padding: "8px 12px",
                         cursor: "pointer",
-                        borderBottom: "1px solid #e5e7eb"
+                        borderBottom: "1px solid #E5E7EB"
                       }}
                       onClick={() => alert(`Clicked on ${feature}`)}
                     >
@@ -182,7 +173,6 @@ function TopNavbar() {
               )}
             </div>
           )}
-
           {/* Notification Button */}
           <div style={{ position: "relative" }} ref={notifRef}>
             <button
@@ -210,7 +200,6 @@ function TopNavbar() {
                 }}
               />
             </button>
-
             {/* Notification Dropdown */}
             {notifOpen && (
               <div style={{
@@ -223,21 +212,21 @@ function TopNavbar() {
                 width: "250px",
                 zIndex: 50,
               }}>
-                <div style={{ padding: "10px", borderBottom: "1px solid #e5e7eb" }}>Notification 1</div>
-                <div style={{ padding: "10px", borderBottom: "1px solid #e5e7eb" }}>Notification 2</div>
+                <div style={{ padding: "10px", borderBottom: "1px solid #E5E7EB" }}>Notification 1</div>
+                <div style={{ padding: "10px", borderBottom: "1px solid #E5E7EB" }}>Notification 2</div>
                 <div style={{ padding: "10px" }}>Notification 3</div>
               </div>
             )}
           </div>
-
           {/* Desktop Action Buttons */}
           {isDesktop && (
             <>
+              {/* :white_check_mark: FIXED: Schedule Button - Now Navigates to /schedule */}
               <button
-                onClick={() => alert("Schedule clicked!")}
+                onClick={handleScheduleClick}
                 style={{
                   padding: "8px 16px",
-                  border: "1px solid #d1d5db",
+                  border: "1px solid #D1D5DB",
                   borderRadius: "6px",
                   backgroundColor: "white",
                   color: "#374151",
@@ -246,24 +235,10 @@ function TopNavbar() {
               >
                 Schedule
               </button>
-              {/* <button
-                onClick={() => alert("Create Request clicked!")}
-                style={{
-                  padding: "8px 16px",
-                  borderRadius: "6px",
-                  backgroundColor: "#2563eb",
-                  color: "white",
-                  border: "none",
-                  cursor: "pointer",
-                }}
-              >
-                Create Request
-              </button> */}
             </>
           )}
         </div>
       </div>
-
       {/* Mobile Search Bar Below Navbar */}
       {!isDesktop && searchOpen && (
         <div style={{ padding: "10px 35px", backgroundColor: "white", boxShadow: "0 1px 2px rgba(0,0,0,0.1)" }} ref={searchRef}>
@@ -278,7 +253,7 @@ function TopNavbar() {
                 flex: 1,
                 padding: "8px 12px",
                 borderRadius: "6px",
-                border: "1px solid #d1d5db",
+                border: "1px solid #D1D5DB",
                 outline: "none",
               }}
             />
@@ -287,7 +262,7 @@ function TopNavbar() {
               style={{
                 padding: "8px 16px",
                 borderRadius: "6px",
-                backgroundColor: "#2563eb",
+                backgroundColor: "#2563EB",
                 color: "white",
                 border: "none",
                 cursor: "pointer",
@@ -296,7 +271,6 @@ function TopNavbar() {
               Go
             </button>
           </form>
-
           {filteredFeatures.length > 0 && (
             <div style={{
               marginTop: "4px",
@@ -311,7 +285,7 @@ function TopNavbar() {
                   style={{
                     padding: "8px 12px",
                     cursor: "pointer",
-                    borderBottom: "1px solid #e5e7eb"
+                    borderBottom: "1px solid #E5E7EB"
                   }}
                   onClick={() => alert(`Clicked on ${feature}`)}
                 >
@@ -325,5 +299,9 @@ function TopNavbar() {
     </div>
   );
 }
-
 export default TopNavbar;
+
+
+
+
+
