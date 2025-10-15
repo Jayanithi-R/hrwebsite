@@ -43,9 +43,11 @@ export default function CourseDashboardEnhanced() {
   const [groupBy, setGroupBy] = useState("project");
   const [showClosed, setShowClosed] = useState(false);
   
-  // --- NEW: Dialog States ---
+  // --- Dialog States ---
   const [projectDialog, setProjectDialog] = useState({ isOpen: false, data: null, mode: 'create' });
   const [eventDialog, setEventDialog] = useState({ isOpen: false, data: null, mode: 'create' });
+  const [taskDialog, setTaskDialog] = useState({ isOpen: false, data: null, mode: 'create', parentId: null });
+  const [subtaskDialog, setSubtaskDialog] = useState({ isOpen: false, data: null, mode: 'create', parentId: null });
   const [viewDialog, setViewDialog] = useState({ isOpen: false, data: null, type: null });
 
   // --- Consolidated Form State ---
@@ -338,16 +340,194 @@ export default function CourseDashboardEnhanced() {
   const priorityColors = { High: "#f87171", Medium: "#facc15", Low: "#4ade80" };
   const uid = () => Math.floor(Math.random() * 1000000);
 
-  // --- NEW: Dialog Functions ---
+  // --- NEW: Task Dialog Functions ---
+  const openTaskDialog = (task = null, parentId = null) => {
+    if (task) {
+      // Edit mode
+      setTaskDialog({
+        isOpen: true,
+        data: task,
+        mode: 'edit',
+        parentId: parentId
+      });
+      // Pre-fill form data
+      setFormData(prev => ({
+        ...prev,
+        task: {
+          name: task.name || "",
+          description: task.description || "",
+          assignee: task.assignee || "",
+          due: task.due || "",
+          priority: task.priority || "Low",
+          reminder: task.reminder || false,
+          files: task.files || [],
+          status: task.status || "To Do"
+        }
+      }));
+    } else {
+      // Create mode
+      setTaskDialog({
+        isOpen: true,
+        data: null,
+        mode: 'create',
+        parentId: parentId
+      });
+      resetFormData('task');
+    }
+  };
+
+  const openSubtaskDialog = (subtask = null, parentId = null) => {
+    if (subtask) {
+      // Edit mode
+      setSubtaskDialog({
+        isOpen: true,
+        data: subtask,
+        mode: 'edit',
+        parentId: parentId
+      });
+      // Pre-fill form data
+      setFormData(prev => ({
+        ...prev,
+        subtask: {
+          name: subtask.name || "",
+          description: subtask.description || "",
+          assignee: subtask.assignee || "",
+          due: subtask.due || "",
+          priority: subtask.priority || "Low",
+          reminder: subtask.reminder || false,
+          files: subtask.files || [],
+          status: subtask.status || "To Do"
+        }
+      }));
+    } else {
+      // Create mode
+      setSubtaskDialog({
+        isOpen: true,
+        data: null,
+        mode: 'create',
+        parentId: parentId
+      });
+      resetFormData('subtask');
+    }
+  };
+
+  const closeTaskDialog = () => {
+    setTaskDialog({ isOpen: false, data: null, mode: 'create', parentId: null });
+    setUploadedFiles([]);
+  };
+
+  const closeSubtaskDialog = () => {
+    setSubtaskDialog({ isOpen: false, data: null, mode: 'create', parentId: null });
+    setUploadedFiles([]);
+  };
+
+  // --- Save Task/Subtask Functions ---
+  const saveTask = () => {
+    const taskForm = formData.task;
+    
+    if (!taskForm.name?.trim()) {
+      alert("Please enter a task name");
+      return;
+    }
+
+    if (taskDialog.mode === 'create') {
+      const newTask = {
+        id: uid(),
+        ...taskForm,
+        type: 'task',
+        expanded: true,
+        subtasks: [],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+
+      setProjects(prev => prev.map(project => 
+        project.id === taskDialog.parentId 
+          ? {
+              ...project,
+              tasks: [newTask, ...(project.tasks || [])],
+              updatedAt: new Date().toISOString()
+            }
+          : project
+      ));
+    } else {
+      // Edit mode
+      setProjects(prev => prev.map(project => ({
+        ...project,
+        tasks: (project.tasks || []).map(task =>
+          task.id === taskDialog.data.id
+            ? {
+                ...task,
+                ...taskForm,
+                updatedAt: new Date().toISOString()
+              }
+            : task
+        )
+      })));
+    }
+
+    closeTaskDialog();
+  };
+
+  const saveSubtask = () => {
+    const subtaskForm = formData.subtask;
+    
+    if (!subtaskForm.name?.trim()) {
+      alert("Please enter a subtask name");
+      return;
+    }
+
+    if (subtaskDialog.mode === 'create') {
+      const newSubtask = {
+        id: uid(),
+        ...subtaskForm,
+        type: 'subtask',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+
+      setProjects(prev => prev.map(project => ({
+        ...project,
+        tasks: (project.tasks || []).map(task =>
+          task.id === subtaskDialog.parentId
+            ? {
+                ...task,
+                subtasks: [newSubtask, ...(task.subtasks || [])],
+                updatedAt: new Date().toISOString()
+              }
+            : task
+        )
+      })));
+    } else {
+      // Edit mode
+      setProjects(prev => prev.map(project => ({
+        ...project,
+        tasks: (project.tasks || []).map(task => ({
+          ...task,
+          subtasks: (task.subtasks || []).map(subtask =>
+            subtask.id === subtaskDialog.data.id
+              ? {
+                  ...subtask,
+                  ...subtaskForm,
+                  updatedAt: new Date().toISOString()
+                }
+              : subtask
+          )
+        }))
+      })));
+    }
+
+    closeSubtaskDialog();
+  };
+
+  // --- Project/Event Dialog Functions ---
   const openProjectDialog = (project = null) => {
     if (project) {
-      // Edit mode
       setProjectDialog({
         isOpen: true,
         data: project,
         mode: 'edit'
       });
-      // Pre-fill form data
       setFormData(prev => ({
         ...prev,
         project: {
@@ -362,7 +542,6 @@ export default function CourseDashboardEnhanced() {
         }
       }));
     } else {
-      // Create mode
       setProjectDialog({
         isOpen: true,
         data: null,
@@ -374,13 +553,11 @@ export default function CourseDashboardEnhanced() {
 
   const openEventDialog = (event = null) => {
     if (event) {
-      // Edit mode
       setEventDialog({
         isOpen: true,
         data: event,
         mode: 'edit'
       });
-      // Pre-fill form data
       setFormData(prev => ({
         ...prev,
         event: {
@@ -395,7 +572,6 @@ export default function CourseDashboardEnhanced() {
         }
       }));
     } else {
-      // Create mode
       setEventDialog({
         isOpen: true,
         data: null,
@@ -449,7 +625,6 @@ export default function CourseDashboardEnhanced() {
       };
       setProjects(prev => [newProject, ...prev]);
     } else {
-      // Edit mode
       setProjects(prev => prev.map(p => 
         p.id === projectDialog.data.id 
           ? { 
@@ -485,7 +660,6 @@ export default function CourseDashboardEnhanced() {
       };
       setProjects(prev => [newEvent, ...prev]);
     } else {
-      // Edit mode
       setProjects(prev => prev.map(p => 
         p.id === eventDialog.data.id 
           ? { 
@@ -619,100 +793,6 @@ export default function CourseDashboardEnhanced() {
     setUploadedFiles([]);
   };
 
-  // --- Modal Management (for tasks/subtasks) ---
-  const openModal = (modalType, parentId = null) => {
-    setActiveModal(modalType);
-    if (modalType === 'task') {
-      setItemType('task');
-      setTaskParentId(parentId);
-    } else if (modalType === 'subtask') {
-      setItemType('subtask');
-      setSubtaskParentId(parentId);
-    }
-    resetFormData(modalType);
-  };
-
-  const closeModal = () => {
-    setActiveModal(null);
-    setTaskParentId(null);
-    setSubtaskParentId(null);
-    setUploadedFiles([]);
-  };
-
-  // --- Item Creation (for tasks/subtasks) ---
-  const createItem = (type, data, parentId = null) => {
-    const baseItem = {
-      id: uid(),
-      name: data.name.trim(),
-      description: data.description,
-      assignee: data.assignee,
-      due: data.due,
-      priority: data.priority,
-      reminder: data.reminder,
-      files: data.files || [],
-      type: type,
-      expanded: true,
-      todoExpanded: true,
-      status: "To Do",
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    };
-
-    switch (type) {
-      case 'task':
-        return { ...baseItem, subtasks: [] };
-      case 'subtask':
-        return baseItem;
-      default:
-        return baseItem;
-    }
-  };
-
-  const addItem = () => {
-    const currentForm = formData[itemType];
-
-    if (!currentForm?.name?.trim()) {
-      alert(`Please enter a name for the ${itemType}`);
-      return;
-    }
-
-    const item = createItem(itemType, currentForm,
-      itemType === 'task' ? taskParentId :
-        itemType === 'subtask' ? subtaskParentId : null
-    );
-
-    switch (itemType) {
-      case 'task':
-        if (!taskParentId) return;
-        setProjects(s => s.map(p =>
-          p.id === taskParentId ? {
-            ...p,
-            tasks: [item, ...(p.tasks || [])],
-            updatedAt: new Date().toISOString()
-          } : p
-        ));
-        break;
-      case 'subtask':
-        if (!subtaskParentId) return;
-        setProjects(s => s.map(p => ({
-          ...p,
-          tasks: (p.tasks || []).map(t =>
-            t.id === subtaskParentId ? {
-              ...t,
-              subtasks: [item, ...(t.subtasks || [])],
-              updatedAt: new Date().toISOString()
-            } : t
-          )
-        })));
-        break;
-      default:
-        return;
-    }
-
-    resetFormData(itemType);
-    closeModal();
-  };
-
   // --- Expand/Collapse ---
   const toggleExpand = (id, type = 'project') => {
     setProjects(s => s.map(item => {
@@ -760,18 +840,6 @@ export default function CourseDashboardEnhanced() {
         })));
         break;
     }
-  };
-
-  // --- Task Update Handler ---
-  const handleUpdateTask = (updatedTask) => {
-    setProjects(prev =>
-      prev.map(project => ({
-        ...project,
-        tasks: (project.tasks || []).map(task =>
-          task.id === updatedTask.id ? updatedTask : task
-        )
-      }))
-    );
   };
 
   // --- Clear All Data ---
@@ -998,7 +1066,301 @@ export default function CourseDashboardEnhanced() {
     </div>
   );
 
-  // --- Project/Event Dialog Content ---
+  // --- Task Dialog Content ---
+  const renderTaskDialogContent = () => {
+    const currentForm = formData.task;
+    const isEdit = taskDialog.mode === 'edit';
+
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          <label style={{ fontSize: 14, fontWeight: 500, color: "#374151" }}>Task Name</label>
+          <input
+            type="text"
+            value={currentForm.name || ""}
+            onChange={(e) => updateFormData("task", "name", e.target.value)}
+            placeholder="Enter task name"
+            style={{
+              padding: "8px 10px",
+              border: "1px solid #ccc",
+              borderRadius: 6,
+              fontSize: 14,
+              outline: "none",
+            }}
+          />
+        </div>
+
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          <label style={{ fontSize: 14, fontWeight: 500, color: "#374151" }}>Description</label>
+          <textarea
+            value={currentForm.description || ""}
+            onChange={(e) => updateFormData("task", "description", e.target.value)}
+            placeholder="Enter task description"
+            style={{
+              padding: "8px 10px",
+              border: "1px solid #ccc",
+              borderRadius: 6,
+              fontSize: 14,
+              outline: "none",
+              minHeight: 80,
+              resize: 'vertical'
+            }}
+          />
+        </div>
+
+        <FormRow>
+          <div style={{ flex: 1, minWidth: 150, display: "flex", flexDirection: "column" }}>
+            <FormField
+              label="Assignee"
+              type="select"
+              value={currentForm.assignee || ""}
+              onChange={e => updateFormData('task', 'assignee', e.target.value)}
+              options={["", ...dummyAssignees]}
+            />
+          </div>
+          <div style={{ flex: 1, minWidth: 150, display: "flex", flexDirection: "column" }}>
+            <FormField
+              label="Due Date"
+              type="date"
+              value={currentForm.due || ""}
+              onChange={e => updateFormData('task', 'due', e.target.value)}
+            />
+          </div>
+          <div style={{ flex: 1, minWidth: 150, display: "flex", flexDirection: "column" }}>
+            <FormField
+              label="Priority"
+              type="select"
+              value={currentForm.priority || "Low"}
+              onChange={e => updateFormData('task', 'priority', e.target.value)}
+              options={priorities}
+            />
+          </div>
+        </FormRow>
+
+        <FormRow>
+          <div style={{ flex: 1, minWidth: 150, display: "flex", flexDirection: "column" }}>
+            <FormField
+              label="Status"
+              type="select"
+              value={currentForm.status || "To Do"}
+              onChange={e => updateFormData('task', 'status', e.target.value)}
+              options={["To Do", "In Progress", "Completed"]}
+            />
+          </div>
+        </FormRow>
+
+        <div style={{
+          border: '1px solid #e5e7eb',
+          borderRadius: 8,
+          padding: 16,
+          background: '#f8fafc'
+        }}>
+          <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 12, color: '#374151' }}>
+            Settings
+          </div>
+          <ToggleSwitch
+            label="Set Reminder"
+            checked={currentForm.reminder || false}
+            onChange={(checked) => updateFormData('task', 'reminder', checked)}
+            icon={Bell}
+          />
+        </div>
+
+        <div>
+          <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 8, color: '#374151' }}>
+            File Upload
+          </div>
+          <FileUploadSection type="task" />
+        </div>
+
+        <div style={{ display: 'flex', gap: 12, marginTop: 8 }}>
+          <button
+            onClick={saveTask}
+            style={{
+              padding: '12px 24px',
+              background: '#4f46e5',
+              color: '#fff',
+              border: 'none',
+              borderRadius: 8,
+              cursor: 'pointer',
+              fontWeight: 500,
+              fontSize: 16,
+              flex: 1,
+              transition: 'background 0.2s'
+            }}
+          >
+            {isEdit ? 'Update Task' : 'Create Task'}
+          </button>
+          <button
+            onClick={closeTaskDialog}
+            style={{
+              padding: '12px 24px',
+              background: '#f3f4f6',
+              color: '#374151',
+              border: 'none',
+              borderRadius: 8,
+              cursor: 'pointer',
+              fontWeight: 500,
+              fontSize: 16,
+              flex: 1,
+              transition: 'background 0.2s'
+            }}
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    );
+  };
+
+  // --- Subtask Dialog Content ---
+  const renderSubtaskDialogContent = () => {
+    const currentForm = formData.subtask;
+    const isEdit = subtaskDialog.mode === 'edit';
+
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          <label style={{ fontSize: 14, fontWeight: 500, color: "#374151" }}>Subtask Name</label>
+          <input
+            type="text"
+            value={currentForm.name || ""}
+            onChange={(e) => updateFormData("subtask", "name", e.target.value)}
+            placeholder="Enter subtask name"
+            style={{
+              padding: "8px 10px",
+              border: "1px solid #ccc",
+              borderRadius: 6,
+              fontSize: 14,
+              outline: "none",
+            }}
+          />
+        </div>
+
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          <label style={{ fontSize: 14, fontWeight: 500, color: "#374151" }}>Description</label>
+          <textarea
+            value={currentForm.description || ""}
+            onChange={(e) => updateFormData("subtask", "description", e.target.value)}
+            placeholder="Enter subtask description"
+            style={{
+              padding: "8px 10px",
+              border: "1px solid #ccc",
+              borderRadius: 6,
+              fontSize: 14,
+              outline: "none",
+              minHeight: 80,
+              resize: 'vertical'
+            }}
+          />
+        </div>
+
+        <FormRow>
+          <div style={{ flex: 1, minWidth: 150, display: "flex", flexDirection: "column" }}>
+            <FormField
+              label="Assignee"
+              type="select"
+              value={currentForm.assignee || ""}
+              onChange={e => updateFormData('subtask', 'assignee', e.target.value)}
+              options={["", ...dummyAssignees]}
+            />
+          </div>
+          <div style={{ flex: 1, minWidth: 150, display: "flex", flexDirection: "column" }}>
+            <FormField
+              label="Due Date"
+              type="date"
+              value={currentForm.due || ""}
+              onChange={e => updateFormData('subtask', 'due', e.target.value)}
+            />
+          </div>
+          <div style={{ flex: 1, minWidth: 150, display: "flex", flexDirection: "column" }}>
+            <FormField
+              label="Priority"
+              type="select"
+              value={currentForm.priority || "Low"}
+              onChange={e => updateFormData('subtask', 'priority', e.target.value)}
+              options={priorities}
+            />
+          </div>
+        </FormRow>
+
+        <FormRow>
+          <div style={{ flex: 1, minWidth: 150, display: "flex", flexDirection: "column" }}>
+            <FormField
+              label="Status"
+              type="select"
+              value={currentForm.status || "To Do"}
+              onChange={e => updateFormData('subtask', 'status', e.target.value)}
+              options={["To Do", "In Progress", "Completed"]}
+            />
+          </div>
+        </FormRow>
+
+        <div style={{
+          border: '1px solid #e5e7eb',
+          borderRadius: 8,
+          padding: 16,
+          background: '#f8fafc'
+        }}>
+          <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 12, color: '#374151' }}>
+            Settings
+          </div>
+          <ToggleSwitch
+            label="Set Reminder"
+            checked={currentForm.reminder || false}
+            onChange={(checked) => updateFormData('subtask', 'reminder', checked)}
+            icon={Bell}
+          />
+        </div>
+
+        <div>
+          <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 8, color: '#374151' }}>
+            File Upload
+          </div>
+          <FileUploadSection type="subtask" />
+        </div>
+
+        <div style={{ display: 'flex', gap: 12, marginTop: 8 }}>
+          <button
+            onClick={saveSubtask}
+            style={{
+              padding: '12px 24px',
+              background: '#4f46e5',
+              color: '#fff',
+              border: 'none',
+              borderRadius: 8,
+              cursor: 'pointer',
+              fontWeight: 500,
+              fontSize: 16,
+              flex: 1,
+              transition: 'background 0.2s'
+            }}
+          >
+            {isEdit ? 'Update Subtask' : 'Create Subtask'}
+          </button>
+          <button
+            onClick={closeSubtaskDialog}
+            style={{
+              padding: '12px 24px',
+              background: '#f3f4f6',
+              color: '#374151',
+              border: 'none',
+              borderRadius: 8,
+              cursor: 'pointer',
+              fontWeight: 500,
+              fontSize: 16,
+              flex: 1,
+              transition: 'background 0.2s'
+            }}
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    );
+  };
+
+  // --- Project/Event Dialog Content (existing) ---
   const renderProjectDialogContent = () => {
     const currentForm = formData.project;
     const isEdit = projectDialog.mode === 'edit';
@@ -1291,7 +1653,7 @@ export default function CourseDashboardEnhanced() {
     );
   };
 
-  // --- View Dialog Content ---
+  // --- View Dialog Content (existing) ---
   const renderViewDialogContent = () => {
     const { data, type } = viewDialog;
     if (!data) return null;
@@ -1478,6 +1840,241 @@ export default function CourseDashboardEnhanced() {
     );
   };
 
+  // --- TaskItem Component (Updated with Dialog Integration) ---
+  const TaskItem = ({
+    task,
+    level = 0,
+    dummyAssignees = [],
+    priorities = [],
+    priorityColors = {},
+    deleteItem
+  }) => {
+    const [isExpanded, setIsExpanded] = useState(true);
+
+    const toggleExpand = () => setIsExpanded(prev => !prev);
+
+    return (
+      <>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "1.5fr 1fr 0.6fr 0.6fr 0.8fr 0.8fr",
+            alignItems: "center",
+            padding: "10px 16px",
+            backgroundColor: level === 0 ? "#f9fafb" : "#ffffff",
+            borderBottom: "1px solid #e5e7eb",
+            marginLeft: level * 20,
+            borderLeft: level > 0 ? "2px solid #4f46e5" : "none",
+          }}
+        >
+          {/* --- Task Name & Expand --- */}
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            {task.subtasks?.length > 0 && (
+              <button
+                onClick={toggleExpand}
+                style={{
+                  cursor: "pointer",
+                  background: "none",
+                  border: "none",
+                  fontSize: 14,
+                  transform: isExpanded ? "rotate(90deg)" : "rotate(0deg)",
+                  transition: "transform 0.2s ease"
+                }}
+              >
+                ▶
+              </button>
+            )}
+
+            <span style={{ fontWeight: 600, fontSize: 14, color: "#111827" }}>
+              {task.name}
+            </span>
+          </div>
+
+          {/* --- Status --- */}
+          <div>
+            <StatusSelector
+              value={task.status || "To Do"}
+              onChange={(status) => {
+                if (level === 0) {
+                  // Update task status
+                  setProjects(prev => prev.map(project => ({
+                    ...project,
+                    tasks: (project.tasks || []).map(t =>
+                      t.id === task.id ? { ...t, status, updatedAt: new Date().toISOString() } : t
+                    )
+                  })));
+                } else {
+                  // Update subtask status
+                  setProjects(prev => prev.map(project => ({
+                    ...project,
+                    tasks: (project.tasks || []).map(t => ({
+                      ...t,
+                      subtasks: (t.subtasks || []).map(st =>
+                        st.id === task.id ? { ...st, status, updatedAt: new Date().toISOString() } : st
+                      )
+                    }))
+                  })));
+                }
+              }}
+            />
+          </div>
+
+          {/* --- Assignee --- */}
+          <div style={{ position: "relative" }}>
+            <button
+              style={{
+                cursor: "default",
+                border: "none",
+                borderRadius: "50%",
+                width: 32,
+                height: 32,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                backgroundColor: "#007bff",
+                color: "#fff",
+                fontWeight: "bold",
+                fontSize: 14
+              }}
+            >
+              {task.assignee
+                ? task.assignee.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2)
+                : <User size={16} />}
+            </button>
+          </div>
+
+          {/* --- Priority --- */}
+          <div style={{ position: "relative" }}>
+            <button
+              style={{
+                cursor: "pointer",
+                border: "none",
+                background: "none",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center"
+              }}
+            >
+              <Flag color={priorityColors[task.priority]} size={18} />
+            </button>
+          </div>
+
+          {/* --- Due Date --- */}
+          <div style={{ display: "flex", alignItems: "center", gap: 8, position: "relative" }}>
+            <button
+              style={{
+                border: "none",
+                background: "none",
+                cursor: "default"
+              }}
+            >
+              <CalendarIcon size={18} />
+            </button>
+
+            <span style={{ fontSize: 14, color: "#374151" }}>
+              {task.due || "—"}
+            </span>
+          </div>
+
+          {/* --- Actions --- */}
+          <div style={{ display: "flex", alignItems: "center", gap: 8, justifyContent: "flex-end" }}>
+            {/* View Button */}
+            <button
+              title="View Details"
+              onClick={() => openViewDialog(task, level === 0 ? 'task' : 'subtask')}
+              style={{
+                border: "none",
+                borderRadius: 4,
+                width: 30,
+                height: 30,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                background: "transparent",
+                color: "#4f46e5",
+                cursor: "pointer"
+              }}
+            >
+              <Eye size={16} />
+            </button>
+
+            {/* Edit Button */}
+            <button
+              title="Edit"
+              onClick={() => level === 0 ? openTaskDialog(task) : openSubtaskDialog(task)}
+              style={{
+                border: "none",
+                borderRadius: 4,
+                width: 30,
+                height: 30,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                background: "#f3f4f6",
+                color: "#111827",
+                cursor: "pointer"
+              }}
+            >
+              <Edit3 size={14} />
+            </button>
+
+            {/* Delete Button */}
+            <button
+              title={`Delete ${level === 0 ? 'Task' : 'Subtask'}`}
+              onClick={() => deleteItem?.(task.id, level === 0 ? "task" : "subtask")}
+              style={{
+                border: "none",
+                borderRadius: 4,
+                width: 30,
+                height: 30,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                background: "#ef4444",
+                color: "white",
+                cursor: "pointer"
+              }}
+            >
+              <Trash2 size={16} />
+            </button>
+
+            {/* Add Subtask Button (only for tasks) */}
+            {level === 0 && (
+              <button
+                onClick={() => openSubtaskDialog(null, task.id)}
+                style={{
+                  padding: "6px 10px",
+                  border: "none",
+                  borderRadius: 4,
+                  backgroundColor: "#4f46e5",
+                  color: "#fff",
+                  cursor: "pointer",
+                  fontSize: 13
+                }}
+              >
+                + Subtask
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* --- Subtasks --- */}
+        {isExpanded &&
+          task.subtasks?.map(subtask => (
+            <TaskItem
+              key={subtask.id}
+              task={subtask}
+              level={level + 1}
+              dummyAssignees={dummyAssignees}
+              priorities={priorities}
+              priorityColors={priorityColors}
+              deleteItem={deleteItem}
+            />
+          ))}
+      </>
+    );
+  };
+
   // --- Render Task List Function ---
   const renderTaskList = (tasks) => {
     const taskList = tasks || [];
@@ -1491,8 +2088,6 @@ export default function CourseDashboardEnhanced() {
           priorities={priorities}
           priorityColors={priorityColors}
           deleteItem={deleteItem}
-          openModal={openModal}
-          handleUpdateTask={handleUpdateTask}
         />
       ))
     ) : (
@@ -1502,356 +2097,8 @@ export default function CourseDashboardEnhanced() {
     );
   };
 
-  // --- TaskItem Component ---
-  const TaskItem = ({
-  task,
-  level = 0,
-  dummyAssignees = [],
-  priorities = [],
-  priorityColors = {},
-  deleteItem,
-  openModal,
-  handleUpdateTask
-}) => {
-  const [isEditing, setIsEditing] = useState(false);
-  const [isExpanded, setIsExpanded] = useState(true);
-  const [showAssigneeDropdown, setShowAssigneeDropdown] = useState(false);
-  const [showPriorityDropdown, setShowPriorityDropdown] = useState(false);
-
-  const [editValues, setEditValues] = useState({
-    name: task.name,
-    assignee: task.assignee || "",
-    priority: task.priority || priorities[0] || "",
-    due: task.due || ""
-  });
-
-  const handleInputChange = (field, value) =>
-    setEditValues(prev => ({ ...prev, [field]: value }));
-
-  const handleSave = () => {
-    handleUpdateTask?.({ ...task, ...editValues, updatedAt: new Date().toISOString() });
-    setIsEditing(false);
-  };
-
-  const handleCancel = () => {
-    setEditValues({
-      name: task.name,
-      assignee: task.assignee || "",
-      priority: task.priority || priorities[0] || "",
-      due: task.due || ""
-    });
-    setIsEditing(false);
-  };
-
-  const toggleExpand = () => setIsExpanded(prev => !prev);
-
-  return (
-    <>
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns:
-            "1.5fr 1fr 0.6fr 0.6fr 0.8fr 0.8fr",
-          alignItems: "center",
-          padding: "10px 16px",
-          backgroundColor: level === 0 ? "#f9fafb" : "#ffffff",
-          borderBottom: "1px solid #e5e7eb",
-          marginLeft: level * 20,
-          borderLeft: level > 0 ? "2px solid #4f46e5" : "none",
-        }}
-      >
-        {/* --- Task Name & Expand --- */}
-        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          {task.subtasks?.length > 0 && (
-            <button
-              onClick={toggleExpand}
-              style={{
-                cursor: "pointer",
-                background: "none",
-                border: "none",
-                fontSize: 14,
-                transform: isExpanded ? "rotate(90deg)" : "rotate(0deg)",
-                transition: "transform 0.2s ease"
-              }}
-            >
-              ▶
-            </button>
-          )}
-
-          {isEditing ? (
-            <input
-              type="text"
-              value={editValues.name}
-              onChange={e => handleInputChange("name", e.target.value)}
-              style={{
-                border: "1px solid #d1d5db",
-                borderRadius: 6,
-                padding: "6px 10px",
-                fontSize: 14,
-                fontWeight: 600,
-                width: "100%"
-              }}
-              autoFocus
-            />
-          ) : (
-            <span style={{ fontWeight: 600, fontSize: 14, color: "#111827" }}>
-              {task.name}
-            </span>
-          )}
-        </div>
-
-        {/* --- Status --- */}
-        <div>
-          <StatusSelector
-            value={task.status || "To Do"}
-            onChange={status => handleUpdateTask?.({ ...task, status })}
-          />
-        </div>
-
-        {/* --- Assignee --- */}
-        <div style={{ position: "relative" }}>
-          <button
-            onClick={() => isEditing && setShowAssigneeDropdown(!showAssigneeDropdown)}
-            style={{
-              cursor: isEditing ? "pointer" : "default",
-              border: "none",
-              borderRadius: "50%",
-              width: 32,
-              height: 32,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              backgroundColor: "#007bff",
-              color: "#fff",
-              fontWeight: "bold",
-              fontSize: 14
-            }}
-          >
-            {editValues.assignee
-              ? editValues.assignee.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2)
-              : <User size={16} />}
-          </button>
-
-          {isEditing && showAssigneeDropdown && (
-            <div
-              style={{
-                position: "absolute",
-                top: "110%",
-                left: 0,
-                background: "#fff",
-                border: "1px solid #ccc",
-                borderRadius: 4,
-                boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
-                minWidth: 140,
-                zIndex: 10
-              }}
-            >
-              {dummyAssignees.map(a => (
-                <div
-                  key={a}
-                  style={{
-                    padding: "8px 12px",
-                    cursor: "pointer",
-                    background: editValues.assignee === a ? "#f3f4f6" : "transparent"
-                  }}
-                  onClick={() => {
-                    handleInputChange("assignee", a);
-                    setShowAssigneeDropdown(false);
-                  }}
-                >
-                  {a}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* --- Priority --- */}
-        <div style={{ position: "relative" }}>
-          <button
-            onClick={() => isEditing && setShowPriorityDropdown(!showPriorityDropdown)}
-            style={{
-              cursor: "pointer",
-              border: "none",
-              background: "none",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center"
-            }}
-          >
-            <Flag color={priorityColors[editValues.priority]} size={18} />
-          </button>
-
-          {isEditing && showPriorityDropdown && (
-            <div
-              style={{
-                position: "absolute",
-                top: "110%",
-                left: 0,
-                background: "#fff",
-                border: "1px solid #ccc",
-                borderRadius: 4,
-                boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
-                minWidth: 120
-              }}
-            >
-              {priorities.map(p => (
-                <div
-                  key={p}
-                  onClick={() => {
-                    handleInputChange("priority", p);
-                    setShowPriorityDropdown(false);
-                  }}
-                  style={{
-                    padding: "8px 12px",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 8,
-                    cursor: "pointer",
-                    background: editValues.priority === p ? "#f3f4f6" : "transparent"
-                  }}
-                >
-                  <div
-                    style={{
-                      width: 8,
-                      height: 8,
-                      borderRadius: "50%",
-                      background: priorityColors[p]
-                    }}
-                  />
-                  {p}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* --- Due Date --- */}
-        <div style={{ display: "flex", alignItems: "center", gap: 8, position: "relative" }}>
-          <button
-            style={{
-              border: "none",
-              background: "none",
-              cursor: isEditing ? "pointer" : "default"
-            }}
-            onClick={() =>
-              isEditing &&
-              document.getElementById(`calendar-input-${task.id}`)?.showPicker()
-            }
-          >
-            <CalendarIcon size={18} />
-          </button>
-
-          <span style={{ fontSize: 14, color: "#374151" }}>
-            {editValues.due || "—"}
-          </span>
-
-          {isEditing && (
-            <input
-              id={`calendar-input-${task.id}`}
-              type="date"
-              value={editValues.due}
-              onChange={e => handleInputChange("due", e.target.value)}
-              style={{
-                position: "absolute",
-                opacity: 0,
-                width: 30,
-                height: 30,
-                cursor: "pointer"
-              }}
-            />
-          )}
-        </div>
-
-        {/* --- Actions --- */}
-        <div style={{ display: "flex", alignItems: "center", gap: 8, justifyContent: "flex-end" }}>
-          <button
-            title={isEditing ? "Save" : "Edit"}
-            onClick={isEditing ? handleSave : () => setIsEditing(true)}
-            style={{
-              border: "none",
-              borderRadius: 4,
-              width: 30,
-              height: 30,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              background: isEditing ? "#4f46e5" : "#f3f4f6",
-              color: isEditing ? "white" : "#111827",
-              cursor: "pointer"
-            }}
-          >
-            {isEditing ? <Save size={16} /> : <Edit3 size={14} />}
-          </button>
-
-          <button
-            title="Delete Task"
-            onClick={() => deleteItem?.(task.id, "task")}
-            style={{
-              border: "none",
-              borderRadius: 4,
-              width: 30,
-              height: 30,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              background: "#ef4444",
-              color: "white",
-              cursor: "pointer"
-            }}
-          >
-            <Trash2 size={16} />
-          </button>
-
-          {!isEditing && level === 0 && (
-            <button
-              onClick={() => openModal?.("subtask", task.id)}
-              style={{
-                padding: "6px 10px",
-                border: "none",
-                borderRadius: 4,
-                backgroundColor: "#4f46e5",
-                color: "#fff",
-                cursor: "pointer",
-                fontSize: 13
-              }}
-            >
-              + Subtask
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* --- Subtasks --- */}
-      {isExpanded &&
-        task.subtasks?.map(subtask => (
-          <TaskItem
-            key={subtask.id}
-            task={subtask}
-            level={level + 1}
-            dummyAssignees={dummyAssignees}
-            priorities={priorities}
-            priorityColors={priorityColors}
-            deleteItem={deleteItem}
-            openModal={openModal}
-            handleUpdateTask={handleUpdateTask}
-          />
-        ))}
-    </>
-  );
-};
-
   // --- Enhanced Project Header Component ---
   const ProjectHeader = ({ project }) => {
-    const isEditing = projectEditMode[project.id];
-    const [showAssigneeDropdown, setShowAssigneeDropdown] = useState(false);
-    const [showPriorityDropdown, setShowPriorityDropdown] = useState(false);
-
-    const currentName = project.name;
-    const currentAssignee = project.assignee;
-    const currentPriority = project.priority;
-    const currentDue = project.due;
-
     return (
       <div style={{
         display: "flex",
@@ -1935,9 +2182,9 @@ export default function CourseDashboardEnhanced() {
                 overflow: "hidden"
               }}
             >
-              {currentAssignee ? (
+              {project.assignee ? (
                 <span>
-                  {currentAssignee
+                  {project.assignee
                     .split(" ")
                     .map((n) => n[0])
                     .join("")
@@ -1967,7 +2214,7 @@ export default function CourseDashboardEnhanced() {
                 background: "#fff",
               }}
             >
-              <Flag color={priorityColors[currentPriority]} />
+              <Flag color={priorityColors[project.priority]} />
             </button>
           </div>
 
@@ -1992,7 +2239,7 @@ export default function CourseDashboardEnhanced() {
             </button>
 
             <div style={{ fontSize: 14, color: "#333" }}>
-              {currentDue}
+              {project.due}
             </div>
           </div>
 
@@ -2043,7 +2290,7 @@ export default function CourseDashboardEnhanced() {
             {/* Add Task Button (only for projects) */}
             {project.type === 'project' && (
               <button
-                onClick={() => openModal("task", project.id)}
+                onClick={() => openTaskDialog(null, project.id)}
                 style={{
                   padding: "6px 12px",
                   border: "none",
@@ -2652,6 +2899,122 @@ export default function CourseDashboardEnhanced() {
           </div>
         )}
 
+        {/* Task Dialog */}
+        {taskDialog.isOpen && (
+          <div style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            background: 'rgba(0,0,0,0.4)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000
+          }}>
+            <div style={{
+              background: '#fff',
+              borderRadius: 12,
+              padding: 24,
+              width: '90%',
+              maxWidth: 600,
+              maxHeight: '90vh',
+              overflowY: 'auto',
+              boxShadow: '0 20px 25px rgba(0,0,0,0.15)'
+            }}>
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: 20,
+                paddingBottom: 16,
+                borderBottom: '1px solid #e5e7eb'
+              }}>
+                <div style={{ fontWeight: 600, fontSize: 20, color: '#111827' }}>
+                  {taskDialog.mode === 'edit' ? 'Edit Task' : 'Create New Task'}
+                </div>
+                <button onClick={closeTaskDialog} style={{
+                  background: 'transparent',
+                  border: 'none',
+                  cursor: 'pointer',
+                  padding: 8,
+                  borderRadius: 6,
+                  color: '#6b7280',
+                  transition: 'background 0.2s',
+                  fontSize: 24,
+                  width: 32,
+                  height: 32,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  ×
+                </button>
+              </div>
+              {renderTaskDialogContent()}
+            </div>
+          </div>
+        )}
+
+        {/* Subtask Dialog */}
+        {subtaskDialog.isOpen && (
+          <div style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            background: 'rgba(0,0,0,0.4)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000
+          }}>
+            <div style={{
+              background: '#fff',
+              borderRadius: 12,
+              padding: 24,
+              width: '90%',
+              maxWidth: 600,
+              maxHeight: '90vh',
+              overflowY: 'auto',
+              boxShadow: '0 20px 25px rgba(0,0,0,0.15)'
+            }}>
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: 20,
+                paddingBottom: 16,
+                borderBottom: '1px solid #e5e7eb'
+              }}>
+                <div style={{ fontWeight: 600, fontSize: 20, color: '#111827' }}>
+                  {subtaskDialog.mode === 'edit' ? 'Edit Subtask' : 'Create New Subtask'}
+                </div>
+                <button onClick={closeSubtaskDialog} style={{
+                  background: 'transparent',
+                  border: 'none',
+                  cursor: 'pointer',
+                  padding: 8,
+                  borderRadius: 6,
+                  color: '#6b7280',
+                  transition: 'background 0.2s',
+                  fontSize: 24,
+                  width: 32,
+                  height: 32,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  ×
+                </button>
+              </div>
+              {renderSubtaskDialogContent()}
+            </div>
+          </div>
+        )}
+
         {/* View Dialog */}
         {viewDialog.isOpen && (
           <div style={{
@@ -2685,7 +3048,9 @@ export default function CourseDashboardEnhanced() {
                 borderBottom: '1px solid #e5e7eb'
               }}>
                 <div style={{ fontWeight: 600, fontSize: 20, color: '#111827' }}>
-                  {viewDialog.type === 'event' ? 'Event Details' : 'Project Details'}
+                  {viewDialog.type === 'event' ? 'Event Details' : 
+                   viewDialog.type === 'task' ? 'Task Details' : 
+                   viewDialog.type === 'subtask' ? 'Subtask Details' : 'Project Details'}
                 </div>
                 <button onClick={closeViewDialog} style={{
                   background: 'transparent',
@@ -2706,64 +3071,6 @@ export default function CourseDashboardEnhanced() {
                 </button>
               </div>
               {renderViewDialogContent()}
-            </div>
-          </div>
-        )}
-
-        {/* Task/Subtask Modal (existing functionality) */}
-        {activeModal && (
-          <div style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            width: '100%',
-            height: '100%',
-            background: 'rgba(0,0,0,0.4)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 1000
-          }}>
-            <div style={{
-              background: '#fff',
-              borderRadius: 12,
-              padding: 24,
-              width: '90%',
-              maxWidth: 600,
-              maxHeight: '90vh',
-              overflowY: 'auto',
-              boxShadow: '0 20px 25px rgba(0,0,0,0.15)'
-            }}>
-              <div style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                marginBottom: 20,
-                paddingBottom: 16,
-                borderBottom: '1px solid #e5e7eb'
-              }}>
-                <div style={{ fontWeight: 600, fontSize: 20, color: '#111827' }}>
-                  Create New {itemType.charAt(0).toUpperCase() + itemType.slice(1)}
-                </div>
-                <button onClick={closeModal} style={{
-                  background: 'transparent',
-                  border: 'none',
-                  cursor: 'pointer',
-                  padding: 8,
-                  borderRadius: 6,
-                  color: '#6b7280',
-                  transition: 'background 0.2s',
-                  fontSize: 24,
-                  width: 32,
-                  height: 32,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}>
-                  ×
-                </button>
-              </div>
-              {/* Existing modal content for tasks/subtasks */}
             </div>
           </div>
         )}
