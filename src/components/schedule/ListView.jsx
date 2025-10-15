@@ -1767,7 +1767,7 @@ export default function CourseDashboardEnhanced() {
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <CalendarIcon />
             <span style={{ fontSize: 14, color: "#333" }}>
-              {project.due || "No Date"}
+              {project.due}
             </span>
           </div>
 
