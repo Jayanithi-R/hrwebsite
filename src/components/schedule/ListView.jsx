@@ -40,6 +40,8 @@ export default function CourseDashboardEnhanced() {
   const [editingValues, setEditingValues] = useState({});
   const [uploadedFiles, setUploadedFiles] = useState([]);
   const [taskEditMode, setTaskEditMode] = useState({});
+  const [groupBy, setGroupBy] = useState("project");
+  const [showClosed, setShowClosed] = useState(false);
 
   // --- Consolidated Form State ---
   const [formData, setFormData] = useState({
@@ -106,6 +108,7 @@ export default function CourseDashboardEnhanced() {
       type: "project",
       expanded: true,
       todoExpanded: true,
+      status: "To Do",
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       tasks: [
@@ -120,6 +123,7 @@ export default function CourseDashboardEnhanced() {
           files: [],
           type: "task",
           expanded: true,
+          status: "To Do",
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
           subtasks: [
@@ -133,6 +137,7 @@ export default function CourseDashboardEnhanced() {
               reminder: true,
               files: [],
               type: "subtask",
+              status: "To Do",
               createdAt: new Date().toISOString(),
               updatedAt: new Date().toISOString()
             }
@@ -152,6 +157,7 @@ export default function CourseDashboardEnhanced() {
       type: "event",
       expanded: true,
       todoExpanded: true,
+      status: "To Do",
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       tasks: []
@@ -161,6 +167,8 @@ export default function CourseDashboardEnhanced() {
   // --- Projects & Data with localStorage persistence ---
   const [projects, setProjects] = useState([]);
   const [events, setEvents] = useState([]);
+
+  // StatusSelector Component (already defined in your code)
   const StatusSelector = ({ value: propValue = "To Do", onChange, toggleExpand, todoExpanded }) => {
     const statuses = ["To Do", "In Progress", "Completed"];
     const colors = {
@@ -221,31 +229,29 @@ export default function CourseDashboardEnhanced() {
           }}
         >
           {value}
-          {/* Expand button with smooth rotation */}
-          <button
+          {/* Arrow button */}
+          <div
             onClick={(e) => {
               e.stopPropagation();
+              setOpen(!open);
               toggleExpand?.(!todoExpanded);
             }}
             style={{
-              cursor: "pointer",
-              background: "none",
-              border: "none",
-              fontSize: 12,
-              transition: "transform 0.3s ease",
-              transform: todoExpanded ? "rotate(0deg)" : "rotate(-90deg)",
               width: 16,
               height: 16,
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
+              transition: "transform 0.3s ease",
+              transform: open ? "rotate(180deg)" : "rotate(0deg)",
+              cursor: "pointer",
             }}
           >
             ▼
-          </button>
+          </div>
         </div>
 
-        {/* Dropdown list with smooth animation */}
+        {/* Dropdown list */}
         <div
           ref={dropdownRef}
           style={{
@@ -327,6 +333,173 @@ export default function CourseDashboardEnhanced() {
   const priorities = ["High", "Medium", "Low"];
   const priorityColors = { High: "#f87171", Medium: "#facc15", Low: "#4ade80" };
   const uid = () => Math.floor(Math.random() * 1000000);
+
+  // --- NEW: Search and Filter Functions ---
+  const handleSearch = (query) => {
+    setSearchQuery(query);
+  };
+
+  const handleFilterPriority = (priority) => {
+    setFilterPriority(priority);
+  };
+
+  const handleGroupBy = (group) => {
+    setGroupBy(group);
+  };
+
+  const handleToggleClosed = () => {
+    setShowClosed(!showClosed);
+  };
+
+  // --- Filtered and Searched Projects ---
+  const getFilteredProjects = () => {
+    let filtered = projects;
+
+    // Filter by priority
+    if (filterPriority !== "All") {
+      filtered = filtered.filter(project => project.priority === filterPriority);
+    }
+
+    // Filter by search query
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(project => 
+        project.name.toLowerCase().includes(query) ||
+        project.description.toLowerCase().includes(query) ||
+        project.assignee.toLowerCase().includes(query)
+      );
+    }
+
+    // Filter by closed status
+    if (!showClosed) {
+      filtered = filtered.filter(project => project.status !== "Completed");
+    }
+
+    return filtered;
+  };
+
+  // --- NEW: File Download Handler ---
+  const handleFileDownload = (file) => {
+    // Create a temporary link element
+    const link = document.createElement('a');
+    link.href = file.url;
+    link.download = file.name;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  // --- NEW: File Preview Handler ---
+  const handleFilePreview = (file) => {
+    // For image files, open in new tab
+    if (file.type.startsWith('image/')) {
+      window.open(file.url, '_blank');
+    } else {
+      // For other files, try to open in new tab (may not work for all file types)
+      window.open(file.url, '_blank');
+    }
+  };
+
+  // --- NEW: Bulk Actions ---
+  const handleBulkDelete = (selectedIds) => {
+    if (window.confirm(`Are you sure you want to delete ${selectedIds.length} items?`)) {
+      setProjects(prev => prev.filter(project => !selectedIds.includes(project.id)));
+    }
+  };
+
+  const handleBulkStatusChange = (selectedIds, newStatus) => {
+    setProjects(prev => 
+      prev.map(project => 
+        selectedIds.includes(project.id) 
+          ? { ...project, status: newStatus, updatedAt: new Date().toISOString() }
+          : project
+      )
+    );
+  };
+
+  // --- NEW: Export Data Function ---
+  const handleExportData = () => {
+    const dataToExport = {
+      projects: projects,
+      events: events,
+      exportedAt: new Date().toISOString()
+    };
+
+    const dataStr = JSON.stringify(dataToExport, null, 2);
+    const dataBlob = new Blob([dataStr], { type: 'application/json' });
+    
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(dataBlob);
+    link.download = `course-dashboard-export-${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  // --- NEW: Import Data Function ---
+  const handleImportData = (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const importedData = JSON.parse(e.target.result);
+        
+        if (importedData.projects) {
+          setProjects(importedData.projects);
+        }
+        if (importedData.events) {
+          setEvents(importedData.events);
+        }
+        
+        alert('Data imported successfully!');
+      } catch (error) {
+        alert('Error importing data. Please check the file format.');
+        console.error('Import error:', error);
+      }
+    };
+    reader.readAsText(file);
+    
+    // Reset the input
+    event.target.value = '';
+  };
+
+  // --- NEW: Duplicate Project Function ---
+  const handleDuplicateProject = (projectId) => {
+    const projectToDuplicate = projects.find(p => p.id === projectId);
+    if (!projectToDuplicate) return;
+
+    const duplicatedProject = {
+      ...projectToDuplicate,
+      id: uid(),
+      name: `${projectToDuplicate.name} (Copy)`,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+
+    setProjects(prev => [duplicatedProject, ...prev]);
+  };
+
+  // --- NEW: Sort Projects Function ---
+  const handleSortProjects = (sortBy) => {
+    const sortedProjects = [...projects].sort((a, b) => {
+      switch (sortBy) {
+        case 'name':
+          return a.name.localeCompare(b.name);
+        case 'dueDate':
+          return new Date(a.due) - new Date(b.due);
+        case 'priority':
+          const priorityOrder = { High: 3, Medium: 2, Low: 1 };
+          return priorityOrder[b.priority] - priorityOrder[a.priority];
+        case 'created':
+          return new Date(b.createdAt) - new Date(a.createdAt);
+        default:
+          return 0;
+      }
+    });
+    setProjects(sortedProjects);
+  };
 
   // --- File Upload Handler ---
   const handleFileUpload = (event) => {
@@ -496,6 +669,7 @@ export default function CourseDashboardEnhanced() {
       type: type,
       expanded: true,
       todoExpanded: true,
+      status: "To Do",
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
@@ -806,18 +980,47 @@ export default function CourseDashboardEnhanced() {
                 <FileText size={16} />
                 <span style={{ fontSize: 14 }}>{file.name}</span>
               </div>
-              <button
-                onClick={() => removeFile(file.id)}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  color: '#ef4444',
-                  cursor: 'pointer',
-                  padding: 4
-                }}
-              >
-                <X size={16} />
-              </button>
+              <div style={{ display: 'flex', gap: 4 }}>
+                <button
+                  onClick={() => handleFilePreview(file)}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: '#4f46e5',
+                    cursor: 'pointer',
+                    padding: 4
+                  }}
+                  title="Preview"
+                >
+                  <Eye size={16} />
+                </button>
+                <button
+                  onClick={() => handleFileDownload(file)}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: '#059669',
+                    cursor: 'pointer',
+                    padding: 4
+                  }}
+                  title="Download"
+                >
+                  <Save size={16} />
+                </button>
+                <button
+                  onClick={() => removeFile(file.id)}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: '#ef4444',
+                    cursor: 'pointer',
+                    padding: 4
+                  }}
+                  title="Remove"
+                >
+                  <X size={16} />
+                </button>
+              </div>
             </div>
           ))}
         </div>
@@ -851,394 +1054,342 @@ export default function CourseDashboardEnhanced() {
 
   // --- TaskItem Component ---
   const TaskItem = ({
-    task,
-    level = 0,
-    dummyAssignees,
-    priorities,
-    priorityColors,
-    deleteItem,
-    openModal,
-    handleUpdateTask
-  }) => {
-    const [isEditing, setIsEditing] = useState(false);
-    const [isExpanded, setIsExpanded] = useState(true);
-    const [showAssigneeDropdown, setShowAssigneeDropdown] = useState(false);
-    const [showPriorityDropdown, setShowPriorityDropdown] = useState(false);
+  task,
+  level = 0,
+  dummyAssignees = [],
+  priorities = [],
+  priorityColors = {},
+  deleteItem,
+  openModal,
+  handleUpdateTask
+}) => {
+  const [isEditing, setIsEditing] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(true);
+  const [showAssigneeDropdown, setShowAssigneeDropdown] = useState(false);
+  const [showPriorityDropdown, setShowPriorityDropdown] = useState(false);
 
-    const [editValues, setEditValues] = useState({
+  const [editValues, setEditValues] = useState({
+    name: task.name,
+    assignee: task.assignee || "",
+    priority: task.priority || priorities[0] || "",
+    due: task.due || ""
+  });
+
+  const handleInputChange = (field, value) =>
+    setEditValues(prev => ({ ...prev, [field]: value }));
+
+  const handleSave = () => {
+    handleUpdateTask?.({ ...task, ...editValues, updatedAt: new Date().toISOString() });
+    setIsEditing(false);
+  };
+
+  const handleCancel = () => {
+    setEditValues({
       name: task.name,
       assignee: task.assignee || "",
-      due: task.due || "",
-      priority: task.priority || priorities?.[0] || ""
+      priority: task.priority || priorities[0] || "",
+      due: task.due || ""
     });
+    setIsEditing(false);
+  };
 
-    // ------------------- Handlers -------------------
-    const handleInputChange = (field, value) => {
-      setEditValues(prev => ({ ...prev, [field]: value }));
-    };
+  const toggleExpand = () => setIsExpanded(prev => !prev);
 
-    const handleSave = () => {
-      handleUpdateTask?.({
-        ...task,
-        ...editValues,
-        updatedAt: new Date().toISOString()
-      });
-      setIsEditing(false);
-    };
-
-    const handleCancel = () => {
-      setEditValues({
-        name: task.name,
-        assignee: task.assignee || "",
-        due: task.due || "",
-        priority: task.priority || priorities?.[0] || ""
-      });
-      setIsEditing(false);
-    };
-
-    const toggleExpand = () => setIsExpanded(prev => !prev);
-
-    // ------------------- UI -------------------
-    return (
-      <>
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            padding: "8px 12px",
-            marginLeft: level * 20,
-            borderBottom: "1px solid #e5e7eb",
-            background: "#fafafa"
-          }}
-        >
-          {/* Left: name + expand */}
-          <div style={{ display: "flex", alignItems: "center", flex: 1, gap: 8 }}>
-            {task.subtasks?.length > 0 && !isEditing && (
-              <button
-                onClick={toggleExpand}
-                style={{
-                  cursor: "pointer",
-                  border: "none",
-                  background: "transparent",
-                  fontSize: 12,
-                  transition: "transform 0.3s ease"
-                }}
-              >
-                {isExpanded ? "▼" : "▶"}
-              </button>
-            )}
-
-            {isEditing ? (
-              <input
-                type="text"
-                value={editValues.name}
-                onChange={e => handleInputChange("name", e.target.value)}
-                style={{
-                  padding: "4px 8px",
-                  border: "1px solid #d1d5db",
-                  borderRadius: 4,
-                  fontSize: 13
-                }}
-                autoFocus
-              />
-            ) : (
-              <div style={{ fontWeight: 600, fontSize: 13 }}>{task.name}</div>
-            )}
-          </div>
-
-          {/* Right: controls */}
-          <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-
-            {/* Assignee */}
-            <div style={{ position: "relative" }}>
-              <button
-                title="Assignee"
-                onClick={() => isEditing && setShowAssigneeDropdown(!showAssigneeDropdown)}
-                style={{
-                  cursor: "pointer",
-                  border: "none",
-                  borderRadius: "50%",
-                  width: 32,
-                  height: 32,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  backgroundColor: "#007bff",
-                  color: "#fff",
-                  fontWeight: "bold",
-                  fontSize: 14,
-                  transition: "background 0.2s"
-                }}
-              >
-                {editValues.assignee ? (
-                  <span>
-                    {editValues.assignee
-                      .split(" ")
-                      .map(n => n[0])
-                      .join("")
-                      .toUpperCase()
-                      .slice(0, 2)}
-                  </span>
-                ) : (
-                  <User size={18} />
-                )}
-              </button>
-
-              {isEditing && showAssigneeDropdown && (
-                <div
-                  style={{
-                    position: "absolute",
-                    top: "100%",
-                    right: 0,
-                    background: "#fff",
-                    border: "1px solid #ccc",
-                    borderRadius: 4,
-                    boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
-                    zIndex: 100,
-                    minWidth: "150px",
-                    marginTop: "4px"
-                  }}
-                >
-                  {dummyAssignees?.map(assignee => (
-                    <div
-                      key={assignee}
-                      style={{
-                        padding: "8px 12px",
-                        cursor: "pointer",
-                        borderBottom: "1px solid #eee",
-                        background:
-                          editValues.assignee === assignee ? "#f3f4f6" : "transparent",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 8
-                      }}
-                      onClick={() => {
-                        handleInputChange("assignee", assignee);
-                        setShowAssigneeDropdown(false);
-                      }}
-                      onMouseEnter={e => (e.currentTarget.style.background = "#f2f2f2")}
-                      onMouseLeave={e =>
-                      (e.currentTarget.style.background =
-                        editValues.assignee === assignee ? "#f3f4f6" : "transparent")
-                      }
-                    >
-                      {assignee}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Priority */}
-            <div style={{ position: "relative" }}>
-              <button
-                title="Priority"
-                onClick={() => isEditing && setShowPriorityDropdown(!showPriorityDropdown)}
-                style={{
-                  cursor: "pointer",
-                  border: "none",
-                  borderRadius: 4,
-                  width: 30,
-                  height: 30,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  background: "#fff",
-                  transition: "background 0.2s"
-                }}
-              >
-                <Flag color={priorityColors?.[editValues.priority]} />
-              </button>
-
-              {isEditing && showPriorityDropdown && (
-                <div
-                  style={{
-                    position: "absolute",
-                    top: "100%",
-                    right: 0,
-                    background: "#fff",
-                    border: "1px solid #ccc",
-                    borderRadius: 4,
-                    boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
-                    zIndex: 100,
-                    minWidth: "120px",
-                    marginTop: "4px"
-                  }}
-                >
-                  {priorities?.map(priority => (
-                    <div
-                      key={priority}
-                      style={{
-                        padding: "8px 12px",
-                        cursor: "pointer",
-                        borderBottom: "1px solid #eee",
-                        background:
-                          editValues.priority === priority ? "#f3f4f6" : "transparent",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 8
-                      }}
-                      onClick={() => {
-                        handleInputChange("priority", priority);
-                        setShowPriorityDropdown(false);
-                      }}
-                      onMouseEnter={e => (e.currentTarget.style.background = "#f2f2f2")}
-                      onMouseLeave={e =>
-                      (e.currentTarget.style.background =
-                        editValues.priority === priority ? "#f3f4f6" : "transparent")
-                      }
-                    >
-                      <div
-                        style={{
-                          width: 8,
-                          height: 8,
-                          borderRadius: "50%",
-                          background: priorityColors?.[priority]
-                        }}
-                      />
-                      {priority}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Due Date */}
-            <div
-              style={{
-                position: "relative",
-                display: "flex",
-                alignItems: "center",
-                gap: 8
-              }}
-            >
-              <button
-                title="Due Date"
-                style={{
-                  cursor: "pointer",
-                  border: "none",
-                  borderRadius: 4,
-                  width: 30,
-                  height: 30,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  background: "#fff",
-                  transition: "background 0.2s"
-                }}
-                onClick={() =>
-                  isEditing &&
-                  document
-                    .getElementById(`calendar-input-${task.id}`)
-                    ?.showPicker()
-                }
-              >
-                <CalendarIcon />
-              </button>
-
-              <div style={{ fontSize: 14, color: "#333" }}>{editValues.due}</div>
-
-              {isEditing && (
-                <input
-                  id={`calendar-input-${task.id}`}
-                  type="date"
-                  value={editValues.due}
-                  onChange={e => handleInputChange("due", e.target.value)}
-                  style={{
-                    position: "absolute",
-                    top: 0,
-                    left: 0,
-                    opacity: 0,
-                    width: 30,
-                    height: 30,
-                    cursor: "pointer"
-                  }}
-                />
-              )}
-            </div>
-
-            {/* Edit / Save */}
+  return (
+    <>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns:
+            "1.5fr 1fr 0.6fr 0.6fr 0.8fr 0.8fr",
+          alignItems: "center",
+          padding: "10px 16px",
+          backgroundColor: level === 0 ? "#f9fafb" : "#ffffff",
+          borderBottom: "1px solid #e5e7eb",
+          marginLeft: level * 20,
+          borderLeft: level > 0 ? "2px solid #4f46e5" : "none",
+        }}
+      >
+        {/* --- Task Name & Expand --- */}
+        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          {task.subtasks?.length > 0 && (
             <button
-              title={isEditing ? "Save" : "Edit"}
-              onClick={isEditing ? handleSave : () => setIsEditing(true)}
+              onClick={toggleExpand}
               style={{
                 cursor: "pointer",
+                background: "none",
                 border: "none",
-                borderRadius: 4,
-                width: 30,
-                height: 30,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                background: isEditing ? "#4f46e5" : "transparent",
-                color: isEditing ? "white" : "inherit",
-                transition: "background 0.2s"
+                fontSize: 14,
+                transform: isExpanded ? "rotate(90deg)" : "rotate(0deg)",
+                transition: "transform 0.2s ease"
               }}
             >
-              {isEditing ? <Save size={16} /> : <Edit3 size={14} />}
+              ▶
             </button>
+          )}
 
-            {/* Delete */}
-            <button
-              title="Delete Task"
-              onClick={() => deleteItem?.(task.id, "task")}
+          {isEditing ? (
+            <input
+              type="text"
+              value={editValues.name}
+              onChange={e => handleInputChange("name", e.target.value)}
               style={{
-                cursor: "pointer",
-                border: "none",
-                borderRadius: 4,
-                width: 30,
-                height: 30,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                background: "#ef4444",
-                color: "white",
-                transition: "background 0.2s"
+                border: "1px solid #d1d5db",
+                borderRadius: 6,
+                padding: "6px 10px",
+                fontSize: 14,
+                fontWeight: 600,
+                width: "100%"
               }}
-            >
-              <Trash2 size={16} />
-            </button>
-          </div>
+              autoFocus
+            />
+          ) : (
+            <span style={{ fontWeight: 600, fontSize: 14, color: "#111827" }}>
+              {task.name}
+            </span>
+          )}
         </div>
 
-        {/* Subtasks */}
-        {isExpanded &&
-          task.subtasks?.map(subtask => (
-            <TaskItem
-              key={subtask.id}
-              task={subtask}
-              level={level + 1}
-              dummyAssignees={dummyAssignees}
-              priorities={priorities}
-              priorityColors={priorityColors}
-              deleteItem={deleteItem}
-              openModal={openModal}
-              handleUpdateTask={handleUpdateTask}
-            />
-          ))}
+        {/* --- Status --- */}
+        <div>
+          <StatusSelector
+            value={task.status || "To Do"}
+            onChange={status => handleUpdateTask?.({ ...task, status })}
+          />
+        </div>
 
-        {/* Add Subtask */}
-        {!isEditing && level === 0 && (
+        {/* --- Assignee --- */}
+        <div style={{ position: "relative" }}>
           <button
-            onClick={() => openModal?.("subtask", task.id)}
+            onClick={() => isEditing && setShowAssigneeDropdown(!showAssigneeDropdown)}
             style={{
-              padding: "4px 8px",
-              margin: "4px 12px",
-              borderRadius: 4,
+              cursor: isEditing ? "pointer" : "default",
               border: "none",
-              background: "#4f46e5",
+              borderRadius: "50%",
+              width: 32,
+              height: 32,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              backgroundColor: "#007bff",
               color: "#fff",
-              fontSize: 12,
+              fontWeight: "bold",
+              fontSize: 14
+            }}
+          >
+            {editValues.assignee
+              ? editValues.assignee.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2)
+              : <User size={16} />}
+          </button>
+
+          {isEditing && showAssigneeDropdown && (
+            <div
+              style={{
+                position: "absolute",
+                top: "110%",
+                left: 0,
+                background: "#fff",
+                border: "1px solid #ccc",
+                borderRadius: 4,
+                boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+                minWidth: 140,
+                zIndex: 10
+              }}
+            >
+              {dummyAssignees.map(a => (
+                <div
+                  key={a}
+                  style={{
+                    padding: "8px 12px",
+                    cursor: "pointer",
+                    background: editValues.assignee === a ? "#f3f4f6" : "transparent"
+                  }}
+                  onClick={() => {
+                    handleInputChange("assignee", a);
+                    setShowAssigneeDropdown(false);
+                  }}
+                >
+                  {a}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* --- Priority --- */}
+        <div style={{ position: "relative" }}>
+          <button
+            onClick={() => isEditing && setShowPriorityDropdown(!showPriorityDropdown)}
+            style={{
+              cursor: "pointer",
+              border: "none",
+              background: "none",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center"
+            }}
+          >
+            <Flag color={priorityColors[editValues.priority]} size={18} />
+          </button>
+
+          {isEditing && showPriorityDropdown && (
+            <div
+              style={{
+                position: "absolute",
+                top: "110%",
+                left: 0,
+                background: "#fff",
+                border: "1px solid #ccc",
+                borderRadius: 4,
+                boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+                minWidth: 120
+              }}
+            >
+              {priorities.map(p => (
+                <div
+                  key={p}
+                  onClick={() => {
+                    handleInputChange("priority", p);
+                    setShowPriorityDropdown(false);
+                  }}
+                  style={{
+                    padding: "8px 12px",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                    cursor: "pointer",
+                    background: editValues.priority === p ? "#f3f4f6" : "transparent"
+                  }}
+                >
+                  <div
+                    style={{
+                      width: 8,
+                      height: 8,
+                      borderRadius: "50%",
+                      background: priorityColors[p]
+                    }}
+                  />
+                  {p}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* --- Due Date --- */}
+        <div style={{ display: "flex", alignItems: "center", gap: 8, position: "relative" }}>
+          <button
+            style={{
+              border: "none",
+              background: "none",
+              cursor: isEditing ? "pointer" : "default"
+            }}
+            onClick={() =>
+              isEditing &&
+              document.getElementById(`calendar-input-${task.id}`)?.showPicker()
+            }
+          >
+            <CalendarIcon size={18} />
+          </button>
+
+          <span style={{ fontSize: 14, color: "#374151" }}>
+            {editValues.due || "—"}
+          </span>
+
+          {isEditing && (
+            <input
+              id={`calendar-input-${task.id}`}
+              type="date"
+              value={editValues.due}
+              onChange={e => handleInputChange("due", e.target.value)}
+              style={{
+                position: "absolute",
+                opacity: 0,
+                width: 30,
+                height: 30,
+                cursor: "pointer"
+              }}
+            />
+          )}
+        </div>
+
+        {/* --- Actions --- */}
+        <div style={{ display: "flex", alignItems: "center", gap: 8, justifyContent: "flex-end" }}>
+          <button
+            title={isEditing ? "Save" : "Edit"}
+            onClick={isEditing ? handleSave : () => setIsEditing(true)}
+            style={{
+              border: "none",
+              borderRadius: 4,
+              width: 30,
+              height: 30,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              background: isEditing ? "#4f46e5" : "#f3f4f6",
+              color: isEditing ? "white" : "#111827",
               cursor: "pointer"
             }}
           >
-            + Add Subtask
+            {isEditing ? <Save size={16} /> : <Edit3 size={14} />}
           </button>
-        )}
-      </>
-    );
-  };
+
+          <button
+            title="Delete Task"
+            onClick={() => deleteItem?.(task.id, "task")}
+            style={{
+              border: "none",
+              borderRadius: 4,
+              width: 30,
+              height: 30,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              background: "#ef4444",
+              color: "white",
+              cursor: "pointer"
+            }}
+          >
+            <Trash2 size={16} />
+          </button>
+
+          {!isEditing && level === 0 && (
+            <button
+              onClick={() => openModal?.("subtask", task.id)}
+              style={{
+                padding: "6px 10px",
+                border: "none",
+                borderRadius: 4,
+                backgroundColor: "#4f46e5",
+                color: "#fff",
+                cursor: "pointer",
+                fontSize: 13
+              }}
+            >
+              + Subtask
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* --- Subtasks --- */}
+      {isExpanded &&
+        task.subtasks?.map(subtask => (
+          <TaskItem
+            key={subtask.id}
+            task={subtask}
+            level={level + 1}
+            dummyAssignees={dummyAssignees}
+            priorities={priorities}
+            priorityColors={priorityColors}
+            deleteItem={deleteItem}
+            openModal={openModal}
+            handleUpdateTask={handleUpdateTask}
+          />
+        ))}
+    </>
+  );
+};
 
   // --- Enhanced Project Header Component ---
   const ProjectHeader = ({ project }) => {
@@ -1346,9 +1497,16 @@ export default function CourseDashboardEnhanced() {
         <div style={{ display: "flex", justifyContent: "space-around", alignItems: "center", width: "60%" }}>
           <StatusSelector
             value={project.status || "To Do"}
-            onChange={(status) => console.log('Status changed to:', status)}
+            onChange={(status) => {
+              setProjects(prev => 
+                prev.map(p => 
+                  p.id === project.id 
+                    ? { ...p, status, updatedAt: new Date().toISOString() } 
+                    : p
+                )
+              );
+            }}
           />
-
 
           {/* Assignee Button */}
           <div style={{ position: "relative" }}>
@@ -1568,6 +1726,23 @@ export default function CourseDashboardEnhanced() {
             >
               {isEditing ? <Save size={16} /> : <Edit3 size={16} />}
             </button>
+            <button
+              onClick={() => openModal("task", project.id)} // ✅ use project.id
+              style={{
+                padding: "6px 12px",
+                border: "none",
+                borderRadius: 4,
+                backgroundColor: "#4f46e5",
+                color: "#fff",
+                cursor: "pointer",
+                fontSize: 14,
+                display: "flex",
+                alignItems: "center",
+                gap: 4
+              }}
+            >
+              <Plus size={14} /> Add Task
+            </button>
             {/* Delete Project Button */}
             <button
               title="Delete Project"
@@ -1587,26 +1762,8 @@ export default function CourseDashboardEnhanced() {
               }}
             >
               <Trash2 size={16} />
-            </button>
-
-            <button
-              onClick={() => openModal("task", project.id)} // ✅ use project.id
-              style={{
-                padding: "6px 12px",
-                border: "none",
-                borderRadius: 4,
-                backgroundColor: "#4f46e5",
-                color: "#fff",
-                cursor: "pointer",
-                fontSize: 14,
-                display: "flex",
-                alignItems: "center",
-                gap: 4
-              }}
-            >
-              <Plus size={14} /> Add Task
-            </button>
-          </div>
+            </button>            
+         </div>
 
         </div>
       </div>
@@ -1844,11 +2001,17 @@ export default function CourseDashboardEnhanced() {
   const LightToolbar = () => {
     const [showOptionsDropdown, setShowOptionsDropdown] = useState(false);
     const [showFilterDropdown, setShowFilterDropdown] = useState(false);
-    const [localSearchQuery, setLocalSearchQuery] = useState("");
-    const [localFilterPriority, setLocalFilterPriority] = useState("All");
+    const [showSortDropdown, setShowSortDropdown] = useState(false);
+    const [showMoreDropdown, setShowMoreDropdown] = useState(false);
 
     const optionsList = ["project", "task", "subtask"];
-    const priorities = ["Low", "Medium", "High"];
+    const priorities = ["All", "High", "Medium", "Low"];
+    const sortOptions = [
+      { value: "name", label: "Name" },
+      { value: "dueDate", label: "Due Date" },
+      { value: "priority", label: "Priority" },
+      { value: "created", label: "Recently Created" }
+    ];
 
     const styles = {
       toolbar: {
@@ -1948,7 +2111,7 @@ export default function CourseDashboardEnhanced() {
                       borderBottom: "1px solid #eee",
                     }}
                     onClick={() => {
-                      alert(`Selected: ${opt}`);
+                      handleGroupBy(opt);
                       setShowOptionsDropdown(false);
                     }}
                   >
@@ -1959,13 +2122,49 @@ export default function CourseDashboardEnhanced() {
             )}
           </div>
 
-          {/* Subtasks + Columns */}
-          <button style={styles.btn}>
-            Subtasks
-          </button>
-          <button style={styles.btn}>
-            Columns
-          </button>
+          {/* Sort Dropdown */}
+          <div style={{ position: "relative" }}>
+            <button
+              style={styles.btn}
+              onClick={() => setShowSortDropdown(!showSortDropdown)}
+            >
+              Sort <span style={{ fontSize: "10px" }}>{showSortDropdown ? "▲" : "▼"}</span>
+            </button>
+
+            {showSortDropdown && (
+              <div
+                style={{
+                  position: "absolute",
+                  top: "100%",
+                  left: 0,
+                  background: "#fff",
+                  border: "1px solid #ccc",
+                  borderRadius: "6px",
+                  boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+                  zIndex: 100,
+                  minWidth: "160px",
+                  marginTop: "4px",
+                }}
+              >
+                {sortOptions.map((option) => (
+                  <div
+                    key={option.value}
+                    style={{
+                      padding: "6px 10px",
+                      cursor: "pointer",
+                      borderBottom: "1px solid #eee",
+                    }}
+                    onClick={() => {
+                      handleSortProjects(option.value);
+                      setShowSortDropdown(false);
+                    }}
+                  >
+                    {option.label}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
 
         {/* RIGHT SECTION */}
@@ -1985,7 +2184,7 @@ export default function CourseDashboardEnhanced() {
                 style={{
                   position: "absolute",
                   top: "100%",
-                  left: 0,
+                  right: 0,
                   background: "#fff",
                   border: "1px solid #ccc",
                   borderRadius: "6px",
@@ -2002,11 +2201,11 @@ export default function CourseDashboardEnhanced() {
                     style={{
                       padding: "6px 10px",
                       cursor: "pointer",
-                      background: localFilterPriority === p ? "#f0f0f0" : "transparent",
+                      background: filterPriority === p ? "#f0f0f0" : "transparent",
                       borderRadius: "4px",
                     }}
                     onClick={() => {
-                      setLocalFilterPriority(p);
+                      handleFilterPriority(p);
                       setShowFilterDropdown(false);
                     }}
                   >
@@ -2018,29 +2217,91 @@ export default function CourseDashboardEnhanced() {
           </div>
 
           {/* Closed Button */}
-          <button style={styles.btn}>
+          <button 
+            style={{
+              ...styles.btn,
+              background: showClosed ? "#4f46e5" : "#fff",
+              color: showClosed ? "#fff" : "#000"
+            }}
+            onClick={handleToggleClosed}
+          >
             <CheckCircle size={18} />
             <p style={{ fontSize: "14px" }}>Closed</p>
           </button>
 
-          {/* Assignee Button */}
-          <button style={styles.btn}>
-            <Users size={18} />
-            <p style={{ fontSize: "14px" }}>Assignee</p>
-          </button>
-
-          {/* Profile Icon */}
-          <div style={styles.profileIcon}>B</div>
-
           {/* Search Box */}
           <div style={styles.searchBox}>
             <Search size={20} />
+            <input
+              type="text"
+              placeholder="Search..."
+              value={searchQuery}
+              onChange={(e) => handleSearch(e.target.value)}
+              style={styles.input}
+            />
           </div>
 
-          {/* Settings Icon */}
-          <button style={styles.searchBox}>
-            <Settings size={20} />
-          </button>
+          {/* More Options Dropdown */}
+          <div style={{ position: "relative" }}>
+            <button
+              style={styles.btn}
+              onClick={() => setShowMoreDropdown(!showMoreDropdown)}
+            >
+              <Settings size={18} />
+            </button>
+
+            {showMoreDropdown && (
+              <div
+                style={{
+                  position: "absolute",
+                  top: "100%",
+                  right: 0,
+                  background: "#fff",
+                  border: "1px solid #ccc",
+                  borderRadius: "6px",
+                  boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+                  zIndex: 100,
+                  minWidth: "160px",
+                  marginTop: "4px",
+                }}
+              >
+                <div
+                  style={{
+                    padding: "8px 12px",
+                    cursor: "pointer",
+                    borderBottom: "1px solid #eee",
+                  }}
+                  onClick={() => {
+                    handleExportData();
+                    setShowMoreDropdown(false);
+                  }}
+                >
+                  Export Data
+                </div>
+                <div
+                  style={{
+                    padding: "8px 12px",
+                    cursor: "pointer",
+                  }}
+                  onClick={() => {
+                    document.getElementById('import-data')?.click();
+                    setShowMoreDropdown(false);
+                  }}
+                >
+                  Import Data
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Hidden import input */}
+          <input
+            type="file"
+            id="import-data"
+            accept=".json"
+            onChange={handleImportData}
+            style={{ display: 'none' }}
+          />
 
           {/* Add Project/Event Button */}
           <button
@@ -2088,6 +2349,9 @@ export default function CourseDashboardEnhanced() {
     );
   };
 
+  // Get filtered projects
+  const filteredProjects = getFilteredProjects();
+
   return (
     <div style={{
       minHeight: '100vh',
@@ -2105,8 +2369,8 @@ export default function CourseDashboardEnhanced() {
 
         {/* List View */}
         <div>
-          {projects.length > 0 ? (
-            projects.map(p => (
+          {filteredProjects.length > 0 ? (
+            filteredProjects.map(p => (
               <div
                 key={p.id}
                 style={{
@@ -2132,7 +2396,23 @@ export default function CourseDashboardEnhanced() {
                       <div style={{ marginBottom: 12 }}>
                         <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Attached Files:</div>
                         {p.files.map(file => (
-                          <div key={file.id} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#666' }}>
+                          <div 
+                            key={file.id} 
+                            style={{ 
+                              display: 'flex', 
+                              alignItems: 'center', 
+                              gap: 6, 
+                              fontSize: 12, 
+                              color: '#666',
+                              cursor: 'pointer',
+                              padding: '4px 8px',
+                              borderRadius: 4,
+                              transition: 'background 0.2s'
+                            }}
+                            onClick={() => handleFilePreview(file)}
+                            onMouseEnter={(e) => e.currentTarget.style.background = '#f3f4f6'}
+                            onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                          >
                             <FileText size={12} />
                             {file.name}
                           </div>
@@ -2182,7 +2462,23 @@ export default function CourseDashboardEnhanced() {
                       <div style={{ marginBottom: 12 }}>
                         <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Attached Files:</div>
                         {p.files.map(file => (
-                          <div key={file.id} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#666' }}>
+                          <div 
+                            key={file.id} 
+                            style={{ 
+                              display: 'flex', 
+                              alignItems: 'center', 
+                              gap: 6, 
+                              fontSize: 12, 
+                              color: '#666',
+                              cursor: 'pointer',
+                              padding: '4px 8px',
+                              borderRadius: 4,
+                              transition: 'background 0.2s'
+                            }}
+                            onClick={() => handleFilePreview(file)}
+                            onMouseEnter={(e) => e.currentTarget.style.background = '#f3f4f6'}
+                            onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                          >
                             <FileText size={12} />
                             {file.name}
                           </div>
@@ -2200,7 +2496,7 @@ export default function CourseDashboardEnhanced() {
               color: '#6b7280',
               fontSize: 16
             }}>
-              No projects yet. Click "Add Project/Event" to create your first project.
+              No projects found. {searchQuery || filterPriority !== "All" ? "Try adjusting your search or filters." : "Click \"Add Project/Event\" to create your first project."}
             </div>
           )}
         </div>

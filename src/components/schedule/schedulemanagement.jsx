@@ -83,7 +83,7 @@ export default function CourseDashboard() {
 
         {/* Right group */}
         <div style={{ display: "flex", gap: "16px", alignItems: "center" }}>
-          {searchOpen ? (
+          {/* {searchOpen ? (
             <div
               style={{
                 display: "flex",
@@ -127,14 +127,14 @@ export default function CourseDashboard() {
             >
               <Search size={16} style={{ marginRight: 4 }} /> Search
             </div>
-          )}
+          )} */}
 
-          <div style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
+          {/* <div style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
             <Eye size={16} /> Hide
           </div>
           <div style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
             <Settings size={16} /> Customize
-          </div>
+          </div> */}
         </div>
       </div>
 
