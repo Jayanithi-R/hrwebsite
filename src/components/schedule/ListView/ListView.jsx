@@ -437,32 +437,6 @@ export default function CourseDashboardEnhanced() {
     setShowClosed(!showClosed);
   };
 
-  // --- Filtered and Searched Projects ---
-  const getFilteredProjects = () => {
-    let filtered = projects;
-
-    // Filter by priority
-    if (filterPriority !== "All") {
-      filtered = filtered.filter(project => project.priority === filterPriority);
-    }
-
-    // Filter by search query
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(project =>
-        project.name.toLowerCase().includes(query) ||
-        project.description.toLowerCase().includes(query) ||
-        project.assignee.toLowerCase().includes(query)
-      );
-    }
-
-    // Filter by closed status
-    if (!showClosed) {
-      filtered = filtered.filter(project => project.status !== "Completed");
-    }
-
-    return filtered;
-  };
 
   // --- File Download Handler ---
   const handleFileDownload = (file) => {
@@ -502,6 +476,54 @@ export default function CourseDashboardEnhanced() {
       )
     );
   };
+  // --- Add these state variables near the other state declarations ---
+const [selectedAssignee, setSelectedAssignee] = useState("All"); // For assignee filtering
+
+// Assignee filter function
+const handleAssigneeFilter = (assignee) => {
+  setSelectedAssignee(assignee);
+};
+
+// --- Update the getFilteredProjects function to include assignee filtering ---
+const getFilteredProjects = () => {
+  let filtered = projects;
+
+  // Filter by priority
+  if (filterPriority !== "All") {
+    filtered = filtered.filter(project => project.priority === filterPriority);
+  }
+
+  // Filter by search query
+  if (searchQuery) {
+    const query = searchQuery.toLowerCase();
+    filtered = filtered.filter(project =>
+      project.name.toLowerCase().includes(query) ||
+      project.description.toLowerCase().includes(query) ||
+      project.assignee.toLowerCase().includes(query)
+    );
+  }
+
+  // Filter by assignee
+  if (selectedAssignee !== "All") {
+    filtered = filtered.filter(project => 
+      project.assignee === selectedAssignee ||
+      (project.tasks && project.tasks.some(task => 
+        task.assignee === selectedAssignee ||
+        (task.subtasks && task.subtasks.some(subtask => 
+          subtask.assignee === selectedAssignee
+        ))
+      ))
+    );
+  }
+
+  // Filter by closed status
+  if (!showClosed) {
+    filtered = filtered.filter(project => project.status !== "Completed");
+  }
+
+  return filtered;
+};
+
 
   // --- Export Data Function ---
   const handleExportData = () => {
@@ -2570,494 +2592,450 @@ export default function CourseDashboardEnhanced() {
 
   // --- Light Toolbar ---
   const LightToolbar = () => {
-    const [showOptionsDropdown, setShowOptionsDropdown] = useState(false);
-    const [showFilterDropdown, setShowFilterDropdown] = useState(false);
-    const [showSortDropdown, setShowSortDropdown] = useState(false);
-    const [showMoreDropdown, setShowMoreDropdown] = useState(false);
-    // Add these state variables
-    // Add these state variables
-    const [showAssigneeDropdown, setShowAssigneeDropdown] = useState(false);
-    const [selectedAssignee, setSelectedAssignee] = useState(dummyAssignees[0]); // Default to first assignee
-    // Add this useEffect to close dropdown when clicking outside
-    useEffect(() => {
-      const handleClickOutside = (event) => {
-        if (!event.target.closest('.assignee-dropdown-container')) {
-          setShowAssigneeDropdown(false);
-        }
-      };
+  const [showOptionsDropdown, setShowOptionsDropdown] = useState(false);
+  const [showFilterDropdown, setShowFilterDropdown] = useState(false);
+  const [showSortDropdown, setShowSortDropdown] = useState(false);
+  const [showMoreDropdown, setShowMoreDropdown] = useState(false);
+  const [showAssigneeDropdown, setShowAssigneeDropdown] = useState(false);
+  const [currentSort, setCurrentSort] = useState("none"); // Add sort state
 
-      document.addEventListener('mousedown', handleClickOutside);
-      return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, []);
+  const optionsList = ["All", "project", "task", "subtask"];
+  const priorities = ["All", "High", "Medium", "Low"];
+  const sortOptions = [
+    { value: "none", label: "None" }, // Add default "None" option
+    { value: "name", label: "Name" },
+    { value: "dueDate", label: "Due Date" },
+    { value: "priority", label: "Priority" },
+    { value: "created", label: "Recently Created" }
+  ];
 
-    const optionsList = ["project", "task", "subtask"];
-    const priorities = ["All", "High", "Medium", "Low"];
-    const sortOptions = [
-      { value: "name", label: "Name" },
-      { value: "dueDate", label: "Due Date" },
-      { value: "priority", label: "Priority" },
-      { value: "created", label: "Recently Created" }
-    ];
+  const assigneeOptions = ["All", ...dummyAssignees];
 
-    const styles = {
-      toolbar: {
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "center",
-        background: "#ffffffff",
-        padding: "8px 12px",
-        borderBottom: "1px solid #ddd",
-      },
-      leftSection: {
-        display: "flex",
-        alignItems: "center",
-        gap: "8px",
-      },
-      rightSection: {
-        display: "flex",
-        alignItems: "center",
-        gap: "8px",
-      },
-      btn: {
-        background: "#fff",
-        border: "1px solid #ccc",
-        borderRadius: "14px",
-        padding: "6px 10px",
-        cursor: "pointer",
-        display: "flex",
-        alignItems: "center",
-        gap: "4px",
-        height: "32px",
-      },
-      profileIcon: {
-        width: "28px",
-        height: "28px",
-        borderRadius: "50%",
-        background: "#007bff",
-        color: "#fff",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        fontWeight: "bold",
-        fontSize: "14px",
-        cursor: "pointer",
-      },
-      searchBox: {
-        display: "flex",
-        alignItems: "center",
-        border: "none",
-        borderRadius: "14px",
-        background: "#fff",
-        padding: "4px 8px",
-        height: "32px",
-      },
-      input: {
-        border: "none",
-        outline: "none",
-        fontSize: "14px",
-        width: "120px",
-        background: "transparent",
-      },
+  // Close dropdowns when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (!event.target.closest('.dropdown-container')) {
+        setShowOptionsDropdown(false);
+        setShowFilterDropdown(false);
+        setShowSortDropdown(false);
+        setShowMoreDropdown(false);
+        setShowAssigneeDropdown(false);
+      }
     };
 
-    return (
-      <div style={styles.toolbar}>
-        {/* LEFT SECTION */}
-        <div style={styles.leftSection}>
-          {/* Group Dropdown */}
-          <div style={{ position: "relative" }}>
-            <button
-              style={styles.btn}
-              onClick={() => setShowOptionsDropdown(!showOptionsDropdown)}
-            >
-              Group <span style={{ fontSize: "10px" }}>{showOptionsDropdown ? "▲" : "▼"}</span>
-            </button>
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
-            {showOptionsDropdown && (
-              <div
-                style={{
-                  position: "absolute",
-                  top: "100%",
-                  left: 0,
-                  background: "#fff",
-                  border: "1px solid #ccc",
-                  borderRadius: "6px",
-                  boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
-                  zIndex: 100,
-                  minWidth: "120px",
-                  marginTop: "4px",
-                }}
-              >
-                {optionsList.map((opt) => (
-                  <div
-                    key={opt}
-                    style={{
-                      padding: "6px 10px",
-                      cursor: "pointer",
-                      borderBottom: "1px solid #eee",
-                    }}
-                    onClick={() => {
-                      handleGroupBy(opt);
-                      setShowOptionsDropdown(false);
-                    }}
-                  >
-                    {opt}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+  // Update your handleSortProjects function to use the state
+  const handleSortProjects = (sortValue) => {
+    setCurrentSort(sortValue);
+    
+    if (sortValue === "none") {
+      // Reset to original order
+      // You'll need to implement your reset logic here
+      console.log("Reset sorting to default");
+    } else {
+      // Apply sorting logic based on sortValue
+      console.log(`Sorting by: ${sortValue}`);
+      // Your existing sorting logic here
+    }
+  };
 
-          {/* Sort Dropdown */}
-          <div style={{ position: "relative" }}>
-            <button
-              style={styles.btn}
-              onClick={() => setShowSortDropdown(!showSortDropdown)}
-            >
-              Sort <span style={{ fontSize: "10px" }}>{showSortDropdown ? "▲" : "▼"}</span>
-            </button>
+  const styles = {
+    toolbar: {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+      background: "#ffffffff",
+      padding: "8px 12px",
+      borderBottom: "1px solid #ddd",
+    },
+    leftSection: {
+      display: "flex",
+      alignItems: "center",
+      gap: "8px",
+    },
+    rightSection: {
+      display: "flex",
+      alignItems: "center",
+      gap: "8px",
+    },
+    btn: {
+      background: "#fff",
+      border: "1px solid #ccc",
+      borderRadius: "14px",
+      padding: "6px 10px",
+      cursor: "pointer",
+      display: "flex",
+      alignItems: "center",
+      gap: "4px",
+      height: "32px",
+      fontSize: "14px",
+    },
+    activeBtn: {
+      background: "#4f46e5",
+      color: "#fff",
+      border: "1px solid #4f46e5",
+    },
+    profileIcon: {
+      width: "28px",
+      height: "28px",
+      borderRadius: "50%",
+      background: "#007bff",
+      color: "#fff",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      fontWeight: "bold",
+      fontSize: "14px",
+      cursor: "pointer",
+    },
+    searchBox: {
+      display: "flex",
+      alignItems: "center",
+      border: "none",
+      borderRadius: "14px",
+      background: "#fff",
+      padding: "4px 8px",
+      height: "32px",
+    },
+    input: {
+      border: "none",
+      outline: "none",
+      fontSize: "14px",
+      width: "120px",
+      background: "transparent",
+    },
+    dropdown: {
+      position: "absolute",
+      top: "100%",
+      background: "#fff",
+      border: "1px solid #ccc",
+      borderRadius: "6px",
+      boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+      zIndex: 100,
+      minWidth: "140px",
+      marginTop: "4px",
+      maxHeight: "300px",
+      overflowY: "auto",
+    },
+    dropdownItem: {
+      padding: "8px 12px",
+      cursor: "pointer",
+      borderBottom: "1px solid #f3f4f6",
+      fontSize: "14px",
+      transition: "background 0.2s",
+    }
+  };
 
-            {showSortDropdown && (
-              <div
-                style={{
-                  position: "absolute",
-                  top: "100%",
-                  left: 0,
-                  background: "#fff",
-                  border: "1px solid #ccc",
-                  borderRadius: "6px",
-                  boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
-                  zIndex: 100,
-                  minWidth: "160px",
-                  marginTop: "4px",
-                }}
-              >
-                {sortOptions.map((option) => (
-                  <div
-                    key={option.value}
-                    style={{
-                      padding: "6px 10px",
-                      cursor: "pointer",
-                      borderBottom: "1px solid #eee",
-                    }}
-                    onClick={() => {
-                      handleSortProjects(option.value);
-                      setShowSortDropdown(false);
-                    }}
-                  >
-                    {option.label}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* RIGHT SECTION */}
-        <div style={styles.rightSection}>
-          {/* Filter Dropdown */}
-          <div style={{ position: "relative" }}>
-            <button
-              style={styles.btn}
-              onClick={() => setShowFilterDropdown(!showFilterDropdown)}
-            >
-              <Filter size={18} />
-              <p style={{ fontSize: "14px" }}>Filter</p>
-            </button>
-
-            {showFilterDropdown && (
-              <div
-                style={{
-                  position: "absolute",
-                  top: "100%",
-                  right: 0,
-                  background: "#fff",
-                  border: "1px solid #ccc",
-                  borderRadius: "6px",
-                  boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
-                  zIndex: 100,
-                  minWidth: "140px",
-                  marginTop: "4px",
-                  padding: "8px",
-                }}
-              >
-                {priorities.map((p) => (
-                  <div
-                    key={p}
-                    style={{
-                      padding: "6px 10px",
-                      cursor: "pointer",
-                      background: filterPriority === p ? "#f0f0f0" : "transparent",
-                      borderRadius: "4px",
-                    }}
-                    onClick={() => {
-                      handleFilterPriority(p);
-                      setShowFilterDropdown(false);
-                    }}
-                  >
-                    {p}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Closed Button */}
+  return (
+    <div style={styles.toolbar}>
+      {/* LEFT SECTION */}
+      <div style={styles.leftSection}>
+        {/* Group Dropdown */}
+        <div className="dropdown-container" style={{ position: "relative" }}>
           <button
             style={{
               ...styles.btn,
-              background: showClosed ? "#4f46e5" : "#fff",
-              color: showClosed ? "#fff" : "#000"
+              ...(groupBy !== "project" ? styles.activeBtn : {})
             }}
-            onClick={handleToggleClosed}
+            onClick={() => setShowOptionsDropdown(!showOptionsDropdown)}
           >
-            <CheckCircle size={18} />
-            <p style={{ fontSize: "14px" }}>Closed</p>
+            Group: {groupBy} <span style={{ fontSize: "10px" }}>{showOptionsDropdown ? "▲" : "▼"}</span>
           </button>
 
-          {/* Search Box */}
-          <div style={styles.searchBox}>
-            <Search size={20} />
-            <input
-              type="text"
-              placeholder="Search..."
-              value={searchQuery}
-              onChange={(e) => handleSearch(e.target.value)}
-              style={styles.input}
-            />
-          </div>
-
-          {/* More Options Dropdown */}
-          <div style={{ position: "relative" }}>
-            <button
-              style={styles.btn}
-              onClick={() => setShowMoreDropdown(!showMoreDropdown)}
-            >
-              <Settings size={18} />
-            </button>
-
-            {showMoreDropdown && (
-              <div
-                style={{
-                  position: "absolute",
-                  top: "100%",
-                  right: 0,
-                  background: "#fff",
-                  border: "1px solid #ccc",
-                  borderRadius: "6px",
-                  boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
-                  zIndex: 100,
-                  minWidth: "160px",
-                  marginTop: "4px",
-                }}
-              >
+          {showOptionsDropdown && (
+            <div style={{ ...styles.dropdown, left: 0 }}>
+              {optionsList.map((opt) => (
                 <div
+                  key={opt}
                   style={{
-                    padding: "8px 12px",
-                    cursor: "pointer",
-                    borderBottom: "1px solid #eee",
+                    ...styles.dropdownItem,
+                    background: groupBy === opt ? "#f3f4f6" : "transparent",
+                    fontWeight: groupBy === opt ? "600" : "400",
                   }}
                   onClick={() => {
-                    handleExportData();
-                    setShowMoreDropdown(false);
+                    handleGroupBy(opt);
+                    setShowOptionsDropdown(false);
                   }}
+                  onMouseEnter={(e) => e.currentTarget.style.background = "#f3f4f6"}
+                  onMouseLeave={(e) => e.currentTarget.style.background = groupBy === opt ? "#f3f4f6" : "transparent"}
                 >
-                  Export Data
+                  {opt.charAt(0).toUpperCase() + opt.slice(1)}
                 </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Sort Dropdown - FIXED */}
+        <div className="dropdown-container" style={{ position: "relative" }}>
+          <button
+            style={{
+              ...styles.btn,
+              ...(currentSort !== "none" ? styles.activeBtn : {}) // Show active when sorted
+            }}
+            onClick={() => setShowSortDropdown(!showSortDropdown)}
+          >
+            {currentSort === "none" ? "Sort" : `Sort: ${sortOptions.find(opt => opt.value === currentSort)?.label}`}
+            <span style={{ fontSize: "10px" }}>{showSortDropdown ? "▲" : "▼"}</span>
+          </button>
+
+          {showSortDropdown && (
+            <div style={{ ...styles.dropdown, left: 0, minWidth: "160px" }}>
+              {sortOptions.map((option) => (
                 <div
+                  key={option.value}
                   style={{
-                    padding: "8px 12px",
-                    cursor: "pointer",
+                    ...styles.dropdownItem,
+                    background: currentSort === option.value ? "#f3f4f6" : "transparent",
+                    fontWeight: currentSort === option.value ? "600" : "400",
                   }}
                   onClick={() => {
-                    document.getElementById('import-data')?.click();
-                    setShowMoreDropdown(false);
+                    handleSortProjects(option.value);
+                    setShowSortDropdown(false);
+                  }}
+                  onMouseEnter={(e) => {
+                    if (currentSort !== option.value) {
+                      e.currentTarget.style.background = "#f3f4f6";
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (currentSort !== option.value) {
+                      e.currentTarget.style.background = "transparent";
+                    }
                   }}
                 >
-                  Import Data
+                  {option.label}
                 </div>
-              </div>
-            )}
-          </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
 
-          {/* Dynamic Assignee Button with Dropdown */}
-          <div className="assignee-dropdown-container" style={{ position: "relative" }}>
-            <button
-              onClick={() => setShowAssigneeDropdown(!showAssigneeDropdown)}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "8px",
-                padding: "6px 12px",
-                border: "1px solid #e5e7eb",
-                borderRadius: "8px",
-                backgroundColor: "white",
-                cursor: "pointer",
-                transition: "all 0.2s",
-              }}
-              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "#f9fafb"}
-              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "white"}
-            >
-              <Users size={18} />
-              <p style={{ fontSize: "14px", margin: 0 }}>Assignee</p>
-              <div
-                style={{
-                  width: "28px",
-                  height: "28px",
-                  borderRadius: "50%",
-                  backgroundColor: "#4f46e5",
-                  color: "white",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontSize: "14px",
-                  fontWeight: 600,
-                }}
-              >
-                {selectedAssignee ?
-                  selectedAssignee.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2)
-                  : "B"
-                }
-              </div>
-            </button>
+      {/* RIGHT SECTION */}
+      <div style={styles.rightSection}>
+        {/* Filter Dropdown */}
+        <div className="dropdown-container" style={{ position: "relative" }}>
+          <button
+            style={{
+              ...styles.btn,
+              ...(filterPriority !== "All" ? styles.activeBtn : {})
+            }}
+            onClick={() => setShowFilterDropdown(!showFilterDropdown)}
+          >
+            <Filter size={16} />
+            Filter {filterPriority !== "All" && `: ${filterPriority}`}
+          </button>
 
-            {showAssigneeDropdown && (
-              <div
-                style={{
-                  position: "absolute",
-                  top: "100%",
-                  right: 0,
-                  background: "#fff",
-                  border: "1px solid #e5e7eb",
-                  borderRadius: "8px",
-                  boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
-                  zIndex: 100,
-                  minWidth: "200px",
-                  marginTop: "4px",
-                  maxHeight: "300px",
-                  overflowY: "auto",
-                }}
-              >
-                <div style={{ padding: "8px 12px", borderBottom: "1px solid #f3f4f6" }}>
-                  <p style={{ fontSize: "12px", fontWeight: 600, color: "#6b7280", margin: 0 }}>SELECT ASSIGNEE</p>
+          {showFilterDropdown && (
+            <div style={{ ...styles.dropdown, right: 0 }}>
+              {priorities.map((p) => (
+                <div
+                  key={p}
+                  style={{
+                    ...styles.dropdownItem,
+                    background: filterPriority === p ? "#f3f4f6" : "transparent",
+                    fontWeight: filterPriority === p ? "600" : "400",
+                  }}
+                  onClick={() => {
+                    handleFilterPriority(p);
+                    setShowFilterDropdown(false);
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.background = "#f3f4f6"}
+                  onMouseLeave={(e) => e.currentTarget.style.background = filterPriority === p ? "#f3f4f6" : "transparent"}
+                >
+                  {p}
                 </div>
+              ))}
+            </div>
+          )}
+        </div>
 
-                {dummyAssignees.map((assignee) => (
-                  <div
-                    key={assignee}
-                    style={{
-                      padding: "10px 12px",
-                      cursor: "pointer",
-                      borderBottom: "1px solid #f3f4f6",
-                      background: selectedAssignee === assignee ? "#4f46e5" : "transparent",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 10,
-                      transition: "all 0.2s",
-                    }}
-                    onClick={() => {
-                      setSelectedAssignee(assignee);
-                      setShowAssigneeDropdown(false);
-                      console.log("Assignee changed to:", assignee);
-                    }}
-                    onMouseEnter={(e) => {
-                      if (selectedAssignee !== assignee) {
-                        e.currentTarget.style.background = "#f3f4f6";
-                      }
-                    }}
-                    onMouseLeave={(e) => {
-                      if (selectedAssignee !== assignee) {
-                        e.currentTarget.style.background = "#fff";
-                      }
-                    }}
-                  >
+        {/* Assignee Dropdown */}
+        <div className="dropdown-container" style={{ position: "relative" }}>
+          <button
+            style={{
+              ...styles.btn,
+              ...(selectedAssignee !== "All" ? styles.activeBtn : {})
+            }}
+            onClick={() => setShowAssigneeDropdown(!showAssigneeDropdown)}
+          >
+            <Users size={16} />
+            Assignee {selectedAssignee !== "All" && `: ${selectedAssignee.split(' ')[0]}`}
+          </button>
+
+          {showAssigneeDropdown && (
+            <div style={{ ...styles.dropdown, right: 0, minWidth: "180px" }}>
+              <div style={{ ...styles.dropdownItem, fontWeight: "600", background: "#f8fafc" }}>
+                SELECT ASSIGNEE
+              </div>
+              {assigneeOptions.map((assignee) => (
+                <div
+                  key={assignee}
+                  style={{
+                    ...styles.dropdownItem,
+                    background: selectedAssignee === assignee ? "#f3f4f6" : "transparent",
+                    fontWeight: selectedAssignee === assignee ? "600" : "400",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "8px",
+                  }}
+                  onClick={() => {
+                    handleAssigneeFilter(assignee);
+                    setShowAssigneeDropdown(false);
+                  }}
+                  onMouseEnter={(e) => {
+                    if (selectedAssignee !== assignee) {
+                      e.currentTarget.style.background = "#f3f4f6";
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (selectedAssignee !== assignee) {
+                      e.currentTarget.style.background = "transparent";
+                    }
+                  }}
+                >
+                  {assignee !== "All" && (
                     <div
                       style={{
-                        width: "32px",
-                        height: "32px",
+                        width: "24px",
+                        height: "24px",
                         borderRadius: "50%",
-                        backgroundColor: selectedAssignee === assignee ? "white" : "#4f46e5",
-                        color: selectedAssignee === assignee ? "#4f46e5" : "white",
+                        backgroundColor: selectedAssignee === assignee ? "#4f46e5" : "#6b7280",
+                        color: "white",
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
-                        fontSize: "12px",
-                        fontWeight: 600,
-                        border: selectedAssignee === assignee ? "2px solid #4f46e5" : "none",
+                        fontSize: "10px",
+                        fontWeight: "600",
                       }}
                     >
                       {assignee.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2)}
                     </div>
-                    <div>
-                      <span style={{
-                        fontSize: 14,
-                        fontWeight: 500,
-                        color: selectedAssignee === assignee ? "white" : "#374151"
-                      }}>
-                        {assignee}
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-
-          {/* Hidden import input */}
-          <input
-            type="file"
-            id="import-data"
-            accept=".json"
-            onChange={handleImportData}
-            style={{ display: 'none' }}
-          />
-
-          {/* Add Project/Event Button */}
-          <button
-            onClick={() => openModal('project')}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 6,
-              padding: '8px 16px',
-              background: '#4f46e5',
-              color: '#fff',
-              border: 'none',
-              borderRadius: 6,
-              cursor: 'pointer',
-              fontWeight: 500,
-              fontSize: 14,
-              transition: 'background 0.2s'
-            }}
-          >
-            <Plus size={16} /> Add Project/Event
-          </button>
-
-          {/* Clear All Button */}
-          <button
-            onClick={clearAllData}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 6,
-              padding: '8px 16px',
-              background: '#ef4444',
-              color: '#fff',
-              border: 'none',
-              borderRadius: 6,
-              cursor: 'pointer',
-              fontWeight: 500,
-              fontSize: 14,
-              transition: 'background 0.2s'
-            }}
-          >
-            <Trash2 size={16} /> Clear All
-          </button>
+                  )}
+                  {assignee}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
+
+        {/* Closed Button */}
+        <button
+          style={{
+            ...styles.btn,
+            ...(showClosed ? styles.activeBtn : {})
+          }}
+          onClick={handleToggleClosed}
+        >
+          <CheckCircle size={16} />
+          Closed
+        </button>
+
+        {/* Search Box */}
+        <div style={styles.searchBox}>
+          <Search size={16} />
+          <input
+            type="text"
+            placeholder="Search..."
+            value={searchQuery}
+            onChange={(e) => handleSearch(e.target.value)}
+            style={styles.input}
+          />
+        </div>
+
+        {/* More Options Dropdown */}
+        <div className="dropdown-container" style={{ position: "relative" }}>
+          <button
+            style={styles.btn}
+            onClick={() => setShowMoreDropdown(!showMoreDropdown)}
+          >
+            <Settings size={16} />
+          </button>
+
+          {showMoreDropdown && (
+            <div style={{ ...styles.dropdown, right: 0, minWidth: "160px" }}>
+              <div
+                style={styles.dropdownItem}
+                onClick={() => {
+                  handleExportData();
+                  setShowMoreDropdown(false);
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.background = "#f3f4f6"}
+                onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
+              >
+                Export Data
+              </div>
+              <div
+                style={styles.dropdownItem}
+                onClick={() => {
+                  document.getElementById('import-data')?.click();
+                  setShowMoreDropdown(false);
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.background = "#f3f4f6"}
+                onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
+              >
+                Import Data
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Hidden import input */}
+        <input
+          type="file"
+          id="import-data"
+          accept=".json"
+          onChange={handleImportData}
+          style={{ display: 'none' }}
+        />
+
+        {/* Add Project/Event Button */}
+        <button
+          onClick={() => openModal('project')}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
+            padding: '8px 16px',
+            background: '#4f46e5',
+            color: '#fff',
+            border: 'none',
+            borderRadius: 6,
+            cursor: 'pointer',
+            fontWeight: 500,
+            fontSize: 14,
+          }}
+        >
+          <Plus size={16} /> Add Project/Event
+        </button>
+
+        {/* Clear All Button */}
+        <button
+          onClick={clearAllData}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
+            padding: '8px 16px',
+            background: '#ef4444',
+            color: '#fff',
+            border: 'none',
+            borderRadius: 6,
+            cursor: 'pointer',
+            fontWeight: 500,
+            fontSize: 14,
+          }}
+        >
+          <Trash2 size={16} /> Clear All
+        </button>
       </div>
-    );
-  };
+    </div>
+  );
+};
 
   // Get filtered projects
   const filteredProjects = getFilteredProjects();

@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { List, Calendar, Search, Eye, Settings } from "lucide-react";
-import ListPage from "./ListView";
+import ListPage from "./ListView/ListView";
 import Calendarpage from "./CalendarView";
 
 export default function CourseDashboard() {
