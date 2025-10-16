@@ -2674,9 +2674,9 @@ const getFilteredProjects = () => {
       fontSize: "14px",
     },
     activeBtn: {
-      background: "#4f46e5",
-      color: "#fff",
-      border: "1px solid #4f46e5",
+      background: "#fff",
+      
+      border: "1px solid #ccc",
     },
     profileIcon: {
       width: "28px",
