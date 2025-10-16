@@ -1238,7 +1238,7 @@ export default function CourseDashboardEnhanced() {
               </span>
             )}
           </div>
-<div></div>
+          <div></div>
           {/* --- Status --- */}
           <div>
             <StatusSelector
@@ -1246,7 +1246,7 @@ export default function CourseDashboardEnhanced() {
               onChange={status => handleUpdateTask?.({ ...task, status })}
             />
           </div>
-          
+
           {/* --- Assignee --- */}
           <div style={{ position: "relative" }}>
             <button
@@ -1856,266 +1856,681 @@ export default function CourseDashboardEnhanced() {
   };
 
   // --- Edit Dialog Component ---
-const EditDialog = () => {
-  const { isOpen, type, data, isEditing } = editDialog;
+  const EditDialog = () => {
+    const { isOpen, type, data, isEditing } = editDialog;
 
-  if (!isOpen) return null;
+    if (!isOpen) return null;
 
-  // File upload handler for edit dialog
-  const handleFileUploadEdit = (event) => {
-    const files = Array.from(event.target.files);
-    const newFiles = files.map(file => ({
-      id: uid(),
-      name: file.name,
-      type: file.type,
-      size: file.size,
-      url: URL.createObjectURL(file),
-      uploadedAt: new Date().toISOString()
-    }));
+    // File upload handler for edit dialog
+    const handleFileUploadEdit = (event) => {
+      const files = Array.from(event.target.files);
+      const newFiles = files.map(file => ({
+        id: uid(),
+        name: file.name,
+        type: file.type,
+        size: file.size,
+        url: URL.createObjectURL(file),
+        uploadedAt: new Date().toISOString()
+      }));
 
-    updateEditDialogData("files", [...(data.files || []), ...newFiles]);
-  };
+      updateEditDialogData("files", [...(data.files || []), ...newFiles]);
+    };
 
-  // Remove file from edit dialog
-  const removeFileEdit = (fileId) => {
-    updateEditDialogData("files", (data.files || []).filter(file => file.id !== fileId));
-  };
+    // Remove file from edit dialog
+    const removeFileEdit = (fileId) => {
+      updateEditDialogData("files", (data.files || []).filter(file => file.id !== fileId));
+    };
 
-  const renderFormField = (label, field, inputType = "text") => (
-    <div style={{ marginBottom: 16 }}>
-      <label style={{ display: 'block', marginBottom: 4, fontWeight: 500, color: '#374151' }}>
-        {label}
-      </label>
-      {inputType === "select" ? (
-        <select
-          value={data[field] || ""}
-          onChange={(e) => updateEditDialogData(field, e.target.value)}
-          style={{
-            width: '100%',
-            padding: '8px 12px',
-            border: '1px solid #d1d5db',
-            borderRadius: 6,
-            fontSize: 14
-          }}
-        >
-          {field === 'priority' ? (
-            priorities.map(p => <option key={p} value={p}>{p}</option>)
-          ) : field === 'assignee' ? (
-            [<option key="" value="">Select Assignee</option>,
-            ...dummyAssignees.map(a => <option key={a} value={a}>{a}</option>)]
-          ) : field === 'status' ? (
-            ["To Do", "In Progress", "Completed"].map(s => <option key={s} value={s}>{s}</option>)
-          ) : null}
-        </select>
-      ) : inputType === "textarea" ? (
-        <textarea
-          value={data[field] || ""}
-          onChange={(e) => updateEditDialogData(field, e.target.value)}
-          style={{
-            width: '100%',
-            padding: '8px 12px',
-            border: '1px solid #d1d5db',
-            borderRadius: 6,
-            fontSize: 14,
-            minHeight: 80,
-            resize: 'vertical'
-          }}
-        />
-      ) : (
-        <input
-          type={inputType}
-          value={data[field] || ""}
-          onChange={(e) => updateEditDialogData(field, e.target.value)}
-          style={{
-            width: '100%',
-            padding: '8px 12px',
-            border: '1px solid #d1d5db',
-            borderRadius: 6,
-            fontSize: 14
-          }}
-        />
-      )}
-    </div>
-  );
+    const renderFormField = (label, field, inputType = "text") => (
+      <div style={{ marginBottom: 16 }}>
+        <label style={{ display: 'block', marginBottom: 4, fontWeight: 500, color: '#374151' }}>
+          {label}
+        </label>
+        {inputType === "select" ? (
+          <select
+            value={data[field] || ""}
+            onChange={(e) => updateEditDialogData(field, e.target.value)}
+            style={{
+              width: '100%',
+              padding: '8px 12px',
+              border: '1px solid #d1d5db',
+              borderRadius: 6,
+              fontSize: 14
+            }}
+          >
+            {field === 'priority' ? (
+              priorities.map(p => <option key={p} value={p}>{p}</option>)
+            ) : field === 'assignee' ? (
+              [<option key="" value="">Select Assignee</option>,
+              ...dummyAssignees.map(a => <option key={a} value={a}>{a}</option>)]
+            ) : field === 'status' ? (
+              ["To Do", "In Progress", "Completed"].map(s => <option key={s} value={s}>{s}</option>)
+            ) : null}
+          </select>
+        ) : inputType === "textarea" ? (
+          <textarea
+            value={data[field] || ""}
+            onChange={(e) => updateEditDialogData(field, e.target.value)}
+            style={{
+              width: '100%',
+              padding: '8px 12px',
+              border: '1px solid #d1d5db',
+              borderRadius: 6,
+              fontSize: 14,
+              minHeight: 80,
+              resize: 'vertical'
+            }}
+          />
+        ) : (
+          <input
+            type={inputType}
+            value={data[field] || ""}
+            onChange={(e) => updateEditDialogData(field, e.target.value)}
+            style={{
+              width: '100%',
+              padding: '8px 12px',
+              border: '1px solid #d1d5db',
+              borderRadius: 6,
+              fontSize: 14
+            }}
+          />
+        )}
+      </div>
+    );
 
-  return (
-    <div style={{
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      width: '100%',
-      height: '100%',
-      background: 'rgba(0,0,0,0.4)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      zIndex: 1001
-    }}>
+    return (
       <div style={{
-        background: '#fff',
-        borderRadius: 12,
-        padding: 24,
-        width: '90%',
-        maxWidth: 500,
-        maxHeight: '90vh',
-        overflowY: 'auto',
-        boxShadow: '0 20px 25px rgba(0,0,0,0.15)'
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        width: '100%',
+        height: '100%',
+        background: 'rgba(0,0,0,0.4)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 1001
       }}>
         <div style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          marginBottom: 20,
-          paddingBottom: 16,
-          borderBottom: '1px solid #e5e7eb'
+          background: '#fff',
+          borderRadius: 12,
+          padding: 24,
+          width: '90%',
+          maxWidth: 500,
+          maxHeight: '90vh',
+          overflowY: 'auto',
+          boxShadow: '0 20px 25px rgba(0,0,0,0.15)'
         }}>
-          <div style={{ fontWeight: 600, fontSize: 20, color: '#111827' }}>
-            Edit {type?.charAt(0).toUpperCase() + type?.slice(1)}
-          </div>
-          <button onClick={closeEditDialog} style={{
-            background: 'transparent',
-            border: 'none',
-            cursor: 'pointer',
-            padding: 8,
-            borderRadius: 6,
-            color: '#6b7280',
-            transition: 'background 0.2s',
-            fontSize: 24,
-            width: 32,
-            height: 32,
+          <div style={{
             display: 'flex',
+            justifyContent: 'space-between',
             alignItems: 'center',
-            justifyContent: 'center'
+            marginBottom: 20,
+            paddingBottom: 16,
+            borderBottom: '1px solid #e5e7eb'
           }}>
-            ×
-          </button>
-        </div>
-
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          {renderFormField("Name", "name", "text")}
-          {renderFormField("Description", "description", "textarea")}
-          {renderFormField("Assignee", "assignee", "select")}
-          {renderFormField("Due Date", "due", "date")}
-          {renderFormField("Priority", "priority", "select")}
-          {renderFormField("Status", "status", "select")}
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <input
-              type="checkbox"
-              id="reminder"
-              checked={data.reminder || false}
-              onChange={(e) => updateEditDialogData("reminder", e.target.checked)}
-              style={{ width: 16, height: 16 }}
-            />
-            <label htmlFor="reminder" style={{ fontSize: 14, fontWeight: 500 }}>
-              Set Reminder
-            </label>
+            <div style={{ fontWeight: 600, fontSize: 20, color: '#111827' }}>
+              Edit {type?.charAt(0).toUpperCase() + type?.slice(1)}
+            </div>
+            <button onClick={closeEditDialog} style={{
+              background: 'transparent',
+              border: 'none',
+              cursor: 'pointer',
+              padding: 8,
+              borderRadius: 6,
+              color: '#6b7280',
+              transition: 'background 0.2s',
+              fontSize: 24,
+              width: 32,
+              height: 32,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}>
+              ×
+            </button>
           </div>
 
-          {/* File Upload Section for Edit Dialog */}
-          <div>
-            <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 8, color: '#374151' }}>
-              Files
-            </div>
-            <div style={{ border: '2px dashed #d1d5db', borderRadius: 8, padding: 16, textAlign: 'center' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            {renderFormField("Name", "name", "text")}
+            {renderFormField("Description", "description", "textarea")}
+            {renderFormField("Assignee", "assignee", "select")}
+            {renderFormField("Due Date", "due", "date")}
+            {renderFormField("Priority", "priority", "select")}
+            {renderFormField("Status", "status", "select")}
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
               <input
-                type="file"
-                multiple
-                onChange={handleFileUploadEdit}
-                style={{ display: 'none' }}
-                id="file-upload-edit"
+                type="checkbox"
+                id="reminder"
+                checked={data.reminder || false}
+                onChange={(e) => updateEditDialogData("reminder", e.target.checked)}
+                style={{ width: 16, height: 16 }}
               />
-              <label
-                htmlFor="file-upload-edit"
-                style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  gap: 8,
-                  cursor: 'pointer',
-                  color: '#6b7280'
-                }}
-              >
-                <FolderOpen size={24} />
-                <div>
-                  <div style={{ fontWeight: 500, color: '#374151' }}>Click to upload files</div>
-                  <div style={{ fontSize: 12 }}>or drag and drop</div>
-                </div>
+              <label htmlFor="reminder" style={{ fontSize: 14, fontWeight: 500 }}>
+                Set Reminder
               </label>
             </div>
 
-            {/* Uploaded Files List */}
-            {data.files && data.files.length > 0 && (
-              <div style={{ marginTop: 16 }}>
-                <div style={{ fontSize: 14, fontWeight: 500, marginBottom: 8 }}>Attached Files:</div>
-                {data.files.map(file => (
-                  <div
-                    key={file.id}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      padding: '8px 12px',
-                      background: '#f8fafc',
-                      borderRadius: 6,
-                      marginBottom: 4
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1 }}>
-                      <FileText size={16} />
-                      <span style={{ fontSize: 14 }}>{file.name}</span>
-                    </div>
-                    <div style={{ display: 'flex', gap: 4 }}>
-                      <button
-                        onClick={() => handleFilePreview(file)}
-                        style={{
-                          background: 'none',
-                          border: 'none',
-                          color: '#4f46e5',
-                          cursor: 'pointer',
-                          padding: 4
-                        }}
-                        title="Preview"
-                      >
-                        <Eye size={16} />
-                      </button>
-                      <button
-                        onClick={() => handleFileDownload(file)}
-                        style={{
-                          background: 'none',
-                          border: 'none',
-                          color: '#059669',
-                          cursor: 'pointer',
-                          padding: 4
-                        }}
-                        title="Download"
-                      >
-                        <Save size={16} />
-                      </button>
-                      <button
-                        onClick={() => removeFileEdit(file.id)}
-                        style={{
-                          background: 'none',
-                          border: 'none',
-                          color: '#ef4444',
-                          cursor: 'pointer',
-                          padding: 4
-                        }}
-                        title="Remove"
-                      >
-                        <X size={16} />
-                      </button>
-                    </div>
-                  </div>
-                ))}
+            {/* File Upload Section for Edit Dialog */}
+            <div>
+              <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 8, color: '#374151' }}>
+                Files
               </div>
-            )}
+              <div style={{ border: '2px dashed #d1d5db', borderRadius: 8, padding: 16, textAlign: 'center' }}>
+                <input
+                  type="file"
+                  multiple
+                  onChange={handleFileUploadEdit}
+                  style={{ display: 'none' }}
+                  id="file-upload-edit"
+                />
+                <label
+                  htmlFor="file-upload-edit"
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: 8,
+                    cursor: 'pointer',
+                    color: '#6b7280'
+                  }}
+                >
+                  <FolderOpen size={24} />
+                  <div>
+                    <div style={{ fontWeight: 500, color: '#374151' }}>Click to upload files</div>
+                    <div style={{ fontSize: 12 }}>or drag and drop</div>
+                  </div>
+                </label>
+              </div>
+
+              {/* Uploaded Files List */}
+              {data.files && data.files.length > 0 && (
+                <div style={{ marginTop: 16 }}>
+                  <div style={{ fontSize: 14, fontWeight: 500, marginBottom: 8 }}>Attached Files:</div>
+                  {data.files.map(file => (
+                    <div
+                      key={file.id}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: '8px 12px',
+                        background: '#f8fafc',
+                        borderRadius: 6,
+                        marginBottom: 4
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1 }}>
+                        <FileText size={16} />
+                        <span style={{ fontSize: 14 }}>{file.name}</span>
+                      </div>
+                      <div style={{ display: 'flex', gap: 4 }}>
+                        <button
+                          onClick={() => handleFilePreview(file)}
+                          style={{
+                            background: 'none',
+                            border: 'none',
+                            color: '#4f46e5',
+                            cursor: 'pointer',
+                            padding: 4
+                          }}
+                          title="Preview"
+                        >
+                          <Eye size={16} />
+                        </button>
+                        <button
+                          onClick={() => handleFileDownload(file)}
+                          style={{
+                            background: 'none',
+                            border: 'none',
+                            color: '#059669',
+                            cursor: 'pointer',
+                            padding: 4
+                          }}
+                          title="Download"
+                        >
+                          <Save size={16} />
+                        </button>
+                        <button
+                          onClick={() => removeFileEdit(file.id)}
+                          style={{
+                            background: 'none',
+                            border: 'none',
+                            color: '#ef4444',
+                            cursor: 'pointer',
+                            padding: 4
+                          }}
+                          title="Remove"
+                        >
+                          <X size={16} />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', gap: 12, marginTop: 24 }}>
+            <button
+              onClick={handleSaveEdit}
+              style={{
+                padding: '12px 24px',
+                background: '#4f46e5',
+                color: '#fff',
+                border: 'none',
+                borderRadius: 8,
+                cursor: 'pointer',
+                fontWeight: 500,
+                fontSize: 16,
+                flex: 1
+              }}
+            >
+              Save Changes
+            </button>
+            <button
+              onClick={closeEditDialog}
+              style={{
+                padding: '12px 24px',
+                background: '#f3f4f6',
+                color: '#374151',
+                border: 'none',
+                borderRadius: 8,
+                cursor: 'pointer',
+                fontWeight: 500,
+                fontSize: 16,
+                flex: 1
+              }}
+            >
+              Cancel
+            </button>
           </div>
         </div>
+      </div>
+    );
+  };
 
-        <div style={{ display: 'flex', gap: 12, marginTop: 24 }}>
+  // ---  View Dialog Component ---
+  const ViewDialog = () => {
+    const { isOpen, type, data } = viewDialog;
+
+    if (!isOpen) return null;
+
+    const renderDetailRow = (label, value, IconComponent) => (
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '8px 0', borderBottom: '1px solid #f3f4f6' }}>
+        {IconComponent && <IconComponent size={16} color="#6b7280" />}
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 12, color: '#6b7280', fontWeight: 500 }}>{label}</div>
+          <div style={{ fontSize: 14, color: '#374151' }}>{value || "—"}</div>
+        </div>
+      </div>
+    );
+
+    // Enhanced file actions for view dialog
+    const handleFileAction = (file, action) => {
+      switch (action) {
+        case 'preview':
+          handleFilePreview(file);
+          break;
+        case 'download':
+          handleFileDownload(file);
+          break;
+        default:
+          break;
+      }
+    };
+
+    return (
+      <div style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        width: '100%',
+        height: '100%',
+        background: 'rgba(0,0,0,0.4)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 1001
+      }}>
+        <div style={{
+          background: '#fff',
+          borderRadius: 12,
+          padding: 24,
+          width: '90%',
+          maxWidth: 500,
+          maxHeight: '90vh',
+          overflowY: 'auto',
+          boxShadow: '0 20px 25px rgba(0,0,0,0.15)'
+        }}>
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: 20,
+            paddingBottom: 16,
+            borderBottom: '1px solid #e5e7eb'
+          }}>
+            <div style={{ fontWeight: 600, fontSize: 20, color: '#111827' }}>
+              {data?.name || "Untitled"}
+            </div>
+            <button onClick={closeViewDialog} style={{
+              background: 'transparent',
+              border: 'none',
+              cursor: 'pointer',
+              padding: 8,
+              borderRadius: 6,
+              color: '#6b7280',
+              transition: 'background 0.2s',
+              fontSize: 24,
+              width: 32,
+              height: 32,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}>
+              ×
+            </button>
+          </div>
+
+          <div style={{ marginBottom: 20 }}>
+            <div style={{
+              display: 'inline-block',
+              padding: '4px 12px',
+              background: type === 'event' ? '#e0f2fe' : '#f3f4f6',
+              color: type === 'event' ? '#0369a1' : '#374151',
+              borderRadius: 12,
+              fontSize: 12,
+              fontWeight: 500
+            }}>
+              {type?.charAt(0).toUpperCase() + type?.slice(1)}
+            </div>
+          </div>
+
+          <div style={{ marginBottom: 24 }}>
+            {renderDetailRow("Description", data?.description, FileText)}
+            {renderDetailRow("Assignee", data?.assignee, User)}
+            {renderDetailRow("Due Date", data?.due, CalendarIcon)}
+            {renderDetailRow("Priority", data?.priority, Flag)}
+            {renderDetailRow("Status", data?.status, CheckCircle)}
+            {renderDetailRow("Reminder", data?.reminder ? "Yes" : "No", Bell)}
+            {renderDetailRow("Created", data?.createdAt ? new Date(data.createdAt).toLocaleDateString() : "—", Clock)}
+            {renderDetailRow("Last Updated", data?.updatedAt ? new Date(data.updatedAt).toLocaleDateString() : "—", Save)}
+          </div>
+
+          {data?.files && data.files.length > 0 && (
+            <div style={{ marginBottom: 24 }}>
+              <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 12, color: '#374151' }}>
+                Attached Files ({data.files.length})
+              </div>
+              {data.files.map(file => (
+                <div key={file.id} style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '8px 12px',
+                  background: '#f8fafc',
+                  borderRadius: 6,
+                  marginBottom: 4
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1 }}>
+                    <FileText size={16} />
+                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                      <span style={{ fontSize: 14, fontWeight: 500 }}>{file.name}</span>
+                      <span style={{ fontSize: 12, color: '#6b7280' }}>
+                        {file.type} • {Math.round(file.size / 1024)} KB
+                      </span>
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', gap: 4 }}>
+                    <button
+                      onClick={() => handleFileAction(file, 'preview')}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        color: '#4f46e5',
+                        cursor: 'pointer',
+                        padding: 4
+                      }}
+                      title="Preview File"
+                    >
+                      <Eye size={16} />
+                    </button>
+                    <button
+                      onClick={() => handleFileAction(file, 'download')}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        color: '#059669',
+                        cursor: 'pointer',
+                        padding: 4
+                      }}
+                      title="Download File"
+                    >
+                      <Save size={16} />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div style={{ display: 'flex', gap: 12 }}>
+
+            <button
+              onClick={closeViewDialog}
+              style={{
+                padding: '12px 24px',
+                background: '#f3f4f6',
+                color: '#374151',
+                border: 'none',
+                borderRadius: 8,
+                cursor: 'pointer',
+                fontWeight: 500,
+                fontSize: 16,
+                flex: 1
+              }}
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // Update the renderModalContent function to include ToggleSwitch
+  const renderModalContent = () => {
+    const currentType = isEvent ? 'event' : itemType;
+    const currentForm = formData[currentType] || {};
+
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+        {/* Main Toggle - Event vs Project/Task/Subtask */}
+        <div style={{
+          display: 'flex',
+          gap: 8,
+          marginBottom: 10,
+          borderBottom: '1px solid #e5e7eb',
+          paddingBottom: 8
+        }}>
           <button
-            onClick={handleSaveEdit}
+            onClick={() => setIsEvent(false)}
+            style={!isEvent ? {
+              flex: 1,
+              padding: '10px 16px',
+              border: 'none',
+              borderBottom: '3px solid #4f46e5',
+              background: 'transparent',
+              fontWeight: 600,
+              cursor: 'pointer',
+              color: '#4f46e5',
+              fontSize: 16,
+              transition: 'all 0.2s',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 8
+            } : {
+              flex: 1,
+              padding: '10px 16px',
+              border: 'none',
+              borderBottom: '3px solid transparent',
+              background: 'transparent',
+              fontWeight: 400,
+              cursor: 'pointer',
+              color: '#6b7280',
+              fontSize: 16,
+              transition: 'all 0.2s',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 8
+            }}
+          >
+            <Target size={18} />
+            Project/Task
+          </button>
+          <button
+            onClick={() => setIsEvent(true)}
+            style={isEvent ? {
+              flex: 1,
+              padding: '10px 16px',
+              border: 'none',
+              borderBottom: '3px solid #4f46e5',
+              background: 'transparent',
+              fontWeight: 600,
+              cursor: 'pointer',
+              color: '#4f46e5',
+              fontSize: 16,
+              transition: 'all 0.2s',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 8
+            } : {
+              flex: 1,
+              padding: '10px 16px',
+              border: 'none',
+              borderBottom: '3px solid transparent',
+              background: 'transparent',
+              fontWeight: 400,
+              cursor: 'pointer',
+              color: '#6b7280',
+              fontSize: 16,
+              transition: 'all 0.2s',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 8
+            }}
+          >
+            <Clock size={18} />
+            Event
+          </button>
+        </div>
+
+        {/* Name Field */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          <label style={{ fontSize: 14, fontWeight: 500, color: "#374151" }}>
+            {`${isEvent ? "Event" : itemType.charAt(0).toUpperCase() + itemType.slice(1)} Name`}
+          </label>
+          <input
+            type="text"
+            value={currentForm.name || ""}
+            onChange={(e) => updateFormData(currentType, "name", e.target.value)}
+            placeholder={`Enter ${isEvent ? "event" : itemType} name`}
+            style={{
+              padding: "8px 10px",
+              border: "1px solid #ccc",
+              borderRadius: 6,
+              fontSize: 14,
+              outline: "none",
+            }}
+          />
+        </div>
+
+        {/* Description Field */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          <label style={{ fontSize: 14, fontWeight: 500, color: "#374151" }}>Description</label>
+          <input
+            type="text"
+            value={currentForm.description || ""}
+            onChange={(e) => updateFormData(currentType, "description", e.target.value)}
+            placeholder="Enter description"
+            style={{
+              padding: "8px 10px",
+              border: "1px solid #ccc",
+              borderRadius: 6,
+              fontSize: 14,
+              outline: "none",
+            }}
+          />
+        </div>
+
+        {/* Form Row - Assignee, Due Date, Priority */}
+        <FormRow>
+          <div style={{ flex: 1, minWidth: 150, display: "flex", flexDirection: "column" }}>
+            <FormField
+              label="Assignee"
+              type="select"
+              value={currentForm.assignee || ""}
+              onChange={e => updateFormData(currentType, 'assignee', e.target.value)}
+              options={["", ...dummyAssignees]}
+            />
+          </div>
+          <div style={{ flex: 1, minWidth: 150, display: "flex", flexDirection: "column" }}>
+            <FormField
+              label="Due Date"
+              type="date"
+              value={currentForm.due || ""}
+              onChange={e => updateFormData(currentType, 'due', e.target.value)}
+            />
+          </div>
+          <div style={{ flex: 1, minWidth: 150, display: "flex", flexDirection: "column" }}>
+            <FormField
+              label="Priority"
+              type="select"
+              value={currentForm.priority || "Low"}
+              onChange={e => updateFormData(currentType, 'priority', e.target.value)}
+              options={priorities}
+            />
+          </div>
+        </FormRow>
+
+        {/* Toggles Section */}
+        <div style={{
+          border: '1px solid #e5e7eb',
+          borderRadius: 8,
+          padding: 16,
+          background: '#f8fafc'
+        }}>
+          <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 12, color: '#374151' }}>
+            Settings
+          </div>
+
+          <ToggleSwitch
+            label="Set Reminder"
+            checked={currentForm.reminder || false}
+            onChange={(checked) => updateFormData(currentType, 'reminder', checked)}
+            icon={Bell}
+          />
+        </div>
+
+        {/* File Upload Section */}
+        <div>
+          <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 8, color: '#374151' }}>
+            File Upload
+          </div>
+          <FileUploadSection />
+        </div>
+
+        {/* Action Buttons */}
+        <div style={{ display: 'flex', gap: 12, marginTop: 8 }}>
+          <button
+            onClick={addItem}
             style={{
               padding: '12px 24px',
               background: '#4f46e5',
@@ -2125,13 +2540,14 @@ const EditDialog = () => {
               cursor: 'pointer',
               fontWeight: 500,
               fontSize: 16,
-              flex: 1
+              flex: 1,
+              transition: 'background 0.2s'
             }}
           >
-            Save Changes
+            Create {isEvent ? 'Event' : itemType.charAt(0).toUpperCase() + itemType.slice(1)}
           </button>
           <button
-            onClick={closeEditDialog}
+            onClick={closeModal}
             style={{
               padding: '12px 24px',
               background: '#f3f4f6',
@@ -2141,432 +2557,16 @@ const EditDialog = () => {
               cursor: 'pointer',
               fontWeight: 500,
               fontSize: 16,
-              flex: 1
+              flex: 1,
+              transition: 'background 0.2s'
             }}
           >
             Cancel
           </button>
         </div>
       </div>
-    </div>
-  );
-};
-
-// ---  View Dialog Component ---
-const ViewDialog = () => {
-  const { isOpen, type, data } = viewDialog;
-
-  if (!isOpen) return null;
-
-  const renderDetailRow = (label, value, IconComponent) => (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '8px 0', borderBottom: '1px solid #f3f4f6' }}>
-      {IconComponent && <IconComponent size={16} color="#6b7280" />}
-      <div style={{ flex: 1 }}>
-        <div style={{ fontSize: 12, color: '#6b7280', fontWeight: 500 }}>{label}</div>
-        <div style={{ fontSize: 14, color: '#374151' }}>{value || "—"}</div>
-      </div>
-    </div>
-  );
-
-  // Enhanced file actions for view dialog
-  const handleFileAction = (file, action) => {
-    switch (action) {
-      case 'preview':
-        handleFilePreview(file);
-        break;
-      case 'download':
-        handleFileDownload(file);
-        break;
-      default:
-        break;
-    }
+    );
   };
-
-  return (
-    <div style={{
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      width: '100%',
-      height: '100%',
-      background: 'rgba(0,0,0,0.4)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      zIndex: 1001
-    }}>
-      <div style={{
-        background: '#fff',
-        borderRadius: 12,
-        padding: 24,
-        width: '90%',
-        maxWidth: 500,
-        maxHeight: '90vh',
-        overflowY: 'auto',
-        boxShadow: '0 20px 25px rgba(0,0,0,0.15)'
-      }}>
-        <div style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          marginBottom: 20,
-          paddingBottom: 16,
-          borderBottom: '1px solid #e5e7eb'
-        }}>
-          <div style={{ fontWeight: 600, fontSize: 20, color: '#111827' }}>
-            {data?.name || "Untitled"}
-          </div>
-          <button onClick={closeViewDialog} style={{
-            background: 'transparent',
-            border: 'none',
-            cursor: 'pointer',
-            padding: 8,
-            borderRadius: 6,
-            color: '#6b7280',
-            transition: 'background 0.2s',
-            fontSize: 24,
-            width: 32,
-            height: 32,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center'
-          }}>
-            ×
-          </button>
-        </div>
-
-        <div style={{ marginBottom: 20 }}>
-          <div style={{
-            display: 'inline-block',
-            padding: '4px 12px',
-            background: type === 'event' ? '#e0f2fe' : '#f3f4f6',
-            color: type === 'event' ? '#0369a1' : '#374151',
-            borderRadius: 12,
-            fontSize: 12,
-            fontWeight: 500
-          }}>
-            {type?.charAt(0).toUpperCase() + type?.slice(1)}
-          </div>
-        </div>
-
-        <div style={{ marginBottom: 24 }}>
-          {renderDetailRow("Description", data?.description, FileText)}
-          {renderDetailRow("Assignee", data?.assignee, User)}
-          {renderDetailRow("Due Date", data?.due, CalendarIcon)}
-          {renderDetailRow("Priority", data?.priority, Flag)}
-          {renderDetailRow("Status", data?.status, CheckCircle)}
-          {renderDetailRow("Reminder", data?.reminder ? "Yes" : "No", Bell)}
-          {renderDetailRow("Created", data?.createdAt ? new Date(data.createdAt).toLocaleDateString() : "—", Clock)}
-          {renderDetailRow("Last Updated", data?.updatedAt ? new Date(data.updatedAt).toLocaleDateString() : "—", Save)}
-        </div>
-
-        {data?.files && data.files.length > 0 && (
-          <div style={{ marginBottom: 24 }}>
-            <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 12, color: '#374151' }}>
-              Attached Files ({data.files.length})
-            </div>
-            {data.files.map(file => (
-              <div key={file.id} style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                padding: '8px 12px',
-                background: '#f8fafc',
-                borderRadius: 6,
-                marginBottom: 4
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1 }}>
-                  <FileText size={16} />
-                  <div style={{ display: 'flex', flexDirection: 'column' }}>
-                    <span style={{ fontSize: 14, fontWeight: 500 }}>{file.name}</span>
-                    <span style={{ fontSize: 12, color: '#6b7280' }}>
-                      {file.type} • {Math.round(file.size / 1024)} KB
-                    </span>
-                  </div>
-                </div>
-                <div style={{ display: 'flex', gap: 4 }}>
-                  <button
-                    onClick={() => handleFileAction(file, 'preview')}
-                    style={{
-                      background: 'none',
-                      border: 'none',
-                      color: '#4f46e5',
-                      cursor: 'pointer',
-                      padding: 4
-                    }}
-                    title="Preview File"
-                  >
-                    <Eye size={16} />
-                  </button>
-                  <button
-                    onClick={() => handleFileAction(file, 'download')}
-                    style={{
-                      background: 'none',
-                      border: 'none',
-                      color: '#059669',
-                      cursor: 'pointer',
-                      padding: 4
-                    }}
-                    title="Download File"
-                  >
-                    <Save size={16} />
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-
-        <div style={{ display: 'flex', gap: 12 }}>
-          
-          <button
-            onClick={closeViewDialog}
-            style={{
-              padding: '12px 24px',
-              background: '#f3f4f6',
-              color: '#374151',
-              border: 'none',
-              borderRadius: 8,
-              cursor: 'pointer',
-              fontWeight: 500,
-              fontSize: 16,
-              flex: 1
-            }}
-          >
-            Close
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// Update the renderModalContent function to include ToggleSwitch
-const renderModalContent = () => {
-  const currentType = isEvent ? 'event' : itemType;
-  const currentForm = formData[currentType] || {};
-
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-      {/* Main Toggle - Event vs Project/Task/Subtask */}
-      <div style={{
-        display: 'flex',
-        gap: 8,
-        marginBottom: 10,
-        borderBottom: '1px solid #e5e7eb',
-        paddingBottom: 8
-      }}>
-        <button
-          onClick={() => setIsEvent(false)}
-          style={!isEvent ? {
-            flex: 1,
-            padding: '10px 16px',
-            border: 'none',
-            borderBottom: '3px solid #4f46e5',
-            background: 'transparent',
-            fontWeight: 600,
-            cursor: 'pointer',
-            color: '#4f46e5',
-            fontSize: 16,
-            transition: 'all 0.2s',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 8
-          } : {
-            flex: 1,
-            padding: '10px 16px',
-            border: 'none',
-            borderBottom: '3px solid transparent',
-            background: 'transparent',
-            fontWeight: 400,
-            cursor: 'pointer',
-            color: '#6b7280',
-            fontSize: 16,
-            transition: 'all 0.2s',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 8
-          }}
-        >
-          <Target size={18} />
-          Project/Task
-        </button>
-        <button
-          onClick={() => setIsEvent(true)}
-          style={isEvent ? {
-            flex: 1,
-            padding: '10px 16px',
-            border: 'none',
-            borderBottom: '3px solid #4f46e5',
-            background: 'transparent',
-            fontWeight: 600,
-            cursor: 'pointer',
-            color: '#4f46e5',
-            fontSize: 16,
-            transition: 'all 0.2s',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 8
-          } : {
-            flex: 1,
-            padding: '10px 16px',
-            border: 'none',
-            borderBottom: '3px solid transparent',
-            background: 'transparent',
-            fontWeight: 400,
-            cursor: 'pointer',
-            color: '#6b7280',
-            fontSize: 16,
-            transition: 'all 0.2s',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 8
-          }}
-        >
-          <Clock size={18} />
-          Event
-        </button>
-      </div>
-
-      {/* Name Field */}
-      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-        <label style={{ fontSize: 14, fontWeight: 500, color: "#374151" }}>
-          {`${isEvent ? "Event" : itemType.charAt(0).toUpperCase() + itemType.slice(1)} Name`}
-        </label>
-        <input
-          type="text"
-          value={currentForm.name || ""}
-          onChange={(e) => updateFormData(currentType, "name", e.target.value)}
-          placeholder={`Enter ${isEvent ? "event" : itemType} name`}
-          style={{
-            padding: "8px 10px",
-            border: "1px solid #ccc",
-            borderRadius: 6,
-            fontSize: 14,
-            outline: "none",
-          }}
-        />
-      </div>
-
-      {/* Description Field */}
-      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-        <label style={{ fontSize: 14, fontWeight: 500, color: "#374151" }}>Description</label>
-        <input
-          type="text"
-          value={currentForm.description || ""}
-          onChange={(e) => updateFormData(currentType, "description", e.target.value)}
-          placeholder="Enter description"
-          style={{
-            padding: "8px 10px",
-            border: "1px solid #ccc",
-            borderRadius: 6,
-            fontSize: 14,
-            outline: "none",
-          }}
-        />
-      </div>
-
-      {/* Form Row - Assignee, Due Date, Priority */}
-      <FormRow>
-        <div style={{ flex: 1, minWidth: 150, display: "flex", flexDirection: "column" }}>
-          <FormField
-            label="Assignee"
-            type="select"
-            value={currentForm.assignee || ""}
-            onChange={e => updateFormData(currentType, 'assignee', e.target.value)}
-            options={["", ...dummyAssignees]}
-          />
-        </div>
-        <div style={{ flex: 1, minWidth: 150, display: "flex", flexDirection: "column" }}>
-          <FormField
-            label="Due Date"
-            type="date"
-            value={currentForm.due || ""}
-            onChange={e => updateFormData(currentType, 'due', e.target.value)}
-          />
-        </div>
-        <div style={{ flex: 1, minWidth: 150, display: "flex", flexDirection: "column" }}>
-          <FormField
-            label="Priority"
-            type="select"
-            value={currentForm.priority || "Low"}
-            onChange={e => updateFormData(currentType, 'priority', e.target.value)}
-            options={priorities}
-          />
-        </div>
-      </FormRow>
-
-      {/* Toggles Section */}
-      <div style={{
-        border: '1px solid #e5e7eb',
-        borderRadius: 8,
-        padding: 16,
-        background: '#f8fafc'
-      }}>
-        <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 12, color: '#374151' }}>
-          Settings
-        </div>
-
-        <ToggleSwitch
-          label="Set Reminder"
-          checked={currentForm.reminder || false}
-          onChange={(checked) => updateFormData(currentType, 'reminder', checked)}
-          icon={Bell}
-        />
-      </div>
-
-      {/* File Upload Section */}
-      <div>
-        <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 8, color: '#374151' }}>
-          File Upload
-        </div>
-        <FileUploadSection />
-      </div>
-
-      {/* Action Buttons */}
-      <div style={{ display: 'flex', gap: 12, marginTop: 8 }}>
-        <button
-          onClick={addItem}
-          style={{
-            padding: '12px 24px',
-            background: '#4f46e5',
-            color: '#fff',
-            border: 'none',
-            borderRadius: 8,
-            cursor: 'pointer',
-            fontWeight: 500,
-            fontSize: 16,
-            flex: 1,
-            transition: 'background 0.2s'
-          }}
-        >
-          Create {isEvent ? 'Event' : itemType.charAt(0).toUpperCase() + itemType.slice(1)}
-        </button>
-        <button
-          onClick={closeModal}
-          style={{
-            padding: '12px 24px',
-            background: '#f3f4f6',
-            color: '#374151',
-            border: 'none',
-            borderRadius: 8,
-            cursor: 'pointer',
-            fontWeight: 500,
-            fontSize: 16,
-            flex: 1,
-            transition: 'background 0.2s'
-          }}
-        >
-          Cancel
-        </button>
-      </div>
-    </div>
-  );
-};
 
   // --- Light Toolbar ---
   const LightToolbar = () => {
@@ -2574,6 +2574,21 @@ const renderModalContent = () => {
     const [showFilterDropdown, setShowFilterDropdown] = useState(false);
     const [showSortDropdown, setShowSortDropdown] = useState(false);
     const [showMoreDropdown, setShowMoreDropdown] = useState(false);
+    // Add these state variables
+    // Add these state variables
+    const [showAssigneeDropdown, setShowAssigneeDropdown] = useState(false);
+    const [selectedAssignee, setSelectedAssignee] = useState(dummyAssignees[0]); // Default to first assignee
+    // Add this useEffect to close dropdown when clicking outside
+    useEffect(() => {
+      const handleClickOutside = (event) => {
+        if (!event.target.closest('.assignee-dropdown-container')) {
+          setShowAssigneeDropdown(false);
+        }
+      };
+
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
 
     const optionsList = ["project", "task", "subtask"];
     const priorities = ["All", "High", "Medium", "Low"];
@@ -2864,8 +2879,131 @@ const renderModalContent = () => {
               </div>
             )}
           </div>
-          
-          
+
+          {/* Dynamic Assignee Button with Dropdown */}
+          <div className="assignee-dropdown-container" style={{ position: "relative" }}>
+            <button
+              onClick={() => setShowAssigneeDropdown(!showAssigneeDropdown)}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+                padding: "6px 12px",
+                border: "1px solid #e5e7eb",
+                borderRadius: "8px",
+                backgroundColor: "white",
+                cursor: "pointer",
+                transition: "all 0.2s",
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "#f9fafb"}
+              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "white"}
+            >
+              <Users size={18} />
+              <p style={{ fontSize: "14px", margin: 0 }}>Assignee</p>
+              <div
+                style={{
+                  width: "28px",
+                  height: "28px",
+                  borderRadius: "50%",
+                  backgroundColor: "#4f46e5",
+                  color: "white",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: "14px",
+                  fontWeight: 600,
+                }}
+              >
+                {selectedAssignee ?
+                  selectedAssignee.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2)
+                  : "B"
+                }
+              </div>
+            </button>
+
+            {showAssigneeDropdown && (
+              <div
+                style={{
+                  position: "absolute",
+                  top: "100%",
+                  right: 0,
+                  background: "#fff",
+                  border: "1px solid #e5e7eb",
+                  borderRadius: "8px",
+                  boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+                  zIndex: 100,
+                  minWidth: "200px",
+                  marginTop: "4px",
+                  maxHeight: "300px",
+                  overflowY: "auto",
+                }}
+              >
+                <div style={{ padding: "8px 12px", borderBottom: "1px solid #f3f4f6" }}>
+                  <p style={{ fontSize: "12px", fontWeight: 600, color: "#6b7280", margin: 0 }}>SELECT ASSIGNEE</p>
+                </div>
+
+                {dummyAssignees.map((assignee) => (
+                  <div
+                    key={assignee}
+                    style={{
+                      padding: "10px 12px",
+                      cursor: "pointer",
+                      borderBottom: "1px solid #f3f4f6",
+                      background: selectedAssignee === assignee ? "#4f46e5" : "transparent",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 10,
+                      transition: "all 0.2s",
+                    }}
+                    onClick={() => {
+                      setSelectedAssignee(assignee);
+                      setShowAssigneeDropdown(false);
+                      console.log("Assignee changed to:", assignee);
+                    }}
+                    onMouseEnter={(e) => {
+                      if (selectedAssignee !== assignee) {
+                        e.currentTarget.style.background = "#f3f4f6";
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (selectedAssignee !== assignee) {
+                        e.currentTarget.style.background = "#fff";
+                      }
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: "32px",
+                        height: "32px",
+                        borderRadius: "50%",
+                        backgroundColor: selectedAssignee === assignee ? "white" : "#4f46e5",
+                        color: selectedAssignee === assignee ? "#4f46e5" : "white",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        fontSize: "12px",
+                        fontWeight: 600,
+                        border: selectedAssignee === assignee ? "2px solid #4f46e5" : "none",
+                      }}
+                    >
+                      {assignee.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2)}
+                    </div>
+                    <div>
+                      <span style={{
+                        fontSize: 14,
+                        fontWeight: 500,
+                        color: selectedAssignee === assignee ? "white" : "#374151"
+                      }}>
+                        {assignee}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+
           {/* Hidden import input */}
           <input
             type="file"
