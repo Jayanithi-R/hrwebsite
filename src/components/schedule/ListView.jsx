@@ -1855,528 +1855,267 @@ export default function CourseDashboardEnhanced() {
     );
   };
 
-  // --- NEW: Edit Dialog Component ---
-  const EditDialog = () => {
-    const { isOpen, type, data, isEditing } = editDialog;
+  // --- Edit Dialog Component ---
+const EditDialog = () => {
+  const { isOpen, type, data, isEditing } = editDialog;
 
-    if (!isOpen) return null;
+  if (!isOpen) return null;
 
-    const renderFormField = (label, field, inputType = "text") => (
-      <div style={{ marginBottom: 16 }}>
-        <label style={{ display: 'block', marginBottom: 4, fontWeight: 500, color: '#374151' }}>
-          {label}
-        </label>
-        {inputType === "select" ? (
-          <select
-            value={data[field] || ""}
-            onChange={(e) => updateEditDialogData(field, e.target.value)}
-            style={{
-              width: '100%',
-              padding: '8px 12px',
-              border: '1px solid #d1d5db',
-              borderRadius: 6,
-              fontSize: 14
-            }}
-          >
-            {field === 'priority' ? (
-              priorities.map(p => <option key={p} value={p}>{p}</option>)
-            ) : field === 'assignee' ? (
-              [<option key="" value="">Select Assignee</option>,
-              ...dummyAssignees.map(a => <option key={a} value={a}>{a}</option>)]
-            ) : field === 'status' ? (
-              ["To Do", "In Progress", "Completed"].map(s => <option key={s} value={s}>{s}</option>)
-            ) : null}
-          </select>
-        ) : inputType === "textarea" ? (
-          <textarea
-            value={data[field] || ""}
-            onChange={(e) => updateEditDialogData(field, e.target.value)}
-            style={{
-              width: '100%',
-              padding: '8px 12px',
-              border: '1px solid #d1d5db',
-              borderRadius: 6,
-              fontSize: 14,
-              minHeight: 80,
-              resize: 'vertical'
-            }}
-          />
-        ) : (
-          <input
-            type={inputType}
-            value={data[field] || ""}
-            onChange={(e) => updateEditDialogData(field, e.target.value)}
-            style={{
-              width: '100%',
-              padding: '8px 12px',
-              border: '1px solid #d1d5db',
-              borderRadius: 6,
-              fontSize: 14
-            }}
-          />
-        )}
-      </div>
-    );
+  // File upload handler for edit dialog
+  const handleFileUploadEdit = (event) => {
+    const files = Array.from(event.target.files);
+    const newFiles = files.map(file => ({
+      id: uid(),
+      name: file.name,
+      type: file.type,
+      size: file.size,
+      url: URL.createObjectURL(file),
+      uploadedAt: new Date().toISOString()
+    }));
 
-    return (
-      <div style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        width: '100%',
-        height: '100%',
-        background: 'rgba(0,0,0,0.4)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        zIndex: 1001
-      }}>
-        <div style={{
-          background: '#fff',
-          borderRadius: 12,
-          padding: 24,
-          width: '90%',
-          maxWidth: 500,
-          maxHeight: '90vh',
-          overflowY: 'auto',
-          boxShadow: '0 20px 25px rgba(0,0,0,0.15)'
-        }}>
-          <div style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            marginBottom: 20,
-            paddingBottom: 16,
-            borderBottom: '1px solid #e5e7eb'
-          }}>
-            <div style={{ fontWeight: 600, fontSize: 20, color: '#111827' }}>
-              Edit {type?.charAt(0).toUpperCase() + type?.slice(1)}
-            </div>
-            <button onClick={closeEditDialog} style={{
-              background: 'transparent',
-              border: 'none',
-              cursor: 'pointer',
-              padding: 8,
-              borderRadius: 6,
-              color: '#6b7280',
-              transition: 'background 0.2s',
-              fontSize: 24,
-              width: 32,
-              height: 32,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}>
-              ×
-            </button>
-          </div>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            {renderFormField("Name", "name", "text")}
-            {renderFormField("Description", "description", "textarea")}
-            {renderFormField("Assignee", "assignee", "select")}
-            {renderFormField("Due Date", "due", "date")}
-            {renderFormField("Priority", "priority", "select")}
-            {renderFormField("Status", "status", "select")}
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <input
-                type="checkbox"
-                id="reminder"
-                checked={data.reminder || false}
-                onChange={(e) => updateEditDialogData("reminder", e.target.checked)}
-                style={{ width: 16, height: 16 }}
-              />
-              <label htmlFor="reminder" style={{ fontSize: 14, fontWeight: 500 }}>
-                Set Reminder
-              </label>
-            </div>
-          </div>
-
-          <div style={{ display: 'flex', gap: 12, marginTop: 24 }}>
-            <button
-              onClick={handleSaveEdit}
-              style={{
-                padding: '12px 24px',
-                background: '#4f46e5',
-                color: '#fff',
-                border: 'none',
-                borderRadius: 8,
-                cursor: 'pointer',
-                fontWeight: 500,
-                fontSize: 16,
-                flex: 1
-              }}
-            >
-              Save Changes
-            </button>
-            <button
-              onClick={closeEditDialog}
-              style={{
-                padding: '12px 24px',
-                background: '#f3f4f6',
-                color: '#374151',
-                border: 'none',
-                borderRadius: 8,
-                cursor: 'pointer',
-                fontWeight: 500,
-                fontSize: 16,
-                flex: 1
-              }}
-            >
-              Cancel
-            </button>
-          </div>
-        </div>
-      </div>
-    );
+    updateEditDialogData("files", [...(data.files || []), ...newFiles]);
   };
 
-  // --- NEW: View Dialog Component ---
-  const ViewDialog = () => {
-    const { isOpen, type, data } = viewDialog;
-
-    if (!isOpen) return null;
-
-    const renderDetailRow = (label, value, IconComponent) => (
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '8px 0', borderBottom: '1px solid #f3f4f6' }}>
-        {IconComponent && <IconComponent size={16} color="#6b7280" />}
-        <div style={{ flex: 1 }}>
-          <div style={{ fontSize: 12, color: '#6b7280', fontWeight: 500 }}>{label}</div>
-          <div style={{ fontSize: 14, color: '#374151' }}>{value || "—"}</div>
-        </div>
-      </div>
-    );
-
-    return (
-      <div style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        width: '100%',
-        height: '100%',
-        background: 'rgba(0,0,0,0.4)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        zIndex: 1001
-      }}>
-        <div style={{
-          background: '#fff',
-          borderRadius: 12,
-          padding: 24,
-          width: '90%',
-          maxWidth: 500,
-          maxHeight: '90vh',
-          overflowY: 'auto',
-          boxShadow: '0 20px 25px rgba(0,0,0,0.15)'
-        }}>
-          <div style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            marginBottom: 20,
-            paddingBottom: 16,
-            borderBottom: '1px solid #e5e7eb'
-          }}>
-            <div style={{ fontWeight: 600, fontSize: 20, color: '#111827' }}>
-              {data?.name || "Untitled"}
-            </div>
-            <button onClick={closeViewDialog} style={{
-              background: 'transparent',
-              border: 'none',
-              cursor: 'pointer',
-              padding: 8,
-              borderRadius: 6,
-              color: '#6b7280',
-              transition: 'background 0.2s',
-              fontSize: 24,
-              width: 32,
-              height: 32,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}>
-              ×
-            </button>
-          </div>
-
-          <div style={{ marginBottom: 20 }}>
-            <div style={{
-              display: 'inline-block',
-              padding: '4px 12px',
-              background: type === 'event' ? '#e0f2fe' : '#f3f4f6',
-              color: type === 'event' ? '#0369a1' : '#374151',
-              borderRadius: 12,
-              fontSize: 12,
-              fontWeight: 500
-            }}>
-              {type?.charAt(0).toUpperCase() + type?.slice(1)}
-            </div>
-          </div>
-
-          <div style={{ marginBottom: 24 }}>
-            {renderDetailRow("Description", data?.description, FileText)}
-            {renderDetailRow("Assignee", data?.assignee, User)}
-            {renderDetailRow("Due Date", data?.due, CalendarIcon)}
-            {renderDetailRow("Priority", data?.priority, Flag)}
-            {renderDetailRow("Status", data?.status, CheckCircle)}
-            {renderDetailRow("Reminder", data?.reminder ? "Yes" : "No", Bell)}
-            {renderDetailRow("Created", data?.createdAt ? new Date(data.createdAt).toLocaleDateString() : "—", Clock)}
-            {renderDetailRow("Last Updated", data?.updatedAt ? new Date(data.updatedAt).toLocaleDateString() : "—", Save)}
-          </div>
-
-          {data?.files && data.files.length > 0 && (
-            <div style={{ marginBottom: 24 }}>
-              <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 12, color: '#374151' }}>
-                Attached Files ({data.files.length})
-              </div>
-              {data.files.map(file => (
-                <div key={file.id} style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: '8px 12px',
-                  background: '#f8fafc',
-                  borderRadius: 6,
-                  marginBottom: 4
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <FileText size={16} />
-                    <span style={{ fontSize: 14 }}>{file.name}</span>
-                  </div>
-                  <button
-                    onClick={() => handleFilePreview(file)}
-                    style={{
-                      background: 'none',
-                      border: 'none',
-                      color: '#4f46e5',
-                      cursor: 'pointer',
-                      padding: 4
-                    }}
-                    title="Preview"
-                  >
-                    <Eye size={16} />
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-
-          <div style={{ display: 'flex', gap: 12 }}>
-
-            <button
-              onClick={closeViewDialog}
-              style={{
-                padding: '12px 24px',
-                background: '#f3f4f6',
-                color: '#374151',
-                border: 'none',
-                borderRadius: 8,
-                cursor: 'pointer',
-                fontWeight: 500,
-                fontSize: 16,
-                flex: 1
-              }}
-            >
-              Close
-            </button>
-          </div>
-        </div>
-      </div>
-    );
+  // Remove file from edit dialog
+  const removeFileEdit = (fileId) => {
+    updateEditDialogData("files", (data.files || []).filter(file => file.id !== fileId));
   };
 
-  // --- Enhanced Modal Content ---
-  const renderModalContent = () => {
-    const currentType = isEvent ? 'event' : itemType;
-    const currentForm = formData[currentType] || {};
+  const renderFormField = (label, field, inputType = "text") => (
+    <div style={{ marginBottom: 16 }}>
+      <label style={{ display: 'block', marginBottom: 4, fontWeight: 500, color: '#374151' }}>
+        {label}
+      </label>
+      {inputType === "select" ? (
+        <select
+          value={data[field] || ""}
+          onChange={(e) => updateEditDialogData(field, e.target.value)}
+          style={{
+            width: '100%',
+            padding: '8px 12px',
+            border: '1px solid #d1d5db',
+            borderRadius: 6,
+            fontSize: 14
+          }}
+        >
+          {field === 'priority' ? (
+            priorities.map(p => <option key={p} value={p}>{p}</option>)
+          ) : field === 'assignee' ? (
+            [<option key="" value="">Select Assignee</option>,
+            ...dummyAssignees.map(a => <option key={a} value={a}>{a}</option>)]
+          ) : field === 'status' ? (
+            ["To Do", "In Progress", "Completed"].map(s => <option key={s} value={s}>{s}</option>)
+          ) : null}
+        </select>
+      ) : inputType === "textarea" ? (
+        <textarea
+          value={data[field] || ""}
+          onChange={(e) => updateEditDialogData(field, e.target.value)}
+          style={{
+            width: '100%',
+            padding: '8px 12px',
+            border: '1px solid #d1d5db',
+            borderRadius: 6,
+            fontSize: 14,
+            minHeight: 80,
+            resize: 'vertical'
+          }}
+        />
+      ) : (
+        <input
+          type={inputType}
+          value={data[field] || ""}
+          onChange={(e) => updateEditDialogData(field, e.target.value)}
+          style={{
+            width: '100%',
+            padding: '8px 12px',
+            border: '1px solid #d1d5db',
+            borderRadius: 6,
+            fontSize: 14
+          }}
+        />
+      )}
+    </div>
+  );
 
-    return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-        {/* Main Toggle - Event vs Project/Task/Subtask */}
+  return (
+    <div style={{
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      width: '100%',
+      height: '100%',
+      background: 'rgba(0,0,0,0.4)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      zIndex: 1001
+    }}>
+      <div style={{
+        background: '#fff',
+        borderRadius: 12,
+        padding: 24,
+        width: '90%',
+        maxWidth: 500,
+        maxHeight: '90vh',
+        overflowY: 'auto',
+        boxShadow: '0 20px 25px rgba(0,0,0,0.15)'
+      }}>
         <div style={{
           display: 'flex',
-          gap: 8,
-          marginBottom: 10,
-          borderBottom: '1px solid #e5e7eb',
-          paddingBottom: 8
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginBottom: 20,
+          paddingBottom: 16,
+          borderBottom: '1px solid #e5e7eb'
         }}>
-          <button
-            onClick={() => setIsEvent(false)}
-            style={!isEvent ? {
-              flex: 1,
-              padding: '10px 16px',
-              border: 'none',
-              borderBottom: '3px solid #4f46e5',
-              background: 'transparent',
-              fontWeight: 600,
-              cursor: 'pointer',
-              color: '#4f46e5',
-              fontSize: 16,
-              transition: 'all 0.2s',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 8
-            } : {
-              flex: 1,
-              padding: '10px 16px',
-              border: 'none',
-              borderBottom: '3px solid transparent',
-              background: 'transparent',
-              fontWeight: 400,
-              cursor: 'pointer',
-              color: '#6b7280',
-              fontSize: 16,
-              transition: 'all 0.2s',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 8
-            }}
-          >
-            <Target size={18} />
-            Project/Task
-          </button>
-          <button
-            onClick={() => setIsEvent(true)}
-            style={isEvent ? {
-              flex: 1,
-              padding: '10px 16px',
-              border: 'none',
-              borderBottom: '3px solid #4f46e5',
-              background: 'transparent',
-              fontWeight: 600,
-              cursor: 'pointer',
-              color: '#4f46e5',
-              fontSize: 16,
-              transition: 'all 0.2s',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 8
-            } : {
-              flex: 1,
-              padding: '10px 16px',
-              border: 'none',
-              borderBottom: '3px solid transparent',
-              background: 'transparent',
-              fontWeight: 400,
-              cursor: 'pointer',
-              color: '#6b7280',
-              fontSize: 16,
-              transition: 'all 0.2s',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 8
-            }}
-          >
-            <Clock size={18} />
-            Event
+          <div style={{ fontWeight: 600, fontSize: 20, color: '#111827' }}>
+            Edit {type?.charAt(0).toUpperCase() + type?.slice(1)}
+          </div>
+          <button onClick={closeEditDialog} style={{
+            background: 'transparent',
+            border: 'none',
+            cursor: 'pointer',
+            padding: 8,
+            borderRadius: 6,
+            color: '#6b7280',
+            transition: 'background 0.2s',
+            fontSize: 24,
+            width: 32,
+            height: 32,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}>
+            ×
           </button>
         </div>
 
-        {/* Name Field */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-          <label style={{ fontSize: 14, fontWeight: 500, color: "#374151" }}>
-            {`${isEvent ? "Event" : itemType.charAt(0).toUpperCase() + itemType.slice(1)} Name`}
-          </label>
-          <input
-            type="text"
-            value={currentForm.name || ""}
-            onChange={(e) => updateFormData(currentType, "name", e.target.value)}
-            placeholder={`Enter ${isEvent ? "event" : itemType} name`}
-            style={{
-              padding: "8px 10px",
-              border: "1px solid #ccc",
-              borderRadius: 6,
-              fontSize: 14,
-              outline: "none",
-            }}
-          />
-        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          {renderFormField("Name", "name", "text")}
+          {renderFormField("Description", "description", "textarea")}
+          {renderFormField("Assignee", "assignee", "select")}
+          {renderFormField("Due Date", "due", "date")}
+          {renderFormField("Priority", "priority", "select")}
+          {renderFormField("Status", "status", "select")}
 
-        {/* Description Field */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-          <label style={{ fontSize: 14, fontWeight: 500, color: "#374151" }}>Description</label>
-          <input
-            type="text"
-            value={currentForm.description || ""}
-            onChange={(e) => updateFormData(currentType, "description", e.target.value)}
-            placeholder="Enter description"
-            style={{
-              padding: "8px 10px",
-              border: "1px solid #ccc",
-              borderRadius: 6,
-              fontSize: 14,
-              outline: "none",
-            }}
-          />
-        </div>
-
-        {/* Form Row - Assignee, Due Date, Priority */}
-        <FormRow>
-          <div style={{ flex: 1, minWidth: 150, display: "flex", flexDirection: "column" }}>
-            <FormField
-              label="Assignee"
-              type="select"
-              value={currentForm.assignee || ""}
-              onChange={e => updateFormData(currentType, 'assignee', e.target.value)}
-              options={["", ...dummyAssignees]}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <input
+              type="checkbox"
+              id="reminder"
+              checked={data.reminder || false}
+              onChange={(e) => updateEditDialogData("reminder", e.target.checked)}
+              style={{ width: 16, height: 16 }}
             />
-          </div>
-          <div style={{ flex: 1, minWidth: 150, display: "flex", flexDirection: "column" }}>
-            <FormField
-              label="Due Date"
-              type="date"
-              value={currentForm.due || ""}
-              onChange={e => updateFormData(currentType, 'due', e.target.value)}
-            />
-          </div>
-          <div style={{ flex: 1, minWidth: 150, display: "flex", flexDirection: "column" }}>
-            <FormField
-              label="Priority"
-              type="select"
-              value={currentForm.priority || "Low"}
-              onChange={e => updateFormData(currentType, 'priority', e.target.value)}
-              options={priorities}
-            />
-          </div>
-        </FormRow>
-
-        {/* Toggles Section */}
-        <div style={{
-          border: '1px solid #e5e7eb',
-          borderRadius: 8,
-          padding: 16,
-          background: '#f8fafc'
-        }}>
-          <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 12, color: '#374151' }}>
-            Settings
+            <label htmlFor="reminder" style={{ fontSize: 14, fontWeight: 500 }}>
+              Set Reminder
+            </label>
           </div>
 
-          <ToggleSwitch
-            label="Set Reminder"
-            checked={currentForm.reminder || false}
-            onChange={(checked) => updateFormData(currentType, 'reminder', checked)}
-            icon={Bell}
-          />
+          {/* File Upload Section for Edit Dialog */}
+          <div>
+            <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 8, color: '#374151' }}>
+              Files
+            </div>
+            <div style={{ border: '2px dashed #d1d5db', borderRadius: 8, padding: 16, textAlign: 'center' }}>
+              <input
+                type="file"
+                multiple
+                onChange={handleFileUploadEdit}
+                style={{ display: 'none' }}
+                id="file-upload-edit"
+              />
+              <label
+                htmlFor="file-upload-edit"
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: 8,
+                  cursor: 'pointer',
+                  color: '#6b7280'
+                }}
+              >
+                <FolderOpen size={24} />
+                <div>
+                  <div style={{ fontWeight: 500, color: '#374151' }}>Click to upload files</div>
+                  <div style={{ fontSize: 12 }}>or drag and drop</div>
+                </div>
+              </label>
+            </div>
+
+            {/* Uploaded Files List */}
+            {data.files && data.files.length > 0 && (
+              <div style={{ marginTop: 16 }}>
+                <div style={{ fontSize: 14, fontWeight: 500, marginBottom: 8 }}>Attached Files:</div>
+                {data.files.map(file => (
+                  <div
+                    key={file.id}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '8px 12px',
+                      background: '#f8fafc',
+                      borderRadius: 6,
+                      marginBottom: 4
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1 }}>
+                      <FileText size={16} />
+                      <span style={{ fontSize: 14 }}>{file.name}</span>
+                    </div>
+                    <div style={{ display: 'flex', gap: 4 }}>
+                      <button
+                        onClick={() => handleFilePreview(file)}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          color: '#4f46e5',
+                          cursor: 'pointer',
+                          padding: 4
+                        }}
+                        title="Preview"
+                      >
+                        <Eye size={16} />
+                      </button>
+                      <button
+                        onClick={() => handleFileDownload(file)}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          color: '#059669',
+                          cursor: 'pointer',
+                          padding: 4
+                        }}
+                        title="Download"
+                      >
+                        <Save size={16} />
+                      </button>
+                      <button
+                        onClick={() => removeFileEdit(file.id)}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          color: '#ef4444',
+                          cursor: 'pointer',
+                          padding: 4
+                        }}
+                        title="Remove"
+                      >
+                        <X size={16} />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
 
-        {/* File Upload Section */}
-        <div>
-          <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 8, color: '#374151' }}>
-            File Upload
-          </div>
-          <FileUploadSection />
-        </div>
-
-        {/* Action Buttons */}
-        <div style={{ display: 'flex', gap: 12, marginTop: 8 }}>
+        <div style={{ display: 'flex', gap: 12, marginTop: 24 }}>
           <button
-            onClick={addItem}
+            onClick={handleSaveEdit}
             style={{
               padding: '12px 24px',
               background: '#4f46e5',
@@ -2386,14 +2125,13 @@ export default function CourseDashboardEnhanced() {
               cursor: 'pointer',
               fontWeight: 500,
               fontSize: 16,
-              flex: 1,
-              transition: 'background 0.2s'
+              flex: 1
             }}
           >
-            Create {isEvent ? 'Event' : itemType.charAt(0).toUpperCase() + itemType.slice(1)}
+            Save Changes
           </button>
           <button
-            onClick={closeModal}
+            onClick={closeEditDialog}
             style={{
               padding: '12px 24px',
               background: '#f3f4f6',
@@ -2403,16 +2141,432 @@ export default function CourseDashboardEnhanced() {
               cursor: 'pointer',
               fontWeight: 500,
               fontSize: 16,
-              flex: 1,
-              transition: 'background 0.2s'
+              flex: 1
             }}
           >
             Cancel
           </button>
         </div>
       </div>
-    );
+    </div>
+  );
+};
+
+// ---  View Dialog Component ---
+const ViewDialog = () => {
+  const { isOpen, type, data } = viewDialog;
+
+  if (!isOpen) return null;
+
+  const renderDetailRow = (label, value, IconComponent) => (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '8px 0', borderBottom: '1px solid #f3f4f6' }}>
+      {IconComponent && <IconComponent size={16} color="#6b7280" />}
+      <div style={{ flex: 1 }}>
+        <div style={{ fontSize: 12, color: '#6b7280', fontWeight: 500 }}>{label}</div>
+        <div style={{ fontSize: 14, color: '#374151' }}>{value || "—"}</div>
+      </div>
+    </div>
+  );
+
+  // Enhanced file actions for view dialog
+  const handleFileAction = (file, action) => {
+    switch (action) {
+      case 'preview':
+        handleFilePreview(file);
+        break;
+      case 'download':
+        handleFileDownload(file);
+        break;
+      default:
+        break;
+    }
   };
+
+  return (
+    <div style={{
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      width: '100%',
+      height: '100%',
+      background: 'rgba(0,0,0,0.4)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      zIndex: 1001
+    }}>
+      <div style={{
+        background: '#fff',
+        borderRadius: 12,
+        padding: 24,
+        width: '90%',
+        maxWidth: 500,
+        maxHeight: '90vh',
+        overflowY: 'auto',
+        boxShadow: '0 20px 25px rgba(0,0,0,0.15)'
+      }}>
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginBottom: 20,
+          paddingBottom: 16,
+          borderBottom: '1px solid #e5e7eb'
+        }}>
+          <div style={{ fontWeight: 600, fontSize: 20, color: '#111827' }}>
+            {data?.name || "Untitled"}
+          </div>
+          <button onClick={closeViewDialog} style={{
+            background: 'transparent',
+            border: 'none',
+            cursor: 'pointer',
+            padding: 8,
+            borderRadius: 6,
+            color: '#6b7280',
+            transition: 'background 0.2s',
+            fontSize: 24,
+            width: 32,
+            height: 32,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}>
+            ×
+          </button>
+        </div>
+
+        <div style={{ marginBottom: 20 }}>
+          <div style={{
+            display: 'inline-block',
+            padding: '4px 12px',
+            background: type === 'event' ? '#e0f2fe' : '#f3f4f6',
+            color: type === 'event' ? '#0369a1' : '#374151',
+            borderRadius: 12,
+            fontSize: 12,
+            fontWeight: 500
+          }}>
+            {type?.charAt(0).toUpperCase() + type?.slice(1)}
+          </div>
+        </div>
+
+        <div style={{ marginBottom: 24 }}>
+          {renderDetailRow("Description", data?.description, FileText)}
+          {renderDetailRow("Assignee", data?.assignee, User)}
+          {renderDetailRow("Due Date", data?.due, CalendarIcon)}
+          {renderDetailRow("Priority", data?.priority, Flag)}
+          {renderDetailRow("Status", data?.status, CheckCircle)}
+          {renderDetailRow("Reminder", data?.reminder ? "Yes" : "No", Bell)}
+          {renderDetailRow("Created", data?.createdAt ? new Date(data.createdAt).toLocaleDateString() : "—", Clock)}
+          {renderDetailRow("Last Updated", data?.updatedAt ? new Date(data.updatedAt).toLocaleDateString() : "—", Save)}
+        </div>
+
+        {data?.files && data.files.length > 0 && (
+          <div style={{ marginBottom: 24 }}>
+            <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 12, color: '#374151' }}>
+              Attached Files ({data.files.length})
+            </div>
+            {data.files.map(file => (
+              <div key={file.id} style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '8px 12px',
+                background: '#f8fafc',
+                borderRadius: 6,
+                marginBottom: 4
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1 }}>
+                  <FileText size={16} />
+                  <div style={{ display: 'flex', flexDirection: 'column' }}>
+                    <span style={{ fontSize: 14, fontWeight: 500 }}>{file.name}</span>
+                    <span style={{ fontSize: 12, color: '#6b7280' }}>
+                      {file.type} • {Math.round(file.size / 1024)} KB
+                    </span>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: 4 }}>
+                  <button
+                    onClick={() => handleFileAction(file, 'preview')}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: '#4f46e5',
+                      cursor: 'pointer',
+                      padding: 4
+                    }}
+                    title="Preview File"
+                  >
+                    <Eye size={16} />
+                  </button>
+                  <button
+                    onClick={() => handleFileAction(file, 'download')}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: '#059669',
+                      cursor: 'pointer',
+                      padding: 4
+                    }}
+                    title="Download File"
+                  >
+                    <Save size={16} />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <div style={{ display: 'flex', gap: 12 }}>
+          
+          <button
+            onClick={closeViewDialog}
+            style={{
+              padding: '12px 24px',
+              background: '#f3f4f6',
+              color: '#374151',
+              border: 'none',
+              borderRadius: 8,
+              cursor: 'pointer',
+              fontWeight: 500,
+              fontSize: 16,
+              flex: 1
+            }}
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Update the renderModalContent function to include ToggleSwitch
+const renderModalContent = () => {
+  const currentType = isEvent ? 'event' : itemType;
+  const currentForm = formData[currentType] || {};
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+      {/* Main Toggle - Event vs Project/Task/Subtask */}
+      <div style={{
+        display: 'flex',
+        gap: 8,
+        marginBottom: 10,
+        borderBottom: '1px solid #e5e7eb',
+        paddingBottom: 8
+      }}>
+        <button
+          onClick={() => setIsEvent(false)}
+          style={!isEvent ? {
+            flex: 1,
+            padding: '10px 16px',
+            border: 'none',
+            borderBottom: '3px solid #4f46e5',
+            background: 'transparent',
+            fontWeight: 600,
+            cursor: 'pointer',
+            color: '#4f46e5',
+            fontSize: 16,
+            transition: 'all 0.2s',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 8
+          } : {
+            flex: 1,
+            padding: '10px 16px',
+            border: 'none',
+            borderBottom: '3px solid transparent',
+            background: 'transparent',
+            fontWeight: 400,
+            cursor: 'pointer',
+            color: '#6b7280',
+            fontSize: 16,
+            transition: 'all 0.2s',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 8
+          }}
+        >
+          <Target size={18} />
+          Project/Task
+        </button>
+        <button
+          onClick={() => setIsEvent(true)}
+          style={isEvent ? {
+            flex: 1,
+            padding: '10px 16px',
+            border: 'none',
+            borderBottom: '3px solid #4f46e5',
+            background: 'transparent',
+            fontWeight: 600,
+            cursor: 'pointer',
+            color: '#4f46e5',
+            fontSize: 16,
+            transition: 'all 0.2s',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 8
+          } : {
+            flex: 1,
+            padding: '10px 16px',
+            border: 'none',
+            borderBottom: '3px solid transparent',
+            background: 'transparent',
+            fontWeight: 400,
+            cursor: 'pointer',
+            color: '#6b7280',
+            fontSize: 16,
+            transition: 'all 0.2s',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 8
+          }}
+        >
+          <Clock size={18} />
+          Event
+        </button>
+      </div>
+
+      {/* Name Field */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+        <label style={{ fontSize: 14, fontWeight: 500, color: "#374151" }}>
+          {`${isEvent ? "Event" : itemType.charAt(0).toUpperCase() + itemType.slice(1)} Name`}
+        </label>
+        <input
+          type="text"
+          value={currentForm.name || ""}
+          onChange={(e) => updateFormData(currentType, "name", e.target.value)}
+          placeholder={`Enter ${isEvent ? "event" : itemType} name`}
+          style={{
+            padding: "8px 10px",
+            border: "1px solid #ccc",
+            borderRadius: 6,
+            fontSize: 14,
+            outline: "none",
+          }}
+        />
+      </div>
+
+      {/* Description Field */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+        <label style={{ fontSize: 14, fontWeight: 500, color: "#374151" }}>Description</label>
+        <input
+          type="text"
+          value={currentForm.description || ""}
+          onChange={(e) => updateFormData(currentType, "description", e.target.value)}
+          placeholder="Enter description"
+          style={{
+            padding: "8px 10px",
+            border: "1px solid #ccc",
+            borderRadius: 6,
+            fontSize: 14,
+            outline: "none",
+          }}
+        />
+      </div>
+
+      {/* Form Row - Assignee, Due Date, Priority */}
+      <FormRow>
+        <div style={{ flex: 1, minWidth: 150, display: "flex", flexDirection: "column" }}>
+          <FormField
+            label="Assignee"
+            type="select"
+            value={currentForm.assignee || ""}
+            onChange={e => updateFormData(currentType, 'assignee', e.target.value)}
+            options={["", ...dummyAssignees]}
+          />
+        </div>
+        <div style={{ flex: 1, minWidth: 150, display: "flex", flexDirection: "column" }}>
+          <FormField
+            label="Due Date"
+            type="date"
+            value={currentForm.due || ""}
+            onChange={e => updateFormData(currentType, 'due', e.target.value)}
+          />
+        </div>
+        <div style={{ flex: 1, minWidth: 150, display: "flex", flexDirection: "column" }}>
+          <FormField
+            label="Priority"
+            type="select"
+            value={currentForm.priority || "Low"}
+            onChange={e => updateFormData(currentType, 'priority', e.target.value)}
+            options={priorities}
+          />
+        </div>
+      </FormRow>
+
+      {/* Toggles Section */}
+      <div style={{
+        border: '1px solid #e5e7eb',
+        borderRadius: 8,
+        padding: 16,
+        background: '#f8fafc'
+      }}>
+        <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 12, color: '#374151' }}>
+          Settings
+        </div>
+
+        <ToggleSwitch
+          label="Set Reminder"
+          checked={currentForm.reminder || false}
+          onChange={(checked) => updateFormData(currentType, 'reminder', checked)}
+          icon={Bell}
+        />
+      </div>
+
+      {/* File Upload Section */}
+      <div>
+        <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 8, color: '#374151' }}>
+          File Upload
+        </div>
+        <FileUploadSection />
+      </div>
+
+      {/* Action Buttons */}
+      <div style={{ display: 'flex', gap: 12, marginTop: 8 }}>
+        <button
+          onClick={addItem}
+          style={{
+            padding: '12px 24px',
+            background: '#4f46e5',
+            color: '#fff',
+            border: 'none',
+            borderRadius: 8,
+            cursor: 'pointer',
+            fontWeight: 500,
+            fontSize: 16,
+            flex: 1,
+            transition: 'background 0.2s'
+          }}
+        >
+          Create {isEvent ? 'Event' : itemType.charAt(0).toUpperCase() + itemType.slice(1)}
+        </button>
+        <button
+          onClick={closeModal}
+          style={{
+            padding: '12px 24px',
+            background: '#f3f4f6',
+            color: '#374151',
+            border: 'none',
+            borderRadius: 8,
+            cursor: 'pointer',
+            fontWeight: 500,
+            fontSize: 16,
+            flex: 1,
+            transition: 'background 0.2s'
+          }}
+        >
+          Cancel
+        </button>
+      </div>
+    </div>
+  );
+};
 
   // --- Light Toolbar ---
   const LightToolbar = () => {
@@ -2710,7 +2864,8 @@ export default function CourseDashboardEnhanced() {
               </div>
             )}
           </div>
-
+          
+          
           {/* Hidden import input */}
           <input
             type="file"
